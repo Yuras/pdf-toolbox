@@ -12,7 +12,9 @@ module Pdf.Toolbox.XRef
   prevXRef,
   trailer,
   lookupEntry,
-  lookupEntry'
+  lookupEntry',
+  readObject,
+  lookupObject
 )
 where
 
@@ -24,6 +26,7 @@ import Control.Monad
 import Pdf.Toolbox.Object.Types
 import Pdf.Toolbox.Object.Util
 import Pdf.Toolbox.IO
+import Pdf.Toolbox.Parsers.Object
 import Pdf.Toolbox.Parsers.XRef
 import Pdf.Toolbox.Stream
 import Pdf.Toolbox.Error
@@ -58,6 +61,37 @@ data XRef =
   -- | Stream with decoded content
   XRefStream (Stream Int64)
   deriving Show
+
+-- | Lookup object by indirect reference
+lookupObject :: MonadIO m => RIS -> [StreamFilter] -> Ref -> PdfE m (Object Int64)
+lookupObject ris filters ref = lookupEntry ris filters ref >>= readObject ris
+
+-- | Read object
+readObject :: MonadIO m => RIS -> XRefEntry -> PdfE m (Object Int64)
+readObject ris (XRefTableEntry entry)
+  | teIsFree entry = return ONull
+  | otherwise = readObject' ris (teOffset entry) (teGen entry)
+readObject ris (XRefStreamEntry entry) =
+  case entry of
+    StreamEntryFree _ _ -> return ONull
+    StreamEntryUsed off gen -> readObject' ris off gen
+    StreamEntryCompressed _ _ -> left $ UnexpectedError "readObject: compressed objects are not supported yet"
+
+readObject' :: MonadIO m => RIS -> Int64 -> Int -> PdfE m (Object Int64)
+readObject' ris off gen = do
+  seek ris off
+  (Ref _ gen', o) <- inputStream ris >>= parse parseIndirectObject
+  unless (gen == gen') $ left $ UnexpectedError $ "Generation mismatch, expected: " ++ show gen ++ ", found: " ++ show gen'
+  case o of
+    ONumber val -> return $ ONumber val
+    OBoolean val -> return $ OBoolean val
+    OName val -> return $ OName val
+    ODict val -> return $ ODict val
+    OArray val -> return $ OArray val
+    OStr val -> return $ OStr val
+    OStream (Stream dict _) -> (OStream . Stream dict) `liftM` tell ris
+    ORef _ -> left $ UnexpectedError "Indirect object can't be ORef"
+    ONull -> return ONull
 
 -- | Find the last cross reference
 lastXRef :: MonadIO m => RIS -> PdfE m XRef
