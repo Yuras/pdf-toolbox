@@ -1,0 +1,32 @@
+name:                pdf-toolbox
+version:             0.0.1.0
+synopsis:            Tools to work with PDF files
+-- description:         
+license:             BSD3
+license-file:        LICENSE
+author:              Yuras Shumovich
+maintainer:          shumovichy@gmail.com
+-- copyright:           
+category:            PDF
+build-type:          Simple
+cabal-version:       >=1.8
+
+library
+  hs-source-dirs:      lib
+  exposed-modules:     Pdf.Toolbox.IO.RIS,
+                       Pdf.Toolbox.IO.Monad,
+                       Pdf.Toolbox.Object.Types,
+                       Pdf.Toolbox.Object.Util,
+                       Pdf.Toolbox.Error,
+                       Pdf.Toolbox.Parsers.Object,
+                       Pdf.Toolbox.Parsers.XRef,
+                       Pdf.Toolbox.Parsers.Util,
+                       Pdf.Toolbox.Stream.Filter.Type
+                       Pdf.Toolbox.Stream
+  -- other-modules:       
+  build-depends:       base ==4.6.*,
+                       bytestring,
+                       io-streams,
+                       attoparsec,
+                       errors,
+                       transformers
