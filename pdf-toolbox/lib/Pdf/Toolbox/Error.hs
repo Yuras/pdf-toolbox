@@ -7,12 +7,12 @@ module Pdf.Toolbox.Error
   PdfE,
   annotateError,
   annotatingError,
-  tryIO
+  tryPdfIO,
+  module Control.Error
 )
 where
 
-import Control.Error hiding (tryIO)
-import qualified Control.Error as Error
+import Control.Error
 import Control.Monad.IO.Class
 
 -- | Errors
@@ -40,5 +40,5 @@ annotatingError :: Monad m => PdfE m a -> String -> PdfE m a
 annotatingError = flip annotateError
 
 -- | Catch exception if any and convert to 'IOError'
-tryIO :: MonadIO m => IO a -> PdfE m a
-tryIO action = fmapLT IOError (Error.tryIO action)
+tryPdfIO :: MonadIO m => IO a -> PdfE m a
+tryPdfIO action = fmapLT IOError (tryIO action)

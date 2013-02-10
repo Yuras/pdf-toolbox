@@ -8,7 +8,7 @@ module Pdf.Toolbox.IO.RIS
   RIS'(..),
   seek,
   size,
-  position,
+  tell,
   inputStream,
   fromHandle,
   fromHandle'
@@ -78,8 +78,8 @@ size :: RIS -> IO Int64
 size (RIS ref) = risSize <$> readIORef ref
 
 -- | Current position in bytes
-position :: RIS -> IO Int64
-position (RIS ref) = readIORef ref >>= risPos
+tell :: RIS -> IO Int64
+tell (RIS ref) = readIORef ref >>= risPos
 
 -- | Get sequential input stream, that is valid until the next 'seek'
 inputStream :: RIS -> IO IS

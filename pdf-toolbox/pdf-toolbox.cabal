@@ -13,8 +13,8 @@ cabal-version:       >=1.8
 
 library
   hs-source-dirs:      lib
-  exposed-modules:     Pdf.Toolbox.IO.RIS
-                       Pdf.Toolbox.IO.Monad
+  exposed-modules:     Pdf.Toolbox.IO
+                       Pdf.Toolbox.IO.RIS
                        Pdf.Toolbox.Object.Types
                        Pdf.Toolbox.Object.Util
                        Pdf.Toolbox.Error

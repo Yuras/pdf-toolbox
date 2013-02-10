@@ -17,19 +17,15 @@ module Pdf.Toolbox.XRef
 where
 
 import Data.Int
-import Data.Functor
 import qualified Data.ByteString as BS
 import Control.Error
 import Control.Monad
-import Control.Monad.Trans.Class
 
 import Pdf.Toolbox.Object.Types
 import Pdf.Toolbox.Object.Util
-import Pdf.Toolbox.IO.RIS (RIS, IS)
-import Pdf.Toolbox.IO.Monad
+import Pdf.Toolbox.IO
 import Pdf.Toolbox.Parsers.XRef
 import Pdf.Toolbox.Stream
-import Pdf.Toolbox.Stream.Filter.Type
 import Pdf.Toolbox.Error
 
 -- | Entry in cross reference table
@@ -64,67 +60,68 @@ data XRef =
   deriving Show
 
 -- | Find the last cross reference
-lastXRef :: MonadPdfIO m => RIS -> PdfE m XRef
+lastXRef :: MonadIO m => RIS -> PdfE m XRef
 lastXRef ris = annotateError "Can't find the last xref" $ do
   sz <- size ris
   seek ris $ max 0 (sz - 1024)
-  off <- parseRIS ris startXRef
+  off <- inputStream ris >>= parse startXRef
   readXRef ris off
 
-readXRef :: MonadPdfIO m => RIS -> Int64 -> PdfE m XRef
+readXRef :: MonadIO m => RIS -> Int64 -> PdfE m XRef
 readXRef ris off = do
   seek ris off
   table <- inputStream ris >>= isTable
   if table
     then return $ XRefTable off
-    else XRefStream <$> readStream ris
+    else XRefStream `liftM` readStream ris
 
-isTable :: MonadPdfIO m => IS -> PdfE m Bool
-isTable ris = do
-  res <- lift $ runEitherT (parse ris tableXRef)
+isTable :: MonadIO m => IS -> PdfE m Bool
+isTable is = do
+  res <- runEitherT (parse tableXRef is)
   case res of
     Right _ -> return True
     Left _ -> return False
 
 -- | Find prev cross reference
-prevXRef :: MonadPdfIO m => RIS -> XRef -> PdfE m (Maybe XRef)
+prevXRef :: MonadIO m => RIS -> XRef -> PdfE m (Maybe XRef)
 prevXRef ris xref = annotateError "Can't find prev xref" $ do
   tr <- trailer ris xref
   prev <- runEitherT $ lookupDict "Prev" tr
   case prev of
     Right p -> do
       off <- fromObject p >>= intValue
-      Just <$> readXRef ris (fromIntegral off)
+      Just `liftM` readXRef ris (fromIntegral off)
     Left _ -> return Nothing
 
 -- | Read trailer for the xref
-trailer :: MonadPdfIO m => RIS -> XRef -> PdfE m Dict
-trailer ris (XRefTable off) = do
+trailer :: MonadIO m => RIS -> XRef -> PdfE m Dict
+trailer ris (XRefTable off) = annotateError ("Reading trailer for xref table: " ++ show off) $ do
   seek ris off
   inputStream ris >>= \is -> do
+    _ <- isTable is
     skipTable is
-    parse is parseTrailerAfterTable
+    parse parseTrailerAfterTable is
 trailer _ (XRefStream (Stream dict _)) = return dict
 
-skipTable :: MonadPdfIO m => IS -> PdfE m ()
+skipTable :: MonadIO m => IS -> PdfE m ()
 skipTable is =
   subsectionHeader is >>= go . snd
   where
   go count = nextSubsectionHeader is count >>= maybe (return ()) (go . snd)
 
-subsectionHeader :: MonadPdfIO m => IS -> PdfE m (Int, Int)
-subsectionHeader is = parse is parseSubsectionHeader
+subsectionHeader :: MonadIO m => IS -> PdfE m (Int, Int)
+subsectionHeader = parse parseSubsectionHeader
 
-nextSubsectionHeader :: MonadPdfIO m => IS -> Int -> PdfE m (Maybe (Int, Int))
+nextSubsectionHeader :: MonadIO m => IS -> Int -> PdfE m (Maybe (Int, Int))
 nextSubsectionHeader is count = do
   skipSubsection is count
-  hush <$> lift (runEitherT $ subsectionHeader is)
+  hush `liftM` (runEitherT $ subsectionHeader is)
 
-skipSubsection :: MonadPdfIO m => IS -> Int -> PdfE m ()
+skipSubsection :: MonadIO m => IS -> Int -> PdfE m ()
 skipSubsection is count = dropExactly (count * 20) is
 
 -- | Find xref entity for ref
-lookupEntry :: MonadPdfIO m => RIS -> [StreamFilter] -> Ref -> PdfE m XRefEntry
+lookupEntry :: MonadIO m => RIS -> [StreamFilter] -> Ref -> PdfE m XRefEntry
 lookupEntry ris filters ref = annotateError ("Can't find entity for ref: " ++ show ref) $
   lastXRef ris >>= loop
   where
@@ -139,7 +136,7 @@ lookupEntry ris filters ref = annotateError ("Can't find entity for ref: " ++ sh
           Just xref' -> loop xref'
 
 -- | Find entity for ref in the specified xref
-lookupEntry' :: MonadPdfIO m => RIS -> [StreamFilter] -> Ref -> XRef -> PdfE m (Maybe XRefEntry)
+lookupEntry' :: MonadIO m => RIS -> [StreamFilter] -> Ref -> XRef -> PdfE m (Maybe XRefEntry)
 lookupEntry' ris filters ref xref =
   annotateError ("Can't find entry in xref " ++ show xref ++ " for ref " ++ show ref) $
     lookup'
@@ -148,12 +145,13 @@ lookupEntry' ris filters ref xref =
     case xref of
       (XRefTable off) -> do
         seek ris off
-        fmap XRefTableEntry <$> readTableEntry ris ref
+        _ <- inputStream ris >>= isTable
+        fmap XRefTableEntry `liftM` readTableEntry ris ref
       (XRefStream s) -> do
         decoded <- streamContent ris filters s
-        fmap XRefStreamEntry <$> readStreamEntry decoded ref
+        fmap XRefStreamEntry `liftM` readStreamEntry decoded ref
 
-readTableEntry :: MonadPdfIO m => RIS -> Ref -> PdfE m (Maybe TableEntry)
+readTableEntry :: MonadIO m => RIS -> Ref -> PdfE m (Maybe TableEntry)
 readTableEntry ris (Ref index gen) = annotateError "Can't read entry from xref table" $
   inputStream ris >>= subsectionHeader >>= go
   where
@@ -161,7 +159,7 @@ readTableEntry ris (Ref index gen) = annotateError "Can't read entry from xref t
     if index >= start && index < start + count
       then do
         tell ris >>= seek ris . (+ (fromIntegral $ index - start) * 20)
-        (off, gen', free) <- parseRIS ris parseTableEntry
+        (off, gen', free) <- inputStream ris >>= parse parseTableEntry
         unless (gen == gen') $ left $ UnexpectedError "Generation mismatch"
         return $ Just $ TableEntry off gen free
       else do
@@ -169,7 +167,7 @@ readTableEntry ris (Ref index gen) = annotateError "Can't read entry from xref t
         nextSubsectionHeader is count >>= maybe (return Nothing) go
 
 -- See pdf1.7 spec: 7.5.8 Cross-Reference Streams
-readStreamEntry :: MonadPdfIO m => Stream IS -> Ref -> PdfE m (Maybe StreamEntry)
+readStreamEntry :: MonadIO m => Stream IS -> Ref -> PdfE m (Maybe StreamEntry)
 readStreamEntry (Stream dict is) (Ref objNumber _) = annotateError "Can't parse xref stream" $ do
   sz <- lookupDict "Size" dict >>= fromObject >>= intValue
 
@@ -200,7 +198,7 @@ readStreamEntry (Stream dict is) (Ref objNumber _) = annotateError "Can't parse 
             else Just (pos + totalWidth * (objNumber - from))
     case position of
       Nothing -> return Nothing
-      Just p -> dropExactly p is >> Just . BS.unpack <$> readExactly totalWidth is
+      Just p -> dropExactly p is >> (Just . BS.unpack) `liftM` readExactly totalWidth is
 
   case values of
     Nothing -> return Nothing

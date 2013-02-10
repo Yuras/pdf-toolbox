@@ -4,6 +4,8 @@
 
 module Pdf.Toolbox.Stream
 (
+  StreamFilter,
+  knownFilters,
   rawStreamContent,
   streamContent,
   readStream,
@@ -12,23 +14,28 @@ module Pdf.Toolbox.Stream
 where
 
 import Data.Int
-import Data.Functor
-import Control.Monad
 import Control.Error
+import Control.Monad
 
 import Pdf.Toolbox.Object.Types
 import Pdf.Toolbox.Object.Util
-import Pdf.Toolbox.IO.RIS (RIS, IS)
-import Pdf.Toolbox.IO.Monad
+import Pdf.Toolbox.IO
 import Pdf.Toolbox.Parsers.Object
 import Pdf.Toolbox.Stream.Filter.Type
+import Pdf.Toolbox.Stream.Filter.FlateDecode
 import Pdf.Toolbox.Error
+
+-- | All stream filters implemented by the toolbox
+--
+-- Right now it contains only FlateDecode filter
+knownFilters :: [StreamFilter]
+knownFilters = [flateDecode]
 
 -- | Raw content of stream.
 -- Filters are not applyed
 --
 -- The 'IS' is valid only until the next 'MonadPdfIO' operation
-rawStreamContent :: MonadPdfIO m => RIS -> Stream Int64 -> PdfE m (Stream IS)
+rawStreamContent :: MonadIO m => RIS -> Stream Int64 -> PdfE m (Stream IS)
 rawStreamContent ris (Stream dict off) = do
   seek ris off
   sz <- lookupDict "Length" dict >>= fromObject >>= intValue
@@ -36,24 +43,24 @@ rawStreamContent ris (Stream dict off) = do
   return $ Stream dict is
 
 -- | Decoded stream content
-streamContent :: MonadPdfIO m => RIS -> [StreamFilter] -> Stream Int64 -> PdfE m (Stream IS)
+streamContent :: MonadIO m => RIS -> [StreamFilter] -> Stream Int64 -> PdfE m (Stream IS)
 streamContent ris filters s = rawStreamContent ris s >>= decodeStream filters
 
 -- | Read 'Stream' at the current position in the 'RIS'
-readStream :: MonadPdfIO m => RIS -> PdfE m (Stream Int64)
+readStream :: MonadIO m => RIS -> PdfE m (Stream Int64)
 readStream ris = do
-  Stream dict _ <- parseRIS ris parseIndirectObject >>= toStream . snd
-  Stream dict <$> tell ris
+  Stream dict _ <- inputStream ris >>= parse parseIndirectObject >>= toStream . snd
+  Stream dict `liftM` tell ris
 
 -- | Decode stream content
-decodeStream :: MonadPdfIO m => [StreamFilter] -> Stream IS -> PdfE m (Stream IS)
+decodeStream :: MonadIO m => [StreamFilter] -> Stream IS -> PdfE m (Stream IS)
 decodeStream filters (Stream dict istream) = annotateError "Can't decode stream" $ do
   list <- buildFilterList dict
-  Stream dict <$> foldM decode istream list
+  Stream dict `liftM` foldM decode istream list
   where
   decode is (name, params) = do
     f <- findFilter name
-    applyFilter f params is
+    liftIO $ filterDecode f params is
   findFilter name = tryHead (UnexpectedError $ "Filter not found: " ++ show name) $
     filter ((== name) . filterName) filters
 
