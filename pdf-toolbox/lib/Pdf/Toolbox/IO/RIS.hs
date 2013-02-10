@@ -75,7 +75,7 @@ fromHandle h = fromHandle' h 32752
 
 -- | Number of bytes in the stream
 size :: RIS -> IO Int64
-size (RIS ref) = readIORef ref >>= risPos
+size (RIS ref) = risSize <$> readIORef ref
 
 -- | Current position in bytes
 position :: RIS -> IO Int64

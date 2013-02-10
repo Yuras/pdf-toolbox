@@ -41,4 +41,4 @@ annotatingError = flip annotateError
 
 -- | Catch exception if any and convert to 'IOError'
 tryIO :: MonadIO m => IO a -> PdfE m a
-tryIO action = fmapLT IOError $ Error.tryIO action
+tryIO action = fmapLT IOError (Error.tryIO action)

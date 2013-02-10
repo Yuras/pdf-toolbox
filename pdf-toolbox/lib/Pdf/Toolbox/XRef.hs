@@ -10,6 +10,7 @@ module Pdf.Toolbox.XRef
   StreamEntry(..),
   lastXRef,
   prevXRef,
+  trailer,
   lookupEntry,
   lookupEntry'
 )
@@ -80,7 +81,7 @@ readXRef ris off = do
 
 isTable :: MonadPdfIO m => IS -> PdfE m Bool
 isTable ris = do
-  res <- runEitherT (lift $ parse ris tableXRef)
+  res <- lift $ runEitherT (parse ris tableXRef)
   case res of
     Right _ -> return True
     Left _ -> return False
@@ -96,6 +97,7 @@ prevXRef ris xref = annotateError "Can't find prev xref" $ do
       Just <$> readXRef ris (fromIntegral off)
     Left _ -> return Nothing
 
+-- | Read trailer for the xref
 trailer :: MonadPdfIO m => RIS -> XRef -> PdfE m Dict
 trailer ris (XRefTable off) = do
   seek ris off
@@ -116,7 +118,7 @@ subsectionHeader is = parse is parseSubsectionHeader
 nextSubsectionHeader :: MonadPdfIO m => IS -> Int -> PdfE m (Maybe (Int, Int))
 nextSubsectionHeader is count = do
   skipSubsection is count
-  hush <$> runEitherT (lift $ subsectionHeader is)
+  hush <$> lift (runEitherT $ subsectionHeader is)
 
 skipSubsection :: MonadPdfIO m => IS -> Int -> PdfE m ()
 skipSubsection is count = dropExactly (count * 20) is

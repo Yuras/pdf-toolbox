@@ -22,6 +22,7 @@ library
                        Pdf.Toolbox.Parsers.XRef
                        Pdf.Toolbox.Parsers.Util
                        Pdf.Toolbox.Stream.Filter.Type
+                       Pdf.Toolbox.Stream.Filter.FlateDecode
                        Pdf.Toolbox.Stream
                        Pdf.Toolbox.XRef
   -- other-modules:       
