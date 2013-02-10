@@ -5,7 +5,9 @@
 module Pdf.Toolbox.Stream
 (
   rawStreamContent,
-  readStream
+  streamContent,
+  readStream,
+  decodeStream
 )
 where
 
@@ -17,6 +19,7 @@ import Pdf.Toolbox.Object.Util
 import Pdf.Toolbox.IO.RIS (RIS, IS)
 import Pdf.Toolbox.IO.Monad
 import Pdf.Toolbox.Parsers.Object
+import Pdf.Toolbox.Stream.Filter.Type
 import Pdf.Toolbox.Error
 
 -- | Raw content of stream.
@@ -30,8 +33,16 @@ rawStreamContent ris (Stream dict off) = do
   is <- inputStream ris >>= takeBytes (fromIntegral sz)
   return $ Stream dict is
 
+-- | Decoded stream content
+streamContent :: MonadPdfIO m => RIS -> [StreamFilter] -> Stream Int64 -> PdfE m (Stream IS)
+streamContent ris filters s = rawStreamContent ris s >>= decodeStream filters
+
 -- | Read 'Stream' at the current position in the 'RIS'
 readStream :: MonadPdfIO m => RIS -> PdfE m (Stream Int64)
 readStream ris = do
   Stream dict _ <- parseRIS ris parseIndirectObject >>= toStream . snd
   Stream dict <$> tell ris
+
+-- | Decode stream content
+decodeStream :: MonadPdfIO m => [StreamFilter] -> Stream IS -> PdfE m (Stream IS)
+decodeStream = error "decodeStream not implemented yet"

@@ -9,6 +9,7 @@ module Pdf.Toolbox.IO.Monad
 where
 
 import Data.Int
+import Data.ByteString (ByteString)
 import Data.Attoparsec.ByteString (Parser)
 import qualified System.IO.Streams as Streams
 import System.IO.Streams.Attoparsec (parseFromStream)
@@ -26,6 +27,9 @@ class (Functor m, Monad m) => MonadPdfIO m where
   inputStream :: RIS -> PdfE m IS
   -- | See 'Streams.takeBytes'
   takeBytes :: Int64 -> IS -> PdfE m IS
+  -- | See 'Streams.readExactly'
+  readExactly :: Int -> IS -> PdfE m ByteString
+  dropExactly :: Int -> IS -> PdfE m ()
 
 -- | Parse from 'RIS'
 parseRIS :: MonadPdfIO m => RIS -> Parser r -> PdfE m r
@@ -40,3 +44,5 @@ instance MonadPdfIO IO where
   inputStream = tryIO . RIS.inputStream
   parse is p = tryIO $ parseFromStream p is
   takeBytes n = tryIO . Streams.takeBytes n
+  readExactly n = tryIO . Streams.readExactly n
+  dropExactly n ris = tryIO $ Streams.readExactly n ris >> return ()

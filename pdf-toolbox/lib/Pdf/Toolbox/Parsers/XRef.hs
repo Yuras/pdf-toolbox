@@ -12,6 +12,7 @@ module Pdf.Toolbox.Parsers.XRef
 )
 where
 
+import Data.Int
 import Data.Attoparsec (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
 import Control.Applicative (many)
@@ -33,7 +34,7 @@ import Pdf.Toolbox.Parsers.Util
 --
 -- >>> parseOnly startXRef "anything...startxref\n222\n%%EOF...blah\nstartxref\n123\n%%EOF"
 -- Right 123
-startXRef :: Parser Int
+startXRef :: Parser Int64
 startXRef = do
   res <- many $ do
     _ <- P.manyTill P.anyChar $ P.string "startxref"
@@ -81,7 +82,7 @@ parseTrailerAfterTable = do
   parseDict
 
 -- | Parse XRef table entry. Returns offset, generation and whether the object is free.
-parseTableEntry :: Parser (Int, Int, Bool)
+parseTableEntry :: Parser (Int64, Int, Bool)
 parseTableEntry = do
   offset <- P.decimal
   P.skipSpace

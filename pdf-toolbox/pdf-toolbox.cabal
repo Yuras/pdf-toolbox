@@ -13,16 +13,17 @@ cabal-version:       >=1.8
 
 library
   hs-source-dirs:      lib
-  exposed-modules:     Pdf.Toolbox.IO.RIS,
-                       Pdf.Toolbox.IO.Monad,
-                       Pdf.Toolbox.Object.Types,
-                       Pdf.Toolbox.Object.Util,
-                       Pdf.Toolbox.Error,
-                       Pdf.Toolbox.Parsers.Object,
-                       Pdf.Toolbox.Parsers.XRef,
-                       Pdf.Toolbox.Parsers.Util,
+  exposed-modules:     Pdf.Toolbox.IO.RIS
+                       Pdf.Toolbox.IO.Monad
+                       Pdf.Toolbox.Object.Types
+                       Pdf.Toolbox.Object.Util
+                       Pdf.Toolbox.Error
+                       Pdf.Toolbox.Parsers.Object
+                       Pdf.Toolbox.Parsers.XRef
+                       Pdf.Toolbox.Parsers.Util
                        Pdf.Toolbox.Stream.Filter.Type
                        Pdf.Toolbox.Stream
+                       Pdf.Toolbox.XRef
   -- other-modules:       
   build-depends:       base ==4.6.*,
                        bytestring,
