@@ -1,7 +1,7 @@
 
 -- | Error used by API
 
-module Pdf.Toolbox.Error
+module Pdf.Toolbox.Core.Error
 (
   PdfError(..),
   PdfE,

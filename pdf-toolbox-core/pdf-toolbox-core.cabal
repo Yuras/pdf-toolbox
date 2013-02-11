@@ -1,0 +1,48 @@
+name:                pdf-toolbox-core
+version:             0.0.1.0
+synopsis:            A collection of tools for processing PDF files.
+license:             BSD3
+license-file:        LICENSE
+author:              Yuras Shumovich
+maintainer:          Yuras Shumovich <shumovichy@gmail.com>
+copyright:           Copyright (c) Yuras Shumovich 2012-2013
+category:            PDF
+build-type:          Simple
+cabal-version:       >=1.8
+description:
+  Low level tools for processing PDF files.
+  .
+  The API is based on random access input streams, and is designed to be memory efficient.
+  We don't need to parse the entire PDF file and store it in memory when you need just one page or two.
+  Usually it is also leads to time efficiency, but we don't try optimize performance
+  by e.g. maintaining xref or object cache. Higher level layers should take care of it.
+  .
+  The library is low level. It may mean that you need to be familiar with PDF file internals to
+  actually use it.
+  .
+  Right now object streams and encryption are not supported (but cross reference streams are supported).
+  Also nothing was done yet to optimize loading of linearized PDF files.
+
+library
+  hs-source-dirs:      lib
+  exposed-modules:     Pdf.Toolbox.Core
+                       Pdf.Toolbox.Core.IO
+                       Pdf.Toolbox.Core.IO.RIS
+                       Pdf.Toolbox.Core.Object.Types
+                       Pdf.Toolbox.Core.Object.Util
+                       Pdf.Toolbox.Core.Error
+                       Pdf.Toolbox.Core.Parsers.Object
+                       Pdf.Toolbox.Core.Parsers.XRef
+                       Pdf.Toolbox.Core.Parsers.Util
+                       Pdf.Toolbox.Core.Stream.Filter.Type
+                       Pdf.Toolbox.Core.Stream.Filter.FlateDecode
+                       Pdf.Toolbox.Core.Stream
+                       Pdf.Toolbox.Core.XRef
+  -- other-modules:       
+  build-depends:       base ==4.6.*,
+                       bytestring,
+                       -- see https://github.com/snapframework/io-streams
+                       io-streams,
+                       attoparsec,
+                       errors,
+                       transformers

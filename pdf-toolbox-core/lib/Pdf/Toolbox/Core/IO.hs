@@ -2,7 +2,7 @@
 
 -- | Basic IO operations for PDF
 
-module Pdf.Toolbox.IO
+module Pdf.Toolbox.Core.IO
 (
   IS,
   RIS,
@@ -25,15 +25,14 @@ import Data.Int
 import Data.Functor
 import Data.Attoparsec (Parser)
 import Data.ByteString (ByteString)
-import Control.Error hiding (tryIO)
 import Control.Monad.IO.Class
 import Control.Exception
 import qualified System.IO.Streams as Streams
 import qualified System.IO.Streams.Attoparsec as Streams
 
-import Pdf.Toolbox.Error
-import qualified Pdf.Toolbox.IO.RIS as RIS
-import Pdf.Toolbox.IO.RIS (RIS, IS)
+import Pdf.Toolbox.Core.Error
+import qualified Pdf.Toolbox.Core.IO.RIS as RIS
+import Pdf.Toolbox.Core.IO.RIS (RIS, IS)
 
 -- | Total number of bytes in 'RIS'
 size :: MonadIO m => RIS -> PdfE m Int64

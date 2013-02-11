@@ -1,7 +1,7 @@
 
 -- | Utils
 
-module Pdf.Toolbox.Parsers.Util
+module Pdf.Toolbox.Core.Parsers.Util
 (
   endOfLine
 )

@@ -2,7 +2,7 @@
 
 -- | Flate decode filter
 
-module Pdf.Toolbox.Stream.Filter.FlateDecode
+module Pdf.Toolbox.Core.Stream.Filter.FlateDecode
 (
   flateDecode
 )
@@ -13,10 +13,10 @@ import qualified Data.ByteString as BS
 import Control.Error
 import qualified System.IO.Streams as Streams
 
-import Pdf.Toolbox.IO.RIS
-import Pdf.Toolbox.Object.Types
-import Pdf.Toolbox.Object.Util
-import Pdf.Toolbox.Stream.Filter.Type
+import Pdf.Toolbox.Core.IO
+import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Object.Util
+import Pdf.Toolbox.Core.Stream.Filter.Type
 
 -- | Vary basic implementation. Only PNG-UP prediction is implemented
 flateDecode :: StreamFilter

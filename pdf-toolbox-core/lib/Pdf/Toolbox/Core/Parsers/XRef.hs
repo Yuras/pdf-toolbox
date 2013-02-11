@@ -2,7 +2,7 @@
 
 -- | Parsers for XRef
 
-module Pdf.Toolbox.Parsers.XRef
+module Pdf.Toolbox.Core.Parsers.XRef
 (
   startXRef,
   tableXRef,
@@ -17,9 +17,9 @@ import Data.Attoparsec (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
 import Control.Applicative (many)
 
-import Pdf.Toolbox.Object.Types
-import Pdf.Toolbox.Parsers.Object
-import Pdf.Toolbox.Parsers.Util
+import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Parsers.Object
+import Pdf.Toolbox.Core.Parsers.Util
 
 -- for doctest
 -- $setup

@@ -3,7 +3,7 @@
 --
 -- See PDF1.7:7.3
 
-module Pdf.Toolbox.Object.Types
+module Pdf.Toolbox.Core.Object.Types
 (
   Object(..),
   Number(..),

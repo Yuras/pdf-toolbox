@@ -2,7 +2,7 @@
 
 -- | Stream related tools
 
-module Pdf.Toolbox.Stream
+module Pdf.Toolbox.Core.Stream
 (
   StreamFilter,
   knownFilters,
@@ -14,16 +14,15 @@ module Pdf.Toolbox.Stream
 where
 
 import Data.Int
-import Control.Error
 import Control.Monad
 
-import Pdf.Toolbox.Object.Types
-import Pdf.Toolbox.Object.Util
-import Pdf.Toolbox.IO
-import Pdf.Toolbox.Parsers.Object
-import Pdf.Toolbox.Stream.Filter.Type
-import Pdf.Toolbox.Stream.Filter.FlateDecode
-import Pdf.Toolbox.Error
+import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Object.Util
+import Pdf.Toolbox.Core.IO
+import Pdf.Toolbox.Core.Parsers.Object
+import Pdf.Toolbox.Core.Stream.Filter.Type
+import Pdf.Toolbox.Core.Stream.Filter.FlateDecode
+import Pdf.Toolbox.Core.Error
 
 -- | All stream filters implemented by the toolbox
 --

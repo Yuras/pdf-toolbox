@@ -1,7 +1,7 @@
 
 -- | Input stream with random access
 
-module Pdf.Toolbox.IO.RIS
+module Pdf.Toolbox.Core.IO.RIS
 (
   IS,
   RIS(..),

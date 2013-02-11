@@ -2,7 +2,7 @@
 
 -- | Cross reference
 
-module Pdf.Toolbox.XRef
+module Pdf.Toolbox.Core.XRef
 (
   XRef(..),
   XRefEntry(..),
@@ -20,16 +20,15 @@ where
 
 import Data.Int
 import qualified Data.ByteString as BS
-import Control.Error
 import Control.Monad
 
-import Pdf.Toolbox.Object.Types
-import Pdf.Toolbox.Object.Util
-import Pdf.Toolbox.IO
-import Pdf.Toolbox.Parsers.Object
-import Pdf.Toolbox.Parsers.XRef
-import Pdf.Toolbox.Stream
-import Pdf.Toolbox.Error
+import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Object.Util
+import Pdf.Toolbox.Core.IO
+import Pdf.Toolbox.Core.Parsers.Object
+import Pdf.Toolbox.Core.Parsers.XRef
+import Pdf.Toolbox.Core.Stream
+import Pdf.Toolbox.Core.Error
 
 -- | Entry in cross reference table
 data TableEntry = TableEntry {

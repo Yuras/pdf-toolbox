@@ -1,14 +1,14 @@
 
 -- | Stream filter
 
-module Pdf.Toolbox.Stream.Filter.Type
+module Pdf.Toolbox.Core.Stream.Filter.Type
 (
   StreamFilter(..)
 )
 where
 
-import Pdf.Toolbox.Object.Types
-import Pdf.Toolbox.IO.RIS
+import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.IO
 
 -- | Stream filter
 data StreamFilter = StreamFilter {

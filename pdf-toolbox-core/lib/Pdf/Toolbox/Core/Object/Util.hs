@@ -1,7 +1,7 @@
 
 -- | Utils relayted to pdf objects
 
-module Pdf.Toolbox.Object.Util
+module Pdf.Toolbox.Core.Object.Util
 (
   -- * Casting pdf objects
   FromObject(..),
@@ -21,10 +21,8 @@ module Pdf.Toolbox.Object.Util
 )
 where
 
-import Control.Error
-
-import Pdf.Toolbox.Object.Types
-import Pdf.Toolbox.Error
+import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Error
 
 lookupDict :: Monad m => Name -> Dict -> PdfE m (Object ())
 lookupDict key (Dict d) =

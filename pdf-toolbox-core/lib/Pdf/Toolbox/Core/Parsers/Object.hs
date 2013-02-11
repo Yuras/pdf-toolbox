@@ -2,7 +2,7 @@
 
 -- | This module contains parsers for pdf objects
 
-module Pdf.Toolbox.Parsers.Object
+module Pdf.Toolbox.Core.Parsers.Object
 (
   -- * Parse any object
   parseObject,
@@ -28,8 +28,8 @@ import Data.Attoparsec (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
 import Control.Applicative
 
-import Pdf.Toolbox.Object.Types
-import Pdf.Toolbox.Parsers.Util
+import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Parsers.Util
 
 -- for doctest
 -- $setup
