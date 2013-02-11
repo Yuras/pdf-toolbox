@@ -57,7 +57,7 @@ data XRefEntry =
 data XRef =
   -- | Offset
   XRefTable Int64 |
-  -- | Stream with decoded content
+  -- | Stream with content offset
   XRefStream (Stream Int64)
   deriving Show
 
