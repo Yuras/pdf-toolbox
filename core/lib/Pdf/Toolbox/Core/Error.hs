@@ -33,7 +33,9 @@ type PdfE m = EitherT PdfError m
 -- Usefull when you want to add high-level description to
 -- error, returned by low-level function
 annotateError :: Monad m => String -> PdfE m a -> PdfE m a
-annotateError ann = fmapLT (AnnotatedError ann)
+annotateError ann = fmapLT (AnnotatedError ann')
+  where
+  ann' = if length ann <= 50 then ann else take 47 ann ++ "..."
 
 -- | 'annotateError' with fliped arguments
 annotatingError :: Monad m => PdfE m a -> String -> PdfE m a
