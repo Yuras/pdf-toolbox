@@ -15,6 +15,7 @@ module Pdf.Toolbox.Core.Object.Util
   toStream,
   -- * Dictionary
   lookupDict,
+  lookupDict',
   -- * Number
   intValue,
   realValue
@@ -29,6 +30,9 @@ lookupDict key (Dict d) =
   case lookup key d of
     Just o -> right o
     Nothing -> left $ UnexpectedError $ "Key not found: " ++ show key ++ " " ++ show d
+
+lookupDict' :: Name -> Dict -> Maybe (Object ())
+lookupDict' key (Dict d) = lookup key d
 
 intValue :: Monad m => Number -> PdfE m Int
 intValue (NumInt i) = right i

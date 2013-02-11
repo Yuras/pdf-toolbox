@@ -12,6 +12,8 @@ cabal-version:       >=1.8
 description:
   Low level tools for processing PDF files.
   .
+  Level of abstraction: cross reference, trailer, indirect object, object
+  .
   The API is based on random access input streams, and is designed to be memory efficient.
   We don't need to parse the entire PDF file and store it in memory when you need just one page or two.
   Usually it is also leads to time efficiency, but we don't try optimize performance
