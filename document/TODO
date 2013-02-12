@@ -1,5 +1,5 @@
 
 - Cache cross references
 - Cache objects
-- Find page by number
 - Implement more properties for Document, Catalog, Page
+- Incrementail updates

@@ -9,7 +9,8 @@ module Pdf.Toolbox.Document.PageNode
   pageNodeNKids,
   pageNodeParent,
   pageNodeKids,
-  loadPageNode
+  loadPageNode,
+  pageNodePageByNum
 )
 where
 
@@ -50,3 +51,22 @@ loadPageNode ref = do
     "Pages" -> return $ PageTreeNode $ PageNode ref node
     "Page" -> return $ PageTreeLeaf $ Page ref node
     _ -> left $ UnexpectedError $ "Unexpected page tree node type: " ++ show nodeType
+
+-- | Find page by it's number
+pageNodePageByNum :: MonadPdf m => PageNode -> Int -> PdfE m Page
+pageNodePageByNum node num = do
+  pageNodeKids node >>= loop num
+  where
+  loop _ [] = left $ UnexpectedError "Page not found"
+  loop i (x:xs) = do
+    kid <- loadPageNode x
+    case kid  of
+      PageTreeNode n -> do
+        nkids <- pageNodeNKids n
+        if i < nkids
+          then pageNodePageByNum n i
+          else loop (i - nkids) xs
+      PageTreeLeaf page ->
+        if i == 0
+          then return page
+          else loop (i - 1) xs
