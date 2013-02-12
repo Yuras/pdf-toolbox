@@ -53,6 +53,11 @@ loadPageNode ref = do
     _ -> left $ UnexpectedError $ "Unexpected page tree node type: " ++ show nodeType
 
 -- | Find page by it's number
+--
+-- Note: it is not efficient for PDF files with a lot of pages,
+-- because it performs traversal through the page tree each time.
+-- Use 'pageNodeNKids', 'pageNodeKids' and 'loadPageNode' for
+-- efficient traversal.
 pageNodePageByNum :: MonadPdf m => PageNode -> Int -> PdfE m Page
 pageNodePageByNum node num = do
   pageNodeKids node >>= loop num
