@@ -1,0 +1,30 @@
+name:                pdf-toolbox-document
+version:             0.0.1.0
+synopsis:            A collection of tools for processing PDF files.
+license:             BSD3
+license-file:        LICENSE
+author:              Yuras Shumovich
+maintainer:          Yuras Shumovich <shumovichy@gmail.com>
+copyright:           Copyright (c) Yuras Shumovich 2012-2013
+category:            PDF
+build-type:          Simple
+cabal-version:       >=1.8
+description:
+  Mid level tools for processing PDF files.
+  .
+  Level of abstraction: document, catalog, page
+
+library
+  hs-source-dirs:      lib
+  exposed-modules:     Pdf.Toolbox.Document
+                       Pdf.Toolbox.Document.Monad
+                       Pdf.Toolbox.Document.Pdf
+                       Pdf.Toolbox.Document.Document
+                       Pdf.Toolbox.Document.Catalog
+                       Pdf.Toolbox.Document.PageNode
+                       Pdf.Toolbox.Document.Page
+                       Pdf.Toolbox.Document.Internal.Types
+                       Pdf.Toolbox.Document.Internal.Util
+  build-depends:       base ==4.6.*,
+                       transformers,
+                       pdf-toolbox-core ==0.0.1.*
