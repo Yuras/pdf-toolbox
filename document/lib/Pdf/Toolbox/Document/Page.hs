@@ -5,7 +5,8 @@
 module Pdf.Toolbox.Document.Page
 (
   Page,
-  pageParentNode
+  pageParentNode,
+  pageContents
 )
 where
 
@@ -23,3 +24,12 @@ pageParentNode (Page _ dict) = do
   case node of
     PageTreeNode n -> return n
     PageTreeLeaf _ -> left $ UnexpectedError "page parent should be a note, but leaf should"
+
+-- | List of references to page's content streams
+pageContents :: MonadPdf m => Page -> PdfE m [Ref]
+pageContents (Page _ dict) = do
+  case lookupDict' "Contents" dict of
+    Nothing -> return []
+    Just (ORef ref) -> return [ref]
+    Just (OArray (Array objs)) -> mapM fromObject objs
+    _ -> left $ UnexpectedError "Unexpected value in page contents"
