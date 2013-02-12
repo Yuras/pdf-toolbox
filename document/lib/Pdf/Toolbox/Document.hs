@@ -23,6 +23,7 @@ module Pdf.Toolbox.Document
   module Pdf.Toolbox.Document.Page,
   module Pdf.Toolbox.Core.Error,
   module Pdf.Toolbox.Core.Object.Types,
+  module Pdf.Toolbox.Core.Object.Util,
   knownFilters
 )
 where
@@ -30,6 +31,7 @@ where
 import Pdf.Toolbox.Core (knownFilters)
 import Pdf.Toolbox.Core.Error
 import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Object.Util
 
 import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.Pdf

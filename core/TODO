@@ -1,4 +1,5 @@
 
 - Compressed objects
 - Linearized PDF
+- Fix FlateDecode filter, it throws exception sometimes. Not sure why.
 - Implement more stream filters

@@ -59,7 +59,7 @@ loadPageNode ref = do
 -- Use 'pageNodeNKids', 'pageNodeKids' and 'loadPageNode' for
 -- efficient traversal.
 pageNodePageByNum :: MonadPdf m => PageNode -> Int -> PdfE m Page
-pageNodePageByNum node num = do
+pageNodePageByNum node num = annotateError ("page #" ++ show num ++ " for node: " ++ show node) $ do
   pageNodeKids node >>= loop num
   where
   loop _ [] = left $ UnexpectedError "Page not found"

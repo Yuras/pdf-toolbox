@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 -- | Basic implementation of pdf monad
@@ -12,9 +13,9 @@ module Pdf.Toolbox.Document.Pdf
 )
 where
 
-import System.IO
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
+import System.IO
 
 import Pdf.Toolbox.Core as Core
 
@@ -37,6 +38,13 @@ instance MonadIO m => MonadPdf (Pdf' m) where
   lookupObject ref = do
     st <- lift $ Pdf' get
     Core.lookupObject (stRIS st) (stFilters st) ref
+  streamContent (Stream dict off) = do
+    ris <- getRIS
+    seek ris off
+    sz <- lookupDict "Length" dict >>= deref >>= fromObject >>= intValue
+    is <- inputStream ris >>= takeBytes (fromIntegral sz)
+    filters <- lift $ Pdf' $ gets stFilters
+    decodeStream filters (Stream dict is)
   getRIS = lift $ Pdf' $ gets stRIS
 
 -- | Execute PDF action with 'RIS'

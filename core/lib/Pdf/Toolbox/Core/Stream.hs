@@ -34,14 +34,20 @@ knownFilters = [flateDecode]
 -- Filters are not applyed
 --
 -- The 'IS' is valid only until the next 'MonadPdfIO' operation
+--
+-- Note: it doesn't works for streams where \"Length\" is indirect object
 rawStreamContent :: MonadIO m => RIS -> Stream Int64 -> PdfE m (Stream IS)
-rawStreamContent ris (Stream dict off) = do
+rawStreamContent ris (Stream dict off) = annotateError ("reading raw stream content at offset: " ++ show off) $ do
   seek ris off
   sz <- lookupDict "Length" dict >>= fromObject >>= intValue
   is <- inputStream ris >>= takeBytes (fromIntegral sz)
   return $ Stream dict is
 
 -- | Decoded stream content
+--
+-- The 'IS' is valid only until the next 'MonadPdfIO' operation
+--
+-- Note: it doesn't works for streams where \"Length\" is indirect object
 streamContent :: MonadIO m => RIS -> [StreamFilter] -> Stream Int64 -> PdfE m (Stream IS)
 streamContent ris filters s = rawStreamContent ris s >>= decodeStream filters
 
@@ -52,6 +58,8 @@ readStream ris = do
   Stream dict `liftM` tell ris
 
 -- | Decode stream content
+--
+-- The 'IS' is valid only until the next 'MonadPdfIO' operation
 decodeStream :: MonadIO m => [StreamFilter] -> Stream IS -> PdfE m (Stream IS)
 decodeStream filters (Stream dict istream) = annotateError "Can't decode stream" $ do
   list <- buildFilterList dict

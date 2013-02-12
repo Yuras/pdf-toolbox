@@ -3,16 +3,36 @@
 
 module Pdf.Toolbox.Document.Monad
 (
-  MonadPdf(..)
+  MonadPdf(..),
+  deref
 )
 where
 
 import Data.Int
 
-import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core hiding (lookupObject)
 
 -- | Interface to the underlying PDF file
 class Monad m => MonadPdf m where
   -- | find object by it's reference
   lookupObject :: Ref -> PdfE m (Object Int64)
+  -- | decoded stream content
+  streamContent :: Stream Int64 -> PdfE m (Stream IS)
+  -- | underlying 'RIS'
   getRIS :: PdfE m RIS
+
+-- | Recursively load indirect object
+deref :: MonadPdf m => Object () -> PdfE m (Object ())
+deref (ORef ref) = do
+  o <- lookupObject ref
+  case o of
+    ONumber n -> return $ ONumber n
+    OBoolean b -> return $ OBoolean b
+    OName name -> return $ OName name
+    ODict dict -> return $ ODict dict
+    OArray array -> return $ OArray array
+    OStr str -> return $ OStr str
+    OStream _ -> left $ UnexpectedError $ "deref: found steam for ref: " ++ show ref
+    ORef _ -> left $ UnexpectedError $ "deref: found ref for ref: " ++ show ref
+    ONull -> return ONull
+deref o = return o

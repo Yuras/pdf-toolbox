@@ -10,7 +10,7 @@ module Pdf.Toolbox.Document.Page
 )
 where
 
-import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core hiding (lookupObject)
 
 import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.PageNode
@@ -27,9 +27,16 @@ pageParentNode (Page _ dict) = do
 
 -- | List of references to page's content streams
 pageContents :: MonadPdf m => Page -> PdfE m [Ref]
-pageContents (Page _ dict) = do
+pageContents page@(Page _ dict) = annotateError ("contents for page: " ++ show page) $ do
   case lookupDict' "Contents" dict of
     Nothing -> return []
-    Just (ORef ref) -> return [ref]
+    Just (ORef ref) -> do
+      -- it could be reference to the only content stream,
+      -- or to an array of content streams
+      o <- lookupObject ref
+      case o of
+        OStream _ -> return [ref]
+        OArray (Array objs) -> mapM fromObject objs
+        _ -> left $ UnexpectedError $ "Unexpected value in page content ref: " ++ show o
     Just (OArray (Array objs)) -> mapM fromObject objs
     _ -> left $ UnexpectedError "Unexpected value in page contents"
