@@ -14,7 +14,7 @@ module Pdf.Toolbox.Document.PageNode
 )
 where
 
-import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core hiding (lookupObject)
 
 import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.Internal.Types
@@ -32,7 +32,7 @@ pageNodeParent (PageNode _ dict) =
     Nothing -> return Nothing
     Just o -> do
       ref <- fromObject o
-      node <- lookupObjectM ref >>= fromObject
+      node <- lookupObject ref >>= fromObject
       ensureType "Pages" node
       return $ Just $ PageNode ref node
 
@@ -45,7 +45,7 @@ pageNodeKids (PageNode _ dict) = do
 -- | Load page tree node by reference
 loadPageNode :: MonadPdf m => Ref -> PdfE m PageTree
 loadPageNode ref = do
-  node <- lookupObjectM ref >>= fromObject
+  node <- lookupObject ref >>= fromObject
   nodeType <- dictionaryType node
   case nodeType of
     "Pages" -> return $ PageTreeNode $ PageNode ref node

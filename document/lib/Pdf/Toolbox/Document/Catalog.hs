@@ -9,7 +9,7 @@ module Pdf.Toolbox.Document.Catalog
 )
 where
 
-import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core hiding (lookupObject)
 
 import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.Internal.Types
@@ -19,6 +19,6 @@ import Pdf.Toolbox.Document.Internal.Util
 catalogPageNode :: MonadPdf m => Catalog -> PdfE m PageNode
 catalogPageNode (Catalog _ dict) = do
   ref <- lookupDict "Pages" dict >>= fromObject
-  node <- lookupObjectM ref >>= fromObject
+  node <- lookupObject ref >>= fromObject
   ensureType "Pages" node
   return $ PageNode ref node

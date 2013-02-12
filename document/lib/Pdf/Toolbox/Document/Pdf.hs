@@ -16,7 +16,7 @@ import System.IO
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
 
-import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core as Core
 
 import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.Internal.Types
@@ -34,9 +34,9 @@ newtype Pdf' m a = Pdf' (StateT PdfState m a)
 type Pdf m a = PdfE (Pdf' m) a
 
 instance MonadIO m => MonadPdf (Pdf' m) where
-  lookupObjectM ref = do
+  lookupObject ref = do
     st <- lift $ Pdf' get
-    lookupObject (stRIS st) (stFilters st) ref
+    Core.lookupObject (stRIS st) (stFilters st) ref
   getRIS = lift $ Pdf' $ gets stRIS
 
 -- | Execute PDF action with 'RIS'

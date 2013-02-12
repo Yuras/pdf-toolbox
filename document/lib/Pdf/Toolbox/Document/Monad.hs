@@ -14,5 +14,5 @@ import Pdf.Toolbox.Core
 -- | Interface to the underlying PDF file
 class Monad m => MonadPdf m where
   -- | find object by it's reference
-  lookupObjectM :: Ref -> PdfE m (Object Int64)
+  lookupObject :: Ref -> PdfE m (Object Int64)
   getRIS :: PdfE m RIS
