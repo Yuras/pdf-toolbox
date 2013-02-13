@@ -62,3 +62,11 @@ Inspect high level structure:
 	      -- the first page of the document
 	      page <- pageNodePageByNum rootNode 0
 	      liftIO $ print page
+
+Install
+-------
+
+The library uses `io-streams` package. It is not in hackage yet.
+Clone it from the [repo](https://github.com/snapframework/io-streams)
+
+Then use `cabal install` as usual
