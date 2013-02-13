@@ -19,3 +19,4 @@ Still in TODO list
  * Support for object streams (aka compressed objects)
  * Encrypted PDF documents
  * Incremental updates
+ * Linearized PDF files
