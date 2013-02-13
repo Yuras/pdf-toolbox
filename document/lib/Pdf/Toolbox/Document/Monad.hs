@@ -22,9 +22,11 @@ class Monad m => MonadPdf m where
   getRIS :: PdfE m RIS
 
 -- | Recursively load indirect object
-deref :: MonadPdf m => Object () -> PdfE m (Object ())
+deref :: (MonadPdf m, Show a) => Object a -> PdfE m (Object ())
 deref (ORef ref) = do
   o <- lookupObject ref
+  deref o
+deref o =
   case o of
     ONumber n -> return $ ONumber n
     OBoolean b -> return $ OBoolean b
@@ -32,7 +34,6 @@ deref (ORef ref) = do
     ODict dict -> return $ ODict dict
     OArray array -> return $ OArray array
     OStr str -> return $ OStr str
-    OStream _ -> left $ UnexpectedError $ "deref: found steam for ref: " ++ show ref
-    ORef _ -> left $ UnexpectedError $ "deref: found ref for ref: " ++ show ref
+    OStream _ -> left $ UnexpectedError $ "deref: found steam for object: " ++ show o
+    ORef _ -> left $ UnexpectedError $ "deref: found ref for object: " ++ show o
     ONull -> return ONull
-deref o = return o

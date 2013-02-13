@@ -67,7 +67,7 @@ decodeStream filters (Stream dict istream) = annotateError "Can't decode stream"
   where
   decode is (name, params) = do
     f <- findFilter name
-    liftIO $ filterDecode f params is
+    tryPdfIO $ filterDecode f params is
   findFilter name = tryHead (UnexpectedError $ "Filter not found: " ++ show name) $
     filter ((== name) . filterName) filters
 

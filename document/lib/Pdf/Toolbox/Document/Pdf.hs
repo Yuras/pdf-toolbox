@@ -40,8 +40,8 @@ instance MonadIO m => MonadPdf (Pdf' m) where
     Core.lookupObject (stRIS st) (stFilters st) ref
   streamContent (Stream dict off) = do
     ris <- getRIS
-    seek ris off
     sz <- lookupDict "Length" dict >>= deref >>= fromObject >>= intValue
+    seek ris off
     is <- inputStream ris >>= takeBytes (fromIntegral sz)
     filters <- lift $ Pdf' $ gets stFilters
     decodeStream filters (Stream dict is)

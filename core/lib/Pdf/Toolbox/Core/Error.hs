@@ -1,3 +1,4 @@
+{-# LANGUAGE  ScopedTypeVariables #-}
 
 -- | Error used by API
 
@@ -13,6 +14,8 @@ module Pdf.Toolbox.Core.Error
 where
 
 import Control.Error
+import Control.Exception
+import Control.Monad
 import Control.Monad.IO.Class
 
 -- | Errors
@@ -43,4 +46,10 @@ annotatingError = flip annotateError
 
 -- | Catch exception if any and convert to 'IOError'
 tryPdfIO :: MonadIO m => IO a -> PdfE m a
-tryPdfIO action = fmapLT IOError (tryIO action)
+tryPdfIO action = do
+  res <- liftIO $ Right `liftM` action
+      `catch` (\(e :: IOError) -> return $ Left $ IOError e)
+      `catch` (\(e :: SomeException) -> return $ Left $ UnexpectedError $ show e)
+  case res of
+    Right a -> return a
+    Left e -> left e

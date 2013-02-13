@@ -1,5 +1,5 @@
 
 - Compressed objects
 - Linearized PDF
-- Fix FlateDecode filter, it throws exception sometimes. Not sure why.
+- Reimplement PNG-UP prediction. Right now it is strict, but should be lazy.
 - Implement more stream filters
