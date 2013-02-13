@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | Flate decode filter
 
@@ -10,7 +11,9 @@ where
 
 import Data.Word
 import qualified Data.ByteString as BS
+import Codec.Zlib
 import Control.Error
+import Control.Exception
 import qualified System.IO.Streams as Streams
 
 import Pdf.Toolbox.Core.IO
@@ -22,8 +25,14 @@ import Pdf.Toolbox.Core.Stream.Filter.Type
 flateDecode :: StreamFilter
 flateDecode = StreamFilter {
   filterName = "FlateDecode",
-  filterDecode = decode
+  filterDecode = \params is -> decode params is >>= catchZlibExceptions
   }
+
+catchZlibExceptions :: IS -> IO IS
+catchZlibExceptions is =
+  Streams.makeInputStream $
+    Streams.read is
+    `catch` (\(e :: ZlibException) -> throwIO $ DecodeException $ toException e)
 
 decode :: Maybe Dict -> IS -> IO IS
 decode Nothing is = Streams.decompress is

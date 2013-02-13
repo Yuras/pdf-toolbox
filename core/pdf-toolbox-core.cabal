@@ -47,4 +47,5 @@ library
                        io-streams,
                        attoparsec,
                        errors,
-                       transformers
+                       transformers,
+                       zlib-bindings
