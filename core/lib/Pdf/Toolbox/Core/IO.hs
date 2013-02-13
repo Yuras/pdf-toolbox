@@ -52,7 +52,6 @@ parse p is = do
   res <- liftIO $ (Right <$> Streams.parseFromStream p is)
     `catch` (\(Streams.ParseException str) -> return $ Left $ ParseError [] str)
     `catch` (\(e :: IOError) -> return $ Left $ IOError e)
-    `catch` (\(e :: SomeException) -> return $ Left $ UnexpectedError $ show e)
   case res of
     Left e -> left e
     Right r -> return r
