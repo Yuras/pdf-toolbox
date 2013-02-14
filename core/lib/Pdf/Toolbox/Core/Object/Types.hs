@@ -59,7 +59,7 @@ data Stream a = Stream Dict a
 
 -- | Object reference, contains object index and generation
 data Ref = Ref Int Int
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 -- | Any pdf object
 --

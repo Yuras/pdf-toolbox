@@ -27,4 +27,5 @@ library
                        Pdf.Toolbox.Document.Internal.Util
   build-depends:       base ==4.6.*,
                        transformers,
+                       containers,
                        pdf-toolbox-core ==0.0.1.*

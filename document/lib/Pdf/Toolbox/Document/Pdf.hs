@@ -9,10 +9,14 @@ module Pdf.Toolbox.Document.Pdf
   Pdf',
   runPdf,
   runPdfWithHandle,
-  document
+  document,
+  flushCache
 )
 where
 
+import Data.Int
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
@@ -27,7 +31,8 @@ import Pdf.Toolbox.Document.Internal.Types
 data PdfState = PdfState {
   stRIS :: RIS,
   stFilters :: [StreamFilter],
-  stLastXRef :: Maybe XRef
+  stLastXRef :: Maybe XRef,
+  stObjectCache :: Map Ref (Object Int64)
   }
 
 -- | Basic implementation of pdf monad
@@ -40,13 +45,18 @@ type Pdf m a = PdfE (Pdf' m) a
 instance MonadIO m => MonadPdf (Pdf' m) where
   lookupObject ref = do
     st <- lift $ Pdf' get
-    xref <- case stLastXRef st of
-              Just xr -> return xr
-              Nothing -> do
-                xr <- lastXRef (stRIS st)
-                lift $ Pdf' $ put st {stLastXRef = Just xr}
-                return xr
-    Core.lookupObject (stRIS st) (stFilters st) xref lookupM ref
+    case Map.lookup ref (stObjectCache st) of
+      Just o -> return o
+      Nothing -> do
+        xref <- case stLastXRef st of
+                  Just xr -> return xr
+                  Nothing -> do
+                    xr <- lastXRef (stRIS st)
+                    lift $ Pdf' $ put st {stLastXRef = Just xr}
+                    return xr
+        o <- Core.lookupObject (stRIS st) (stFilters st) xref lookupM ref
+        addObjectToCache ref o
+        return o
   streamContent s = do
     ris <- getRIS
     filters <- lift $ Pdf' $ gets stFilters
@@ -55,6 +65,14 @@ instance MonadIO m => MonadPdf (Pdf' m) where
 
 lookupM :: MonadIO m => Ref -> Pdf m (Object ())
 lookupM r = mapObject (const ()) `liftM` lookupObject r
+
+addObjectToCache :: Monad m => Ref -> Object Int64 -> Pdf m ()
+addObjectToCache ref o = lift $ Pdf' $ modify $ \st ->
+  st {stObjectCache = Map.insert ref o $ stObjectCache st}
+
+-- | Remove all objects from cache
+flushCache :: Monad m => Pdf m ()
+flushCache = lift $ Pdf' $ modify $ \st -> st {stObjectCache = Map.empty}
 
 -- | Execute PDF action with 'RIS'
 runPdf :: MonadIO m => RIS -> [StreamFilter] -> Pdf m a -> m (Either PdfError a)
@@ -67,7 +85,7 @@ runPdfWithHandle handle filters action = do
   runPdf ris filters action
 
 runPdf' :: MonadIO m => RIS -> [StreamFilter] -> Pdf' m a -> m a
-runPdf' ris filters (Pdf' action) = evalStateT action $ PdfState ris filters Nothing
+runPdf' ris filters (Pdf' action) = evalStateT action $ PdfState ris filters Nothing Map.empty
 
 -- | Get PDF document
 document :: MonadIO m => Pdf m Document
