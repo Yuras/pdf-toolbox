@@ -26,7 +26,8 @@ import Pdf.Toolbox.Document.Internal.Types
 
 data PdfState = PdfState {
   stRIS :: RIS,
-  stFilters :: [StreamFilter]
+  stFilters :: [StreamFilter],
+  stLastXRef :: Maybe XRef
   }
 
 -- | Basic implementation of pdf monad
@@ -39,14 +40,21 @@ type Pdf m a = PdfE (Pdf' m) a
 instance MonadIO m => MonadPdf (Pdf' m) where
   lookupObject ref = do
     st <- lift $ Pdf' get
-    Core.lookupObject (stRIS st) (stFilters st) ref
+    xref <- case stLastXRef st of
+              Just xr -> return xr
+              Nothing -> do
+                xr <- lastXRef (stRIS st)
+                lift $ Pdf' $ put st {stLastXRef = Just xr}
+                return xr
+    Core.lookupObject (stRIS st) (stFilters st) xref lookupM ref
   streamContent s = do
     ris <- getRIS
     filters <- lift $ Pdf' $ gets stFilters
     Core.streamContent ris filters lookupM s
-    where
-    lookupM r = mapObject (const ()) `liftM` lookupObject r
   getRIS = lift $ Pdf' $ gets stRIS
+
+lookupM :: MonadIO m => Ref -> Pdf m (Object ())
+lookupM r = mapObject (const ()) `liftM` lookupObject r
 
 -- | Execute PDF action with 'RIS'
 runPdf :: MonadIO m => RIS -> [StreamFilter] -> Pdf m a -> m (Either PdfError a)
@@ -59,7 +67,7 @@ runPdfWithHandle handle filters action = do
   runPdf ris filters action
 
 runPdf' :: MonadIO m => RIS -> [StreamFilter] -> Pdf' m a -> m a
-runPdf' ris filters (Pdf' action) = evalStateT action $ PdfState ris filters
+runPdf' ris filters (Pdf' action) = evalStateT action $ PdfState ris filters Nothing
 
 -- | Get PDF document
 document :: MonadIO m => Pdf m Document

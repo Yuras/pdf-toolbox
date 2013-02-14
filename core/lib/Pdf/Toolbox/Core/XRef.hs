@@ -61,15 +61,16 @@ data XRef =
   XRefStream (Stream Int64)
   deriving Show
 
--- | Lookup object by indirect reference
+-- | Lookup object by indirect reference starting from the specified xref
 lookupObject :: MonadIO m
              => RIS                             -- ^ input stream to read from
              -> [StreamFilter]                  -- ^ stream filters to use
+             -> XRef                            -- ^ xref to start from
+             -> (Ref -> PdfE m (Object ()))     -- ^ action to retrieve indirect object
+                                                -- (it could be call to 'lookupObject' itself)
              -> Ref                             -- ^ ref to lookup
              -> PdfE m (Object Int64)
-lookupObject ris filters ref = lookupEntry ris filters lookupM ref >>= readObject ris
-  where
-  lookupM r = mapObject (const ()) `liftM` lookupObject ris filters r
+lookupObject ris filters xref lookupM ref = lookupEntry ris filters xref lookupM ref >>= readObject ris
 
 -- | Read object
 readObject :: MonadIO m => RIS -> XRefEntry -> PdfE m (Object Int64)
@@ -159,10 +160,9 @@ nextSubsectionHeader is count = do
 skipSubsection :: MonadIO m => IS -> Int -> PdfE m ()
 skipSubsection is count = dropExactly (count * 20) is
 
--- | Find xref entity for ref
-lookupEntry :: MonadIO m => RIS -> [StreamFilter] -> (Ref -> PdfE m (Object ())) -> Ref -> PdfE m XRefEntry
-lookupEntry ris filters lookupM ref = annotateError ("Can't find entity for ref: " ++ show ref) $
-  lastXRef ris >>= loop
+-- | Find xref entity for ref starting from the specified xref
+lookupEntry :: MonadIO m => RIS -> [StreamFilter] -> XRef -> (Ref -> PdfE m (Object ())) -> Ref -> PdfE m XRefEntry
+lookupEntry ris filters xRef lookupM ref = annotateError ("Can't find entity for ref: " ++ show ref) $ loop xRef
   where
   loop xref = do
     res <- lookupEntry' ris filters lookupM ref xref
