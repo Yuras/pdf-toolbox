@@ -12,6 +12,8 @@ the entire PDF file just to extract one image
  * Different levels of abstraction. You can inspect high level (catalog, page tree, pages)
 or low level (xref, trailer, object) structure of PDF file.
 You can even switch between levels of details on the fly.
+ * Extremely fast and memory efficient when you need to inspect only part of the document
+ * Resonably fast and memory efficient in general case
 
 Still in TODO list
 ------------------
@@ -32,7 +34,8 @@ Inspect low level structure:
 	import System.IO
 	import Pdf.Toolbox.Core
 
-	main = withBinaryFile "input.pdf" ReadMode $ \handle -> do
+	main =
+	  withBinaryFile "input.pdf" ReadMode $ \handle -> do
 	    -- create random access input stream
 	    ris <- fromHandle handle
 	    runEitherT $ do
@@ -42,7 +45,7 @@ Inspect low level structure:
 	      -- "Root" element in trailer is an indirect object, pointing to document catalog
 	      root <- lookupDict "Root" tr >>= fromObject
 	      -- retrieve the catralog itself
-	      catalog <- lookupObject ris knownFilters root >>= toDict
+	      catalog <- lookupObject ris knownFilters xref undefined root >>= toDict
 	      liftIO $ print catalog
 	      -- then use the catalog to access pages, outlines, resources, content streams, etc
 

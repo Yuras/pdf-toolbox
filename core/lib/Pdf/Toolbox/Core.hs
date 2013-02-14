@@ -4,6 +4,10 @@
 -- Basic example how to access document catalog:
 --
 -- @
+--import System.IO
+--import Pdf.Toolbox.Core
+--
+--main =
 --  withBinaryFile \"input.pdf\" ReadMode $ \handle -> do
 --    -- create random access input stream
 --    ris <- 'fromHandle' handle
@@ -14,7 +18,7 @@
 --      -- \"Root\" element in trailer is an indirect object, pointing to document catalog
 --      root \<- 'lookupDict' \"Root\" tr >>= 'fromObject'
 --      -- retrieve the catralog itself
---      catalog \<- 'lookupObject' ris 'knownFilters' root >>= 'toStream'
+--      catalog \<- 'lookupObject' ris 'knownFilters' xref undefined root >>= 'toDict'
 --      liftIO $ print catalog
 --      -- then use the catalog to access pages, outlines, resources, content streams, etc
 -- @
