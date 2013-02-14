@@ -13,11 +13,13 @@ module Pdf.Toolbox.Document.Pdf
 )
 where
 
+import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
 import System.IO
 
-import Pdf.Toolbox.Core as Core
+import Pdf.Toolbox.Core hiding (lookupObject)
+import qualified Pdf.Toolbox.Core as Core
 
 import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.Internal.Types
@@ -38,13 +40,12 @@ instance MonadIO m => MonadPdf (Pdf' m) where
   lookupObject ref = do
     st <- lift $ Pdf' get
     Core.lookupObject (stRIS st) (stFilters st) ref
-  streamContent (Stream dict off) = do
+  streamContent s = do
     ris <- getRIS
-    sz <- lookupDict "Length" dict >>= deref >>= fromObject >>= intValue
-    seek ris off
-    is <- inputStream ris >>= takeBytes (fromIntegral sz)
     filters <- lift $ Pdf' $ gets stFilters
-    decodeStream filters (Stream dict is)
+    Core.streamContent ris filters lookupM s
+    where
+    lookupM r = mapObject (const ()) `liftM` lookupObject r
   getRIS = lift $ Pdf' $ gets stRIS
 
 -- | Execute PDF action with 'RIS'

@@ -13,6 +13,7 @@ module Pdf.Toolbox.Core.Object.Util
   toStr,
   toRef,
   toStream,
+  mapObject,
   -- * Dictionary
   lookupDict,
   lookupDict',
@@ -73,6 +74,20 @@ toArray o = left $ UnexpectedError $ "Can't cast object to Array: " ++ show o
 toStream :: (Show a, Monad m) => Object a -> PdfE m (Stream a)
 toStream (OStream s) = right s
 toStream o = left $ UnexpectedError $ "Can't cast object to Stream: " ++ show o
+
+-- | Apply function to all stream contents
+mapObject :: (a -> b) -> Object a -> Object b
+mapObject f o =
+  case o of
+    ONumber n -> ONumber n
+    OBoolean b -> OBoolean b
+    OName n -> OName n
+    ODict d -> ODict d
+    OArray a -> OArray a
+    OStr s -> OStr s
+    OStream (Stream d a) -> OStream (Stream d $ f a)
+    ORef r -> ORef r
+    ONull -> ONull
 
 -- | Allows you to cast 'Object' to specific type
 class FromObject c where

@@ -62,8 +62,14 @@ data XRef =
   deriving Show
 
 -- | Lookup object by indirect reference
-lookupObject :: MonadIO m => RIS -> [StreamFilter] -> Ref -> PdfE m (Object Int64)
-lookupObject ris filters ref = lookupEntry ris filters ref >>= readObject ris
+lookupObject :: MonadIO m
+             => RIS                             -- ^ input stream to read from
+             -> [StreamFilter]                  -- ^ stream filters to use
+             -> Ref                             -- ^ ref to lookup
+             -> PdfE m (Object Int64)
+lookupObject ris filters ref = lookupEntry ris filters lookupM ref >>= readObject ris
+  where
+  lookupM r = mapObject (const ()) `liftM` lookupObject ris filters r
 
 -- | Read object
 readObject :: MonadIO m => RIS -> XRefEntry -> PdfE m (Object Int64)
@@ -154,12 +160,12 @@ skipSubsection :: MonadIO m => IS -> Int -> PdfE m ()
 skipSubsection is count = dropExactly (count * 20) is
 
 -- | Find xref entity for ref
-lookupEntry :: MonadIO m => RIS -> [StreamFilter] -> Ref -> PdfE m XRefEntry
-lookupEntry ris filters ref = annotateError ("Can't find entity for ref: " ++ show ref) $
+lookupEntry :: MonadIO m => RIS -> [StreamFilter] -> (Ref -> PdfE m (Object ())) -> Ref -> PdfE m XRefEntry
+lookupEntry ris filters lookupM ref = annotateError ("Can't find entity for ref: " ++ show ref) $
   lastXRef ris >>= loop
   where
   loop xref = do
-    res <- lookupEntry' ris filters ref xref
+    res <- lookupEntry' ris filters lookupM ref xref
     case res of
       Just e -> return e
       Nothing -> do
@@ -169,8 +175,8 @@ lookupEntry ris filters ref = annotateError ("Can't find entity for ref: " ++ sh
           Just xref' -> loop xref'
 
 -- | Find entity for ref in the specified xref
-lookupEntry' :: MonadIO m => RIS -> [StreamFilter] -> Ref -> XRef -> PdfE m (Maybe XRefEntry)
-lookupEntry' ris filters ref xref =
+lookupEntry' :: MonadIO m => RIS -> [StreamFilter] -> (Ref -> PdfE m (Object ())) -> Ref -> XRef -> PdfE m (Maybe XRefEntry)
+lookupEntry' ris filters lookupM ref xref =
   annotateError ("Can't find entry in xref " ++ show xref ++ " for ref " ++ show ref) $
     lookup'
   where
@@ -181,7 +187,7 @@ lookupEntry' ris filters ref xref =
         _ <- inputStream ris >>= isTable
         fmap XRefTableEntry `liftM` readTableEntry ris ref
       (XRefStream s) -> do
-        decoded <- streamContent ris filters s
+        decoded <- streamContent ris filters lookupM s
         fmap XRefStreamEntry `liftM` readStreamEntry decoded ref
 
 readTableEntry :: MonadIO m => RIS -> Ref -> PdfE m (Maybe TableEntry)

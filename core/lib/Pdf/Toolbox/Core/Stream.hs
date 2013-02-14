@@ -35,21 +35,28 @@ knownFilters = [flateDecode]
 --
 -- The 'IS' is valid only until the next 'MonadPdfIO' operation
 --
--- Note: it doesn't works for streams where \"Length\" is indirect object
-rawStreamContent :: MonadIO m => RIS -> Stream Int64 -> PdfE m (Stream IS)
-rawStreamContent ris (Stream dict off) = annotateError ("reading raw stream content at offset: " ++ show off) $ do
+-- Note: \"Length\" could be an indirect object, that is why
+-- we need the additional argument
+rawStreamContent :: MonadIO m => RIS -> (Ref -> PdfE m (Object ())) -> Stream Int64 -> PdfE m (Stream IS)
+rawStreamContent ris lookupM (Stream dict off) = annotateError ("reading raw stream content at offset: " ++ show off) $ do
+  -- Length could be indirect object
+  sz <- lookupDict "Length" dict >>= lookForLength
   seek ris off
-  sz <- lookupDict "Length" dict >>= fromObject >>= intValue
   is <- inputStream ris >>= takeBytes (fromIntegral sz)
   return $ Stream dict is
+  where
+  lookForLength (ORef ref) = lookupM ref >>= lookForLength
+  lookForLength (ONumber n) = intValue n
+  lookForLength o = left $ UnexpectedError $ "rawStreamContent: unexpected value for Length: " ++ show o
 
 -- | Decoded stream content
 --
 -- The 'IS' is valid only until the next 'MonadPdfIO' operation
 --
--- Note: it doesn't works for streams where \"Length\" is indirect object
-streamContent :: MonadIO m => RIS -> [StreamFilter] -> Stream Int64 -> PdfE m (Stream IS)
-streamContent ris filters s = rawStreamContent ris s >>= decodeStream filters
+-- Note: \"Length\" could be an indirect object, that is why
+-- we need the additional argument
+streamContent :: MonadIO m => RIS -> [StreamFilter] -> (Ref -> PdfE m (Object ())) -> Stream Int64 -> PdfE m (Stream IS)
+streamContent ris filters lookupM s = rawStreamContent ris lookupM s >>= decodeStream filters
 
 -- | Read 'Stream' at the current position in the 'RIS'
 readStream :: MonadIO m => RIS -> PdfE m (Stream Int64)
