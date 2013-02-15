@@ -27,28 +27,6 @@ have to decrypt stream and string manually)
 Examples
 --------
 
-Inspect low level structure:
-
-	{-# LANGUAGE OverloadedStrings #-}
-
-	import System.IO
-	import Pdf.Toolbox.Core
-
-	main =
-	  withBinaryFile "input.pdf" ReadMode $ \handle -> do
-	    -- create random access input stream
-	    ris <- fromHandle handle
-	    runEitherT $ do
-	      -- find the last cross reference
-	      xref <- lastXRef ris
-	      tr <- trailer ris xref
-	      -- "Root" element in trailer is an indirect object, pointing to document catalog
-	      root <- lookupDict "Root" tr >>= fromObject
-	      -- retrieve the catralog itself
-	      catalog <- lookupObject ris knownFilters xref undefined root >>= toDict
-	      liftIO $ print catalog
-	      -- then use the catalog to access pages, outlines, resources, content streams, etc
-
 Inspect high level structure:
 
 	import System.IO

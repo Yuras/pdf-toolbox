@@ -10,7 +10,7 @@ module Pdf.Toolbox.Document.Document
 )
 where
 
-import Pdf.Toolbox.Core hiding (lookupObject)
+import Pdf.Toolbox.Core
 
 import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.Internal.Types

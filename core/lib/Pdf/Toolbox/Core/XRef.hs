@@ -11,10 +11,9 @@ module Pdf.Toolbox.Core.XRef
   lastXRef,
   prevXRef,
   trailer,
-  lookupEntry,
-  lookupEntry',
-  readObject,
-  lookupObject
+  lookupTableEntry,
+  lookupStreamEntry,
+  isTable
 )
 where
 
@@ -25,7 +24,6 @@ import Control.Monad
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Object.Util
 import Pdf.Toolbox.Core.IO
-import Pdf.Toolbox.Core.Parsers.Object
 import Pdf.Toolbox.Core.Parsers.XRef
 import Pdf.Toolbox.Core.Stream
 import Pdf.Toolbox.Core.Error
@@ -61,44 +59,6 @@ data XRef =
   XRefStream (Stream Int64)
   deriving Show
 
--- | Lookup object by indirect reference starting from the specified xref
-lookupObject :: MonadIO m
-             => RIS                             -- ^ input stream to read from
-             -> [StreamFilter]                  -- ^ stream filters to use
-             -> XRef                            -- ^ xref to start from
-             -> (Ref -> PdfE m (Object ()))     -- ^ action to retrieve indirect object
-                                                -- (it could be call to 'lookupObject' itself)
-             -> Ref                             -- ^ ref to lookup
-             -> PdfE m (Object Int64)
-lookupObject ris filters xref lookupM ref = lookupEntry ris filters xref lookupM ref >>= readObject ris
-
--- | Read object
-readObject :: MonadIO m => RIS -> XRefEntry -> PdfE m (Object Int64)
-readObject ris (XRefTableEntry entry)
-  | teIsFree entry = return ONull
-  | otherwise = readObject' ris (teOffset entry) (teGen entry)
-readObject ris (XRefStreamEntry entry) =
-  case entry of
-    StreamEntryFree _ _ -> return ONull
-    StreamEntryUsed off gen -> readObject' ris off gen
-    StreamEntryCompressed _ _ -> left $ UnexpectedError "readObject: compressed objects are not supported yet"
-
-readObject' :: MonadIO m => RIS -> Int64 -> Int -> PdfE m (Object Int64)
-readObject' ris off gen = do
-  seek ris off
-  (Ref _ gen', o) <- inputStream ris >>= parse parseIndirectObject
-  unless (gen == gen') $ left $ UnexpectedError $ "Generation mismatch, expected: " ++ show gen ++ ", found: " ++ show gen'
-  case o of
-    ONumber val -> return $ ONumber val
-    OBoolean val -> return $ OBoolean val
-    OName val -> return $ OName val
-    ODict val -> return $ ODict val
-    OArray val -> return $ OArray val
-    OStr val -> return $ OStr val
-    OStream (Stream dict _) -> (OStream . Stream dict) `liftM` tell ris
-    ORef _ -> left $ UnexpectedError "Indirect object can't be ORef"
-    ONull -> return ONull
-
 -- | Find the last cross reference
 lastXRef :: MonadIO m => RIS -> PdfE m XRef
 lastXRef ris = annotateError "Can't find the last xref" $ do
@@ -115,6 +75,8 @@ readXRef ris off = do
     then return $ XRefTable off
     else XRefStream `liftM` readStream ris
 
+-- | Check whether the stream starts with \"xref\" keyword.
+-- The keyword iyself is consumed
 isTable :: MonadIO m => IS -> PdfE m Bool
 isTable is = do
   res <- runEitherT (parse tableXRef is)
@@ -160,38 +122,17 @@ nextSubsectionHeader is count = do
 skipSubsection :: MonadIO m => IS -> Int -> PdfE m ()
 skipSubsection is count = dropExactly (count * 20) is
 
--- | Find xref entity for ref starting from the specified xref
-lookupEntry :: MonadIO m => RIS -> [StreamFilter] -> XRef -> (Ref -> PdfE m (Object ())) -> Ref -> PdfE m XRefEntry
-lookupEntry ris filters xRef lookupM ref = annotateError ("Can't find entity for ref: " ++ show ref) $ loop xRef
-  where
-  loop xref = do
-    res <- lookupEntry' ris filters lookupM ref xref
-    case res of
-      Just e -> return e
-      Nothing -> do
-        prev <- prevXRef ris xref
-        case prev of
-          Nothing -> left $ UnexpectedError "There are no more xrefs"
-          Just xref' -> loop xref'
-
--- | Find entity for ref in the specified xref
-lookupEntry' :: MonadIO m => RIS -> [StreamFilter] -> (Ref -> PdfE m (Object ())) -> Ref -> XRef -> PdfE m (Maybe XRefEntry)
-lookupEntry' ris filters lookupM ref xref =
-  annotateError ("Can't find entry in xref " ++ show xref ++ " for ref " ++ show ref) $
-    lookup'
-  where
-  lookup' =
-    case xref of
-      (XRefTable off) -> do
-        seek ris off
-        _ <- inputStream ris >>= isTable
-        fmap XRefTableEntry `liftM` readTableEntry ris ref
-      (XRefStream s) -> do
-        decoded <- streamContent ris filters lookupM s
-        fmap XRefStreamEntry `liftM` readStreamEntry decoded ref
-
-readTableEntry :: MonadIO m => RIS -> Ref -> PdfE m (Maybe TableEntry)
-readTableEntry ris (Ref index gen) = annotateError "Can't read entry from xref table" $
+-- | Read xref entry for the indirect object from xref table
+--
+-- xref table offset should point to the begining of the next
+-- line after \"xref\" keyword
+lookupTableEntry :: MonadIO m
+               => RIS             -- ^ input stream to read from
+               -> Int64           -- ^ offset of xref table
+               -> Ref             -- ^ indirect object to look for
+               -> PdfE m (Maybe TableEntry)
+lookupTableEntry ris offset (Ref index gen) = annotateError "Can't read entry from xref table" $ do
+  seek ris offset
   inputStream ris >>= subsectionHeader >>= go
   where
   go (start, count) = do
@@ -205,9 +146,14 @@ readTableEntry ris (Ref index gen) = annotateError "Can't read entry from xref t
         is <- inputStream ris
         nextSubsectionHeader is count >>= maybe (return Nothing) go
 
+-- | Read xref entry for the indirect object from xref stream
+--
 -- See pdf1.7 spec: 7.5.8 Cross-Reference Streams
-readStreamEntry :: MonadIO m => Stream IS -> Ref -> PdfE m (Maybe StreamEntry)
-readStreamEntry (Stream dict is) (Ref objNumber _) = annotateError "Can't parse xref stream" $ do
+lookupStreamEntry :: MonadIO m
+                => Stream IS                -- ^ decoded xref stream content
+                -> Ref                      -- ^ indirect object
+                -> PdfE m (Maybe StreamEntry)
+lookupStreamEntry (Stream dict is) (Ref objNumber _) = annotateError "Can't parse xref stream" $ do
   sz <- lookupDict "Size" dict >>= fromObject >>= intValue
 
   index <- do

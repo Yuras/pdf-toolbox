@@ -40,6 +40,7 @@ library
                        Pdf.Toolbox.Core.Stream.Filter.FlateDecode
                        Pdf.Toolbox.Core.Stream
                        Pdf.Toolbox.Core.XRef
+                       Pdf.Toolbox.Core.Util
   -- other-modules:       
   build-depends:       base ==4.6.*,
                        bytestring,

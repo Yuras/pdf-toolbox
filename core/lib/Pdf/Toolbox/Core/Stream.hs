@@ -7,7 +7,7 @@ module Pdf.Toolbox.Core.Stream
   StreamFilter,
   knownFilters,
   rawStreamContent,
-  streamContent,
+  decodedStreamContent,
   readStream,
   decodeStream
 )
@@ -33,30 +33,29 @@ knownFilters = [flateDecode]
 -- | Raw content of stream.
 -- Filters are not applyed
 --
--- The 'IS' is valid only until the next 'MonadPdfIO' operation
+-- The 'IS' is valid only until the next 'seek'
 --
--- Note: \"Length\" could be an indirect object, that is why
--- we need the additional argument
-rawStreamContent :: MonadIO m => RIS -> (Ref -> PdfE m (Object ())) -> Stream Int64 -> PdfE m (Stream IS)
-rawStreamContent ris lookupM (Stream dict off) = annotateError ("reading raw stream content at offset: " ++ show off) $ do
-  -- Length could be indirect object
-  sz <- lookupDict "Length" dict >>= lookForLength
+-- Note: \"Length\" could be an indirect object, but we don't want
+-- to read indirect objects here. So we require length to be provided
+rawStreamContent :: MonadIO m
+                 => RIS                 -- ^ random access input stream to read from
+                 -> Int                 -- ^ stream length
+                 -> Stream Int64        -- ^ stream object to read content for.
+                                        -- The payload is offset of stream data
+                 -> PdfE m (Stream IS)  -- ^ resulting stream object
+rawStreamContent ris len (Stream dict off) = annotateError ("reading raw stream content at offset: " ++ show off) $ do
   seek ris off
-  is <- inputStream ris >>= takeBytes (fromIntegral sz)
+  is <- inputStream ris >>= takeBytes (fromIntegral len)
   return $ Stream dict is
-  where
-  lookForLength (ORef ref) = lookupM ref >>= lookForLength
-  lookForLength (ONumber n) = intValue n
-  lookForLength o = left $ UnexpectedError $ "rawStreamContent: unexpected value for Length: " ++ show o
 
 -- | Decoded stream content
 --
--- The 'IS' is valid only until the next 'MonadPdfIO' operation
+-- The 'IS' is valid only until the next 'seek'
 --
 -- Note: \"Length\" could be an indirect object, that is why
--- we need the additional argument
-streamContent :: MonadIO m => RIS -> [StreamFilter] -> (Ref -> PdfE m (Object ())) -> Stream Int64 -> PdfE m (Stream IS)
-streamContent ris filters lookupM s = rawStreamContent ris lookupM s >>= decodeStream filters
+-- we cann't read it ourself
+decodedStreamContent :: MonadIO m => RIS -> [StreamFilter] -> Int -> Stream Int64 -> PdfE m (Stream IS)
+decodedStreamContent ris filters len s = rawStreamContent ris len s >>= decodeStream filters
 
 -- | Read 'Stream' at the current position in the 'RIS'
 readStream :: MonadIO m => RIS -> PdfE m (Stream Int64)
