@@ -116,29 +116,6 @@ getLastXRef = do
       lift $ Pdf' $ modify $ \st -> st {stLastXRef = Just xref}
       return xref
 
-{-    st <- lift $ Pdf' get
-    case Map.lookup ref (stObjectCache st) of
-      Just o -> return o
-      Nothing -> do
-        xref <- case stLastXRef st of
-                  Just xr -> return xr
-                  Nothing -> do
-                    xr <- lastXRef (stRIS st)
-                    lift $ Pdf' $ put st {stLastXRef = Just xr}
-                    return xr
-        o <- Core.lookupObject (stRIS st) (stFilters st) xref lookupM ref
-        addObjectToCache ref o
-        return o
--}
---  streamContent s = do
---    undefined
-{-
-    ris <- getRIS
-    filters <- lift $ Pdf' $ gets stFilters
-    Core.streamContent ris filters lookupM s
--}
---  getRIS = lift $ Pdf' $ gets stRIS
-
 -- | Access to the underlying random access input stream.
 -- Can be used when you need to switch from high level
 -- to low level of details
