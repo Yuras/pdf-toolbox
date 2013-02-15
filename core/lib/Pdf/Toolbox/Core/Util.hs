@@ -3,12 +3,15 @@
 
 module Pdf.Toolbox.Core.Util
 (
-  readObjectAtOffset
+  readObjectAtOffset,
+  readCompressedObject
 )
 where
 
 import Data.Int
+import qualified Data.Attoparsec.ByteString.Char8 as Parser
 import Control.Monad
+import qualified System.IO.Streams as Streams
 
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Parsers.Object
@@ -35,3 +38,24 @@ readObjectAtOffset ris off gen = do
     OStream (Stream dict _) -> (OStream . Stream dict) `liftM` tell ris
     ORef _ -> left $ UnexpectedError "Indirect object can't be ORef"
     ONull -> return ONull
+
+-- | Read object from object stream
+readCompressedObject :: MonadIO m
+                     => IS         -- ^ input object stream decoded content
+                     -> Int64      -- ^ an offset of the first object (\"First\" key in dictionary)
+                     -> Int        -- ^ object number to read
+                     -> PdfE m (Object ())
+readCompressedObject is first num = do
+  (is', countConsumed) <- liftIO $ Streams.countInput is
+  res <- replicateM (num + 1) $ parse headerP is' :: MonadIO m => PdfE m [(Int, Int64)]
+  (_, off) <- tryLast (UnexpectedError $ "readCompressedObject: tryLast: impossible") res
+  pos <- liftIO $ countConsumed
+  dropExactly (fromIntegral $ first + off - pos) is
+  parse parseObject is
+  where
+  headerP = do
+    n <- Parser.decimal
+    Parser.skipSpace
+    off <- Parser.decimal
+    Parser.skipSpace
+    return (n, off)

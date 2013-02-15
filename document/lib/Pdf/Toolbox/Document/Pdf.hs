@@ -67,7 +67,12 @@ readObjectForEntry (XRefStreamEntry entry) =
     StreamEntryUsed off gen -> do
       ris <- getRIS
       readObjectAtOffset ris off gen
-    StreamEntryCompressed _ _ -> left $ UnexpectedError "readObjectForEntry: compressed objects are not supported yet"
+    StreamEntryCompressed index num -> do
+      objStream <- lookupObject (Ref index 0) >>= toStream
+      Stream dict is <- streamContent objStream
+      first <- lookupDict "First" dict >>= fromObject >>= intValue
+      mapObject (error "readObjectForEntry: impossible") `liftM`
+        readCompressedObject is (fromIntegral first) num
 
 lookupEntryRec :: MonadIO m => Ref -> XRef -> Pdf m XRefEntry
 lookupEntryRec ref = annotateError ("Can't find xref entry for ref: " ++ show ref) . loop
