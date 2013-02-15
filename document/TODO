@@ -1,3 +1,4 @@
 
+- Cache xref streams and object streams
 - Implement more properties for Document, Catalog, Page
 - Incrementail updates
