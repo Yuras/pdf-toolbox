@@ -18,12 +18,12 @@ You can even switch between levels of details on the fly.
 Still in TODO list
 ------------------
 
- * Improve support for object streams (aka compressed objects). Too slow right now.
  * Encrypted PDF documents (when the document you are processing doesn't uses object streams,
 then you can inspect document structure, only have to decrypt streams and strings manually
 if you need them)
  * Incremental updates
  * Linearized PDF files
+ * Content stream tools: extract text, images, etc
 
 Examples
 --------

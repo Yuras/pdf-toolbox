@@ -16,12 +16,14 @@ module Pdf.Toolbox.Document.Pdf
 where
 
 import Data.Int
+import Data.ByteString (ByteString)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
 import System.IO
+import qualified System.IO.Streams as Streams
 
 import Pdf.Toolbox.Core
 
@@ -32,7 +34,8 @@ data PdfState = PdfState {
   stRIS :: RIS,
   stFilters :: [StreamFilter],
   stLastXRef :: Maybe XRef,
-  stObjectCache :: Map Ref (Object Int64)
+  stObjectCache :: Map Ref (Object Int64),
+  stXRefStreamCache :: Map Int64 [ByteString]
   }
 
 -- | Basic implementation of pdf monad
@@ -74,6 +77,20 @@ readObjectForEntry (XRefStreamEntry entry) =
       mapObject (error "readObjectForEntry: impossible") `liftM`
         readCompressedObject is (fromIntegral first) num
 
+getXRefStream :: MonadIO m => Stream Int64 -> Pdf m (Stream IS)
+getXRefStream s@(Stream dict off) = do
+  cache <- lift $ Pdf' $ gets stXRefStreamCache
+  content <-
+    case Map.lookup off cache of
+      Just content -> return content
+      Nothing -> do
+        Stream _ is <- streamContent s
+        content <- liftIO $ Streams.toList is
+        lift $ Pdf' $ modify $ \st -> st {stXRefStreamCache = Map.insert off content $ stXRefStreamCache st}
+        return content
+  is <- liftIO $ Streams.fromList content
+  return $ Stream dict is
+
 lookupEntryRec :: MonadIO m => Ref -> XRef -> Pdf m XRefEntry
 lookupEntryRec ref = annotateError ("Can't find xref entry for ref: " ++ show ref) . loop
   where
@@ -96,7 +113,7 @@ lookupXRefEntry ref (XRefTable off) = do
   pos <- tell ris
   fmap XRefTableEntry `liftM` lookupTableEntry ris pos ref
 lookupXRefEntry ref (XRefStream s) = do
-  decoded <- streamContent s
+  decoded <- getXRefStream s
   fmap XRefStreamEntry `liftM` lookupStreamEntry decoded ref
 
 takeStreamContent :: MonadIO m => Stream Int64 -> Pdf m (Stream IS)
@@ -158,7 +175,8 @@ runPdf' ris filters (Pdf' action) = evalStateT action $ PdfState {
   stRIS = ris,
   stFilters = filters,
   stLastXRef = Nothing,
-  stObjectCache = Map.empty
+  stObjectCache = Map.empty,
+  stXRefStreamCache = Map.empty
   }
 
 -- | Get PDF document

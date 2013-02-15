@@ -2,4 +2,5 @@
 - Compressed objects
 - Linearized PDF
 - Reimplement PNG-UP prediction. Right now it is strict, but should be lazy.
+  Right now it is a bottle neck when processing xref streams
 - Implement more stream filters

@@ -28,4 +28,6 @@ library
   build-depends:       base ==4.6.*,
                        transformers,
                        containers,
+                       bytestring,
+                       io-streams,
                        pdf-toolbox-core ==0.0.1.*
