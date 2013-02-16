@@ -17,7 +17,8 @@ module Pdf.Toolbox.Core.Parsers.Object
   parseBoolean,
   -- * Other
   parseTillStreamData,
-  parseIndirectObject
+  parseIndirectObject,
+  isRegularChar
 )
 where
 
@@ -144,8 +145,9 @@ parseName = do
   _ <- P.char '/'
   Name <$> P.takeWhile isRegularChar
 
+-- | Whether the character can appear in 'Name'
 isRegularChar :: Char -> Bool
-isRegularChar = (`notElem` "[]()/<>{}% \n")
+isRegularChar = (`notElem` "[]()/<>{}% \n\r")
 
 -- |
 -- >>> parseOnly parseBoolean "true"

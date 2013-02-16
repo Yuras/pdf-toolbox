@@ -22,7 +22,7 @@ description:
   The library is low level. It may mean that you need to be familiar with PDF file internals to
   actually use it.
   .
-  Right now object streams and encryption are not supported (but cross reference streams are supported).
+  Right now encryption is not supported.
   Also nothing was done yet to optimize loading of linearized PDF files.
 
 library

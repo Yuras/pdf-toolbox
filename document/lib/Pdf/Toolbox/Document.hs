@@ -25,12 +25,11 @@ module Pdf.Toolbox.Document
   module Pdf.Toolbox.Core.Object.Types,
   module Pdf.Toolbox.Core.Object.Util,
   knownFilters,
-  MonadIO,
-  liftIO
+  MonadIO(..)
 )
 where
 
-import Pdf.Toolbox.Core (knownFilters, MonadIO, liftIO)
+import Pdf.Toolbox.Core (knownFilters, MonadIO(..))
 import Pdf.Toolbox.Core.Error
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Object.Util
