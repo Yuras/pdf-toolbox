@@ -16,6 +16,7 @@ library
   hs-source-dirs:      lib
   exposed-modules:
                        Pdf.Toolbox.Content.Parser
+                       Pdf.Toolbox.Content.Ops
   build-depends:       base ==4.6.*,
                        attoparsec,
                        bytestring,
