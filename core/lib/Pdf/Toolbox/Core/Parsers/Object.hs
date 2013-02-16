@@ -104,6 +104,7 @@ parseStr = do
                  'f' -> takeStr lvl ('\f' : res)
                  'b' -> takeStr lvl ('\b' : res)
                  't' -> takeStr lvl ('\t' : res)
+                 '\r' -> takeStr lvl res
                  _ -> do
                    ch1 <- P.anyChar
                    ch2 <- P.anyChar
