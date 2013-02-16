@@ -143,7 +143,7 @@ parseRef = do
 parseName :: Parser Name
 parseName = do
   _ <- P.char '/'
-  Name <$> P.takeWhile isRegularChar
+  Name <$> P.takeWhile1 isRegularChar
 
 -- | Whether the character can appear in 'Name'
 isRegularChar :: Char -> Bool
