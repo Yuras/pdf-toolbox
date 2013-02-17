@@ -18,6 +18,7 @@ library
                        Pdf.Toolbox.Content.Parser
                        Pdf.Toolbox.Content.Ops
                        Pdf.Toolbox.Content.Processor
+                       Pdf.Toolbox.Content.Transform
   build-depends:       base ==4.6.*,
                        attoparsec,
                        bytestring,

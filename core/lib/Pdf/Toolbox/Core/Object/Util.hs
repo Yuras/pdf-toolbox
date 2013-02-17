@@ -41,7 +41,7 @@ intValue (NumReal r) = left $ UnexpectedError $ "Integer expected, but real rece
 
 realValue :: Monad m => Number -> PdfE m Double
 realValue (NumReal r) = right r
-realValue (NumInt i) = left $ UnexpectedError $ "Real expected, but integer received: " ++ show i
+realValue (NumInt i) = right $ fromIntegral i
 
 toNumber :: (Show a, Monad m) => Object a -> PdfE m Number
 toNumber (ONumber n) = right n
