@@ -8,6 +8,7 @@ where
 import Data.String
 import Data.Functor
 import qualified Data.ByteString.Char8 as BS8
+import Data.IORef
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Concurrent
@@ -28,13 +29,19 @@ main = do
   withBinaryFile file ReadMode $ \h -> do
   _ <- forkIO $ pdfThread h mvar
 
-  page <- pdfSync mvar $ do
+  (rootNode, totalPages) <- pdfSync mvar $ do
     pdf <- document
     enc <- documentEncryption pdf
     when (isJust enc) $
       liftIO $ print "WARNING: Document is encrypted, it is not fully supported yet"
-    rootNode <- documentCatalog pdf >>= catalogPageNode
+    root <- documentCatalog pdf >>= catalogPageNode
+    total <- pageNodeNKids root
+    return (root, total)
+
+  firstPage <- pdfSync mvar $ do
     pageNodePageByNum rootNode 0
+
+  page <- newIORef (firstPage, 0)
 
   window <- windowNew
   set window [
@@ -43,10 +50,36 @@ main = do
     ]
   _ <- on window deleteEvent $ liftIO mainQuit >> return True
 
+  vbox <- vBoxNew False 10
+  containerAdd window vbox
+
+  hbuttonBox <- hButtonBoxNew
+  boxPackStart vbox hbuttonBox PackNatural 0
+
+  prevButton <- buttonNewWithLabel "Prev"
+  boxPackStart hbuttonBox prevButton PackNatural 0
+
+  nextButton <- buttonNewWithLabel "Next"
+  boxPackStart hbuttonBox nextButton PackNatural 0
+
   frame <- frameNew
-  containerAdd window frame
+  boxPackStart vbox frame PackGrow 0
+
   canvas <- drawingAreaNew
   containerAdd frame canvas
+
+  _ <- on prevButton buttonActivated $ do
+    (_, num) <- readIORef page
+    when (num > 0) $ do
+      p <- pdfSync mvar $ pageNodePageByNum rootNode (num - 1)
+      writeIORef page (p, num - 1)
+      widgetQueueDraw canvas
+  _ <- on nextButton buttonActivated $ do
+    (_, num) <- readIORef page
+    when (num < totalPages - 1) $ do
+      p <- pdfSync mvar $ pageNodePageByNum rootNode (num + 1)
+      writeIORef page (p, num + 1)
+      widgetQueueDraw canvas
 
   widgetShowAll window
   draw <- widgetGetDrawWindow canvas
@@ -56,14 +89,15 @@ main = do
 
   mainGUI
 
-onDraw :: MVar (Pdf IO Bool) -> Page -> Render ()
+onDraw :: MVar (Pdf IO Bool) -> IORef (Page, Int) -> Render ()
 onDraw mvar page = do
   setSourceRGB 1 1 1
   setLineWidth 1
 
-  Rectangle llx lly urx ury <- liftIO $ pdfSync mvar $ pageMediaBox page
+  (pg, _) <- liftIO $ readIORef page
+  Rectangle llx lly urx ury <- liftIO $ pdfSync mvar $ pageMediaBox pg
 
-  chan <- liftIO $ startRender mvar page
+  chan <- liftIO $ startRender mvar pg
 
   moveTo llx lly
   lineTo llx ury
