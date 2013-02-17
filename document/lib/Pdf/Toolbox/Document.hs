@@ -15,6 +15,7 @@
 
 module Pdf.Toolbox.Document
 (
+  module Pdf.Toolbox.Document.Types,
   module Pdf.Toolbox.Document.Monad,
   module Pdf.Toolbox.Document.Pdf,
   module Pdf.Toolbox.Document.Document,
@@ -34,6 +35,7 @@ import Pdf.Toolbox.Core.Error
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Object.Util
 
+import Pdf.Toolbox.Document.Types
 import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.Pdf
 import Pdf.Toolbox.Document.Document

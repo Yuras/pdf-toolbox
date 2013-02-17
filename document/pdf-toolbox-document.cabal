@@ -17,6 +17,7 @@ description:
 library
   hs-source-dirs:      lib
   exposed-modules:     Pdf.Toolbox.Document
+                       Pdf.Toolbox.Document.Types
                        Pdf.Toolbox.Document.Monad
                        Pdf.Toolbox.Document.Pdf
                        Pdf.Toolbox.Document.Document

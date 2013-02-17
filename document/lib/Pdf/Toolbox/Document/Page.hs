@@ -6,12 +6,16 @@ module Pdf.Toolbox.Document.Page
 (
   Page,
   pageParentNode,
-  pageContents
+  pageContents,
+  pageMediaBox
 )
 where
 
+import Control.Monad
+
 import Pdf.Toolbox.Core
 
+import Pdf.Toolbox.Document.Types
 import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.PageNode
 import Pdf.Toolbox.Document.Internal.Types
@@ -40,3 +44,24 @@ pageContents page@(Page _ dict) = annotateError ("contents for page: " ++ show p
         _ -> left $ UnexpectedError $ "Unexpected value in page content ref: " ++ show o
     Just (OArray (Array objs)) -> mapM fromObject objs
     _ -> left $ UnexpectedError "Unexpected value in page contents"
+
+-- | Media box, inheritable
+pageMediaBox :: MonadPdf m => Page -> PdfE m (Rectangle Double)
+pageMediaBox page = mediaBox (PageTreeLeaf page)
+
+mediaBox :: MonadPdf m => PageTree -> PdfE m (Rectangle Double)
+mediaBox tree = do
+  let dict = case tree of
+               PageTreeNode (PageNode _ d) -> d
+               PageTreeLeaf (Page _ d) -> d
+  case lookupDict' "MediaBox" dict of
+    Just box -> fromObject box >>= rectangleFromArray
+    Nothing -> do
+      parent <- case tree of
+                  PageTreeNode node -> do
+                    parent <- pageNodeParent node
+                    case parent of
+                      Nothing -> left $ UnexpectedError $ "Media box not found"
+                      Just p -> return $ PageTreeNode p
+                  PageTreeLeaf page -> PageTreeNode `liftM` pageParentNode page
+      mediaBox parent
