@@ -61,8 +61,7 @@ onDraw mvar page = do
   setSourceRGB 1 1 1
   setLineWidth 1
 
-  mediaBox@(Rectangle llx lly urx ury) <- liftIO $ pdfSync mvar $ pageMediaBox page
-  liftIO $ print mediaBox
+  Rectangle llx lly urx ury <- liftIO $ pdfSync mvar $ pageMediaBox page
 
   chan <- liftIO $ startRender mvar page
 
@@ -76,9 +75,8 @@ onDraw mvar page = do
 
   setSourceRGB 0 0 0
   let loop = do
-        circle <- liftIO $ readChan chan
-        liftIO $ print circle
-        case circle of
+        cmd <- liftIO $ readChan chan
+        case cmd of
           Nothing -> return ()
           Just (Vector x y, str) -> do
             moveTo x (ury - y)

@@ -24,7 +24,8 @@ import Pdf.Toolbox.Content.Transform
 data GraphicsState = GraphicsState {
   gsInText :: Bool,    -- ^ Indicates that we are inside text object
   gsTextMatrix :: Transform Double,      -- ^ Defined only inside text object
-  gsTextLineMatrix :: Transform Double   -- ^ Defined only inside text object
+  gsTextLineMatrix :: Transform Double,  -- ^ Defined only inside text object
+  gsTextLeading :: Double
   }
   deriving Show
 
@@ -33,7 +34,8 @@ initialGraphicsState :: GraphicsState
 initialGraphicsState = GraphicsState {
   gsInText = False,
   gsTextMatrix = identity,
-  gsTextLineMatrix = identity
+  gsTextLineMatrix = identity,
+  gsTextLeading = 0
   }
 
 -- | Processor maintains graphics state
@@ -92,7 +94,10 @@ processOp (Op_Td, [txo, tyo]) p = do
 processOp (Op_Td, args) _ = left $ UnexpectedError $ "Op_Td: wrong number of arguments: " ++ show args
 
 -- XXX: handle text leading here
-processOp (Op_TD, [txo, tyo]) p = processOp (Op_Td, [txo, tyo]) p
+processOp (Op_TD, [txo, tyo]) p = do
+  l <- fromObject tyo >>= realValue
+  p' <- processOp (Op_TL, [ONumber $ NumReal $ negate l]) p
+  processOp (Op_Td, [txo, tyo]) p'
 processOp (Op_TD, args) _ = left $ UnexpectedError $ "Op_TD: wrong number of arguments: " ++ show args
 
 processOp (Op_Tm, [a', b', c', d', e', f']) p = do
@@ -110,6 +115,21 @@ processOp (Op_Tm, [a', b', c', d', e', f']) p = do
     gsTextLineMatrix = tm
     }}
 processOp (Op_Tm, args) _ = left $ UnexpectedError $ "Op_Tm: wrong number of arguments: " ++ show args
+
+processOp (Op_T_star, []) p = do
+  ensureInTextObject True p
+  let gstate = prState p
+      l = gsTextLeading gstate
+  processOp (Op_TD, map (ONumber . NumReal) [0, negate l]) p
+processOp (Op_T_star, args) _ = left $ UnexpectedError $ "Op_T_star: wrong number of arguments: " ++ show args
+
+processOp (Op_TL, [lo]) p = do
+  l <- fromObject lo >>= realValue
+  let gstate = prState p
+  return p {prState = gstate {
+    gsTextLeading = l
+    }}
+processOp (Op_TL, args) _ = left $ UnexpectedError $ "Op_TL: wrong number of arguments: " ++ show args
 
 processOp _ p = return p
 
