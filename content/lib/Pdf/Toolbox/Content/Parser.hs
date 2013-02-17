@@ -3,7 +3,8 @@
 
 module Pdf.Toolbox.Content.Parser
 (
-  parseContentStream
+  parseContentStream,
+  readNextOperator
 )
 where
 
@@ -26,6 +27,19 @@ parseContentStream :: MonadIO m => RIS -> [StreamFilter] -> [(Stream Int64, Int)
 parseContentStream ris filters streams = do
   is <- combineStreams ris filters streams
   liftIO $ Streams.parserToInputStream parseContent is
+
+-- | Read the next operator if any
+readNextOperator :: MonadIO m => InputStream Expr -> PdfE m (Maybe Operator)
+readNextOperator is = go []
+  where
+  go args = do
+    expr <- liftIO $ Streams.read is
+    case expr of
+      Nothing -> case args of
+                   [] -> return Nothing
+                   _ -> left $ UnexpectedError $ "Args without op: " ++ show args
+      Just (Obj o) -> go (o : args)
+      Just (Op o) -> return $ Just (o, reverse args)
 
 combineStreams :: MonadIO m => RIS -> [StreamFilter] -> [(Stream Int64, Int)] -> PdfE m IS
 combineStreams _ _ [] = liftIO Streams.nullInput

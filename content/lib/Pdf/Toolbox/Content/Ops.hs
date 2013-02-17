@@ -6,6 +6,7 @@ module Pdf.Toolbox.Content.Ops
 (
   Op(..),
   Expr(..),
+  Operator,
   toOp
 )
 where
@@ -13,6 +14,9 @@ where
 import Data.ByteString (ByteString)
 
 import Pdf.Toolbox.Core
+
+-- | Operator with arguments
+type Operator = (Op, [Object ()])
 
 -- | Content stream operators
 data Op

@@ -17,6 +17,7 @@ library
   exposed-modules:
                        Pdf.Toolbox.Content.Parser
                        Pdf.Toolbox.Content.Ops
+                       Pdf.Toolbox.Content.Processor
   build-depends:       base ==4.6.*,
                        attoparsec,
                        bytestring,
