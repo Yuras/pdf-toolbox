@@ -31,6 +31,7 @@ library
                        Pdf.Toolbox.Core.IO
                        Pdf.Toolbox.Core.IO.RIS
                        Pdf.Toolbox.Core.Object.Types
+                       Pdf.Toolbox.Core.Object.Builder
                        Pdf.Toolbox.Core.Object.Util
                        Pdf.Toolbox.Core.Error
                        Pdf.Toolbox.Core.Parsers.Object
