@@ -17,6 +17,8 @@ module Pdf.Toolbox.Core.Object.Util
   -- * Dictionary
   lookupDict,
   lookupDict',
+  setValueForKey,
+  deleteValueForKey,
   -- * Number
   intValue,
   realValue
@@ -34,6 +36,19 @@ lookupDict key (Dict d) =
 
 lookupDict' :: Name -> Dict -> Maybe (Object ())
 lookupDict' key (Dict d) = lookup key d
+
+deleteValueForKey :: Name -> Dict -> Dict
+deleteValueForKey key (Dict vals) = Dict $ go vals
+  where
+  go [] = []
+  go (x@(k, _) : xs)
+    | k == key = go xs
+    | otherwise = x : go xs
+
+setValueForKey :: Name -> Object () -> Dict -> Dict
+setValueForKey key val dict = Dict $ (key, val) : vals
+  where
+  Dict vals = deleteValueForKey key dict
 
 intValue :: Monad m => Number -> PdfE m Int
 intValue (NumInt i) = right i
