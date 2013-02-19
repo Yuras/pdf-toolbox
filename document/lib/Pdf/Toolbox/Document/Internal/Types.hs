@@ -16,7 +16,7 @@ import Pdf.Toolbox.Core
 -- | PDF document
 --
 -- It is a trailer under the hood
-newtype Document = Document Dict
+data Document = Document XRef Dict
   deriving Show
 
 -- | Document catalog

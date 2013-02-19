@@ -55,8 +55,8 @@ data XRefEntry =
 data XRef =
   -- | Offset
   XRefTable Int64 |
-  -- | Stream with content offset
-  XRefStream (Stream Int64)
+  -- | Offset and stream with content offset
+  XRefStream Int64 (Stream Int64)
   deriving Show
 
 -- | Find the last cross reference
@@ -73,7 +73,7 @@ readXRef ris off = do
   table <- inputStream ris >>= isTable
   if table
     then return $ XRefTable off
-    else XRefStream `liftM` readStream ris
+    else XRefStream off `liftM` readStream ris
 
 -- | Check whether the stream starts with \"xref\" keyword.
 -- The keyword iyself is consumed
@@ -103,7 +103,7 @@ trailer ris (XRefTable off) = annotateError ("Reading trailer for xref table: " 
     _ <- isTable is
     skipTable is
     parse parseTrailerAfterTable is
-trailer _ (XRefStream (Stream dict _)) = return dict
+trailer _ (XRefStream _ (Stream dict _)) = return dict
 
 skipTable :: MonadIO m => IS -> PdfE m ()
 skipTable is =

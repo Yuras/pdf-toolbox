@@ -4,6 +4,7 @@
 
 module Pdf.Toolbox.Core.Object.Builder
 (
+  buildIndirectObject,
   buildObject,
   buildNumber,
   buildBoolean,
@@ -11,7 +12,8 @@ module Pdf.Toolbox.Core.Object.Builder
   buildDict,
   buildArray,
   buildStr,
-  buildRef
+  buildRef,
+  buildStream
 )
 where
 
@@ -19,12 +21,29 @@ import Data.Monoid
 import Data.Char
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
+import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
 import Data.ByteString.Lazy.Builder.ASCII
 
 import Pdf.Toolbox.Core.Object.Types
 
-buildObject :: Object () -> Builder
+-- | Build indirect object
+buildIndirectObject :: Ref -> Object BSL.ByteString -> Builder
+buildIndirectObject (Ref i g) object =
+  intDec i `mappend`
+  char7 ' ' `mappend`
+  intDec g `mappend`
+  byteString " obj\n" `mappend`
+  build object `mappend`
+  byteString "\nendobj\n"
+  where
+  build (OStream s) = buildStream s
+  build o = buildObject o
+
+-- | Render inline object (without \"obj/endobj\").
+-- It is 'error' to supply 'Stream', because it could not
+-- be inlined, but should always be an indirect object
+buildObject :: Object a -> Builder
 buildObject (ONumber n) = buildNumber n
 buildObject (OBoolean b) = buildBoolean b
 buildObject (OName n) = buildName n
@@ -34,6 +53,13 @@ buildObject (OStr s) = buildStr s
 buildObject (ORef r) = buildRef r
 buildObject (OStream _) = error "buildObject: please don't pass streams to me"
 buildObject ONull = byteString "null"
+
+buildStream :: Stream BSL.ByteString -> Builder
+buildStream (Stream dict content) =
+  buildDict dict `mappend`
+  byteString "stream\n" `mappend`
+  lazyByteString content `mappend`
+  byteString "\nendstream"
 
 buildNumber :: Number -> Builder
 buildNumber (NumInt i) = intDec i

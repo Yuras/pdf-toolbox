@@ -42,6 +42,7 @@ library
                        Pdf.Toolbox.Core.Stream
                        Pdf.Toolbox.Core.XRef
                        Pdf.Toolbox.Core.Util
+                       Pdf.Toolbox.Core.IncrementalUpdate
   -- other-modules:       
   build-depends:       base ==4.6.*,
                        bytestring,

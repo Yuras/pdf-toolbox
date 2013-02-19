@@ -112,7 +112,7 @@ lookupXRefEntry ref (XRefTable off) = do
   _ <- inputStream ris >>= isTable
   pos <- tell ris
   fmap XRefTableEntry `liftM` lookupTableEntry ris pos ref
-lookupXRefEntry ref (XRefStream s) = do
+lookupXRefEntry ref (XRefStream _ s) = do
   decoded <- getXRefStream s
   fmap XRefStreamEntry `liftM` lookupStreamEntry decoded ref
 
@@ -185,4 +185,4 @@ document = do
   ris <- getRIS
   xref <- lastXRef ris
   tr <- trailer ris xref
-  return $ Document tr
+  return $ Document xref tr

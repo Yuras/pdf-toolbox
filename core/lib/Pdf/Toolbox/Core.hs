@@ -11,6 +11,7 @@ module Pdf.Toolbox.Core
   module Pdf.Toolbox.Core.Object.Util,
   module Pdf.Toolbox.Core.XRef,
   module Pdf.Toolbox.Core.Util,
+  module Pdf.Toolbox.Core.IncrementalUpdate,
 )
 where
 
@@ -22,3 +23,4 @@ import Pdf.Toolbox.Core.Object.Builder
 import Pdf.Toolbox.Core.Object.Util
 import Pdf.Toolbox.Core.XRef
 import Pdf.Toolbox.Core.Util
+import Pdf.Toolbox.Core.IncrementalUpdate

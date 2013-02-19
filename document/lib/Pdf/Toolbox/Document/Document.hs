@@ -18,7 +18,7 @@ import Pdf.Toolbox.Document.Internal.Util
 
 -- | Get the document catalog
 documentCatalog :: MonadPdf m => Document -> PdfE m Catalog
-documentCatalog (Document dict) = do
+documentCatalog (Document _ dict) = do
   ref <- lookupDict "Root" dict >>= fromObject
   cat <- lookupObject ref >>= fromObject
   ensureType "Catalog" cat
@@ -26,7 +26,7 @@ documentCatalog (Document dict) = do
 
 -- | Document encryption dictionary
 documentEncryption :: MonadPdf m => Document -> PdfE m (Maybe Dict)
-documentEncryption (Document dict) = do
+documentEncryption (Document _ dict) = do
   case lookupDict' "Encrypt" dict of
     Nothing -> return Nothing
     Just o -> do
