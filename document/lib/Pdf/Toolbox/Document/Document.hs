@@ -6,7 +6,8 @@ module Pdf.Toolbox.Document.Document
 (
   Document,
   documentCatalog,
-  documentEncryption
+  documentEncryption,
+  documentInfo
 )
 where
 
@@ -32,3 +33,13 @@ documentEncryption (Document _ dict) = do
     Just o -> do
       o' <- deref o >>= fromObject
       return $ Just o'
+
+-- | Infornation dictionary for the document
+documentInfo :: MonadPdf m => Document -> PdfE m (Maybe Info)
+documentInfo (Document _ dict) =
+  case lookupDict' "Info" dict of
+    Nothing -> return Nothing
+    Just r -> do
+      ref <- fromObject r
+      info <- lookupObject ref >>= fromObject
+      return $ Just $ Info ref info

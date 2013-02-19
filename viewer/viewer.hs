@@ -29,24 +29,32 @@ main = do
   withBinaryFile file ReadMode $ \h -> do
   _ <- forkIO $ pdfThread h mvar
 
-  (rootNode, totalPages) <- pdfSync mvar $ do
+  (rootNode, totalPages, title) <- pdfSync mvar $ do
     pdf <- document
+    title <- do
+      info <- documentInfo pdf
+      case info of
+        Nothing -> return Nothing
+        Just i -> infoTitle i
     enc <- documentEncryption pdf
     when (isJust enc) $
       liftIO $ print "WARNING: Document is encrypted, it is not fully supported yet"
     root <- documentCatalog pdf >>= catalogPageNode
     total <- pageNodeNKids root
-    return (root, total)
+    return (root, total, title)
 
   firstPage <- pdfSync mvar $ do
     pageNodePageByNum rootNode 0
 
   page <- newIORef (firstPage, 0)
 
+  let winTitle = maybe "Untitled" (\(Str s) -> BS8.unpack s) title
+
   window <- windowNew
   set window [
     windowDefaultWidth := 300,
-    windowDefaultHeight := 300
+    windowDefaultHeight := 300,
+    windowTitle := winTitle
     ]
   _ <- on window deleteEvent $ liftIO mainQuit >> return True
 

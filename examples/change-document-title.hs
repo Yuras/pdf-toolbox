@@ -36,9 +36,14 @@ main = do
   let [input, title, output] = args
   res <- withBinaryFile input ReadMode $ \handle ->
     runPdfWithHandle handle knownFilters $ do
-    Document xref tr <- document
-    infoRef <- lookupDict "Info" tr >>= fromObject
-    info <- lookupObject infoRef >>= fromObject
+    pdf <- document
+    infoDict <- do
+      i <- documentInfo pdf
+      case i of
+        Just info -> return info
+        Nothing -> error "Unimplemented: PDF document without Info dictionary"
+    let Document xref tr = pdf
+        Info infoRef info = infoDict
     fileSize <- getRIS >>= size
     let startxref =
           case xref of

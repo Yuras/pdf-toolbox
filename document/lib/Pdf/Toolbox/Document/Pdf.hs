@@ -11,7 +11,9 @@ module Pdf.Toolbox.Document.Pdf
   runPdfWithHandle,
   document,
   flushObjectCache,
-  getRIS
+  getRIS,
+  knownFilters,
+  MonadIO(..)
 )
 where
 

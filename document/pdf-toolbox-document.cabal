@@ -21,6 +21,7 @@ library
                        Pdf.Toolbox.Document.Monad
                        Pdf.Toolbox.Document.Pdf
                        Pdf.Toolbox.Document.Document
+                       Pdf.Toolbox.Document.Info
                        Pdf.Toolbox.Document.Catalog
                        Pdf.Toolbox.Document.PageNode
                        Pdf.Toolbox.Document.Page

@@ -7,7 +7,8 @@ module Pdf.Toolbox.Document.Internal.Types
   Catalog(..),
   PageTree(..),
   PageNode(..),
-  Page(..)
+  Page(..),
+  Info(..)
 )
 where
 
@@ -35,4 +36,8 @@ data PageNode = PageNode Ref Dict
 
 -- | Pdf document page
 data Page = Page Ref Dict
+  deriving Show
+
+-- | Information dictionary
+data Info = Info Ref Dict
   deriving Show
