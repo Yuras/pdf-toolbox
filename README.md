@@ -14,6 +14,8 @@ or low level (xref, trailer, object) structure of PDF file.
 You can even switch between levels of details on the fly.
  * Extremely fast and memory efficient when you need to inspect only part of the document
  * Resonably fast and memory efficient in general case
+ * Full support of xref streams and object streams
+ * Supports editing of PDF files (incremental updates)
 
 Still in TODO list
 ------------------
@@ -21,9 +23,8 @@ Still in TODO list
  * Encrypted PDF documents (when the document you are processing doesn't uses object streams,
 then you can inspect document structure, only have to decrypt streams and strings manually
 if you need them)
- * Incremental updates
  * Linearized PDF files
- * Content stream tools: extract text, images, etc
+ * Content stream tools: extract text, images, etc (basic implementation is already included)
 
 Examples
 --------
