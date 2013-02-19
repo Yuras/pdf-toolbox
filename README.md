@@ -16,6 +16,7 @@ You can even switch between levels of details on the fly.
  * Resonably fast and memory efficient in general case
  * Full support of xref streams and object streams
  * Supports editing of PDF files (incremental updates)
+ * Basic support for PDF file generating
 
 Still in TODO list
 ------------------
@@ -25,9 +26,12 @@ then you can inspect document structure, only have to decrypt streams and string
 if you need them)
  * Linearized PDF files
  * Content stream tools: extract text, images, etc (basic implementation is already included)
+ * Higher level API for incremental updates and PDF generating
 
 Examples
 --------
+
+(Also see `examples` and `viewer` directories)
 
 Inspect high level structure:
 
