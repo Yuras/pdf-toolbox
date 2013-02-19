@@ -65,14 +65,16 @@ buildXRefTable entries =
 -- | Build a patch
 --
 -- Supply 'Nothing' and the original 'Ref' to delete the object.
+--
 -- Supply updated object and the original 'Ref' to modify the object.
+--
 -- Supply new object and new 'Ref' to add object (the new ref should
 -- be allocated from the free ref list)
 --
--- Ensure that the trailer everything necessary. Usually it sould be
--- the original trailer, except the \"Prev\" value should be updated
--- to point to the orinal xref
-buildPatch :: [(Maybe (Object BSL.ByteString), Ref)]  -- ^ Object to add/modify
+-- Ensure that the trailer contains everything necessary. Usually it sould
+-- be the original trailer, except the \"Prev\" value should be updated
+-- to point to the original xref
+buildPatch :: [(Maybe (Object BSL.ByteString), Ref)]  -- ^ Objects to add\/modify\/delete
            -> Int64                                   -- ^ Current file size
            -> Dict                                    -- ^ New trailer
            -> Builder                                 -- ^ The patch to be appended to the file
