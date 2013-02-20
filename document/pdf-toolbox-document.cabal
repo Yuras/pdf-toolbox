@@ -25,6 +25,7 @@ library
                        Pdf.Toolbox.Document.Catalog
                        Pdf.Toolbox.Document.PageNode
                        Pdf.Toolbox.Document.Page
+                       Pdf.Toolbox.Document.Encryption
                        Pdf.Toolbox.Document.Internal.Types
                        Pdf.Toolbox.Document.Internal.Util
   build-depends:       base ==4.6.*,
@@ -32,4 +33,6 @@ library
                        containers,
                        bytestring,
                        io-streams,
+                       cipher-rc4,
+                       cryptohash,
                        pdf-toolbox-core ==0.0.1.*

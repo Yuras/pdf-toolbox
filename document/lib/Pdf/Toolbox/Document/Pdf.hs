@@ -13,6 +13,10 @@ module Pdf.Toolbox.Document.Pdf
   flushObjectCache,
   getRIS,
   knownFilters,
+  isEncrypted,
+  setUserPassword,
+  defaultUserPassord,
+  decrypt,
   MonadIO(..)
 )
 where
@@ -30,6 +34,7 @@ import qualified System.IO.Streams as Streams
 import Pdf.Toolbox.Core
 
 import Pdf.Toolbox.Document.Monad
+import Pdf.Toolbox.Document.Encryption
 import Pdf.Toolbox.Document.Internal.Types
 
 data PdfState = PdfState {
@@ -37,7 +42,8 @@ data PdfState = PdfState {
   stFilters :: [StreamFilter],
   stLastXRef :: Maybe XRef,
   stObjectCache :: Map Ref (Object Int64),
-  stXRefStreamCache :: Map Int64 [ByteString]
+  stXRefStreamCache :: Map Int64 [ByteString],
+  stDecryptor :: Maybe Decryptor
   }
 
 -- | Basic implementation of pdf monad
@@ -55,7 +61,7 @@ instance MonadIO m => MonadPdf (Pdf' m) where
       Nothing -> do
         xref <- getLastXRef
         entry <- lookupEntryRec ref xref
-        o <- readObjectForEntry entry
+        o <- readObjectForEntry entry >>= decrypt ref
         addObjectToCache ref o
         return o
   streamContent = takeStreamContent
@@ -178,7 +184,8 @@ runPdf' ris filters (Pdf' action) = evalStateT action $ PdfState {
   stFilters = filters,
   stLastXRef = Nothing,
   stObjectCache = Map.empty,
-  stXRefStreamCache = Map.empty
+  stXRefStreamCache = Map.empty,
+  stDecryptor = Nothing
   }
 
 -- | Get PDF document
@@ -188,3 +195,31 @@ document = do
   xref <- lastXRef ris
   tr <- trailer ris xref
   return $ Document xref tr
+
+-- | Whether the PDF document it encrypted
+isEncrypted :: MonadIO m => Pdf m Bool
+isEncrypted = annotateError "isEncrypted" $ do
+  ris <- getRIS
+  tr <- lastXRef ris >>= trailer ris
+  case lookupDict' "Encrypt" tr of
+    Nothing -> return False
+    Just _ -> return True
+
+-- | Set the password to be user for decryption
+setUserPassword :: MonadIO m => ByteString -> Pdf m ()
+setUserPassword pass = annotateError "setUserPassword" $ do
+  ris <- getRIS
+  tr <- lastXRef ris >>= trailer ris
+  enc <- case lookupDict' "Encrypt" tr of
+    Nothing -> left $ UnexpectedError "The document is not encrypted"
+    Just enc -> deref enc >>= fromObject
+  decryptor <- mkStandardDecryptor tr enc pass
+  lift $ Pdf' $ modify $ \s -> s {stDecryptor = Just decryptor}
+
+-- | Decrypt PDF object using user password is set
+decrypt :: MonadIO m => Ref -> Object a -> Pdf m (Object a)
+decrypt ref o = do
+  decryptor <- lift $ Pdf' $ gets stDecryptor
+  case decryptor of
+    Nothing -> return o
+    Just decr -> liftIO $ decryptObject (decr ref) o

@@ -17,13 +17,11 @@ You can even switch between levels of details on the fly.
  * Full support of xref streams and object streams
  * Supports editing of PDF files (incremental updates)
  * Basic support for PDF file generating
+ * Encrypted PDF documents are partially supported
 
 Still in TODO list
 ------------------
 
- * Encrypted PDF documents (when the document you are processing doesn't uses object streams,
-then you can inspect document structure, only have to decrypt streams and strings manually
-if you need them)
  * Linearized PDF files
  * Content stream tools: extract text, images, etc (basic implementation is already included)
  * Higher level API for incremental updates and PDF generating
