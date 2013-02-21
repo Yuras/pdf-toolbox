@@ -71,8 +71,13 @@ parseArray = do
 -- Right (NumInt 123)
 -- >>> parseOnly parseNumber "12.3"
 -- Right (NumReal 12.3)
+-- >>> parseOnly parseNumber ".01"
+-- Right (NumReal 1.0e-2)
 parseNumber :: Parser Number
-parseNumber = toNum <$> P.number
+parseNumber = P.choice [
+  toNum <$> P.number,
+  NumReal <$> (P.signed $ read . ("0."++) . BS8.unpack <$> (P.char '.' >> P.takeWhile1 isDigit))
+  ]
   where
   toNum (P.I i) = NumInt $ fromIntegral i
   toNum (P.D d) = NumReal d
