@@ -62,7 +62,7 @@ instance MonadIO m => MonadPdf (Pdf' m) where
       Nothing -> do
         xref <- getLastXRef
         entry <- lookupEntryRec ref xref
-        o <- readObjectForEntry entry >>= decrypt ref
+        o <- readObjectForEntry ref entry
         addObjectToCache ref o
         return o
   streamContent ref s = do
@@ -73,18 +73,18 @@ instance MonadIO m => MonadPdf (Pdf' m) where
         Just d -> return $ d ref
     takeStreamContent decryptor s
 
-readObjectForEntry :: MonadIO m => XRefEntry -> Pdf m (Object Int64)
-readObjectForEntry (XRefTableEntry entry)
+readObjectForEntry :: MonadIO m => Ref -> XRefEntry -> Pdf m (Object Int64)
+readObjectForEntry ref (XRefTableEntry entry)
   | teIsFree entry = return ONull
   | otherwise = do
     ris <- getRIS
-    readObjectAtOffset ris (teOffset entry) (teGen entry)
-readObjectForEntry (XRefStreamEntry entry) =
+    readObjectAtOffset ris (teOffset entry) (teGen entry) >>= decrypt ref
+readObjectForEntry ref (XRefStreamEntry entry) =
   case entry of
     StreamEntryFree _ _ -> return ONull
     StreamEntryUsed off gen -> do
       ris <- getRIS
-      readObjectAtOffset ris off gen
+      readObjectAtOffset ris off gen >>= decrypt ref
     StreamEntryCompressed index num -> do
       objStream <- lookupObject (Ref index 0) >>= toStream
       Stream dict is <- streamContent (Ref index 0) objStream
