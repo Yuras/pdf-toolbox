@@ -17,6 +17,7 @@ module Pdf.Toolbox.Document.Pdf
   setUserPassword,
   defaultUserPassord,
   decrypt,
+  getDecryptor,
   MonadIO(..)
 )
 where
@@ -64,7 +65,13 @@ instance MonadIO m => MonadPdf (Pdf' m) where
         o <- readObjectForEntry entry >>= decrypt ref
         addObjectToCache ref o
         return o
-  streamContent = takeStreamContent
+  streamContent ref s = do
+    decryptor <- do
+      dec <- getDecryptor
+      case dec of
+        Nothing -> return return
+        Just d -> return $ d ref
+    takeStreamContent decryptor s
 
 readObjectForEntry :: MonadIO m => XRefEntry -> Pdf m (Object Int64)
 readObjectForEntry (XRefTableEntry entry)
@@ -80,7 +87,7 @@ readObjectForEntry (XRefStreamEntry entry) =
       readObjectAtOffset ris off gen
     StreamEntryCompressed index num -> do
       objStream <- lookupObject (Ref index 0) >>= toStream
-      Stream dict is <- streamContent objStream
+      Stream dict is <- streamContent (Ref index 0) objStream
       first <- lookupDict "First" dict >>= fromObject >>= intValue
       mapObject (error "readObjectForEntry: impossible") `liftM`
         readCompressedObject is (fromIntegral first) num
@@ -92,7 +99,7 @@ getXRefStream s@(Stream dict off) = do
     case Map.lookup off cache of
       Just content -> return content
       Nothing -> do
-        Stream _ is <- streamContent s
+        Stream _ is <- takeStreamContent return s
         content <- liftIO $ Streams.toList is
         lift $ Pdf' $ modify $ \st -> st {stXRefStreamCache = Map.insert off content $ stXRefStreamCache st}
         return content
@@ -124,8 +131,8 @@ lookupXRefEntry ref (XRefStream _ s) = do
   decoded <- getXRefStream s
   fmap XRefStreamEntry `liftM` lookupStreamEntry decoded ref
 
-takeStreamContent :: MonadIO m => Stream Int64 -> Pdf m (Stream IS)
-takeStreamContent s@(Stream dict _) = annotateError ("reading stream content: " ++ show s) $ do
+takeStreamContent :: MonadIO m => (IS -> IO IS) -> Stream Int64 -> Pdf m (Stream IS)
+takeStreamContent decryptor s@(Stream dict _) = annotateError ("reading stream content: " ++ show s) $ do
   len <- do
     obj <- lookupDict "Length" dict
     case obj of
@@ -134,7 +141,7 @@ takeStreamContent s@(Stream dict _) = annotateError ("reading stream content: " 
       _ -> left $ UnexpectedError $ "Unexpected length object in stream: " ++ show obj
   ris <- getRIS
   filters <- lift $ Pdf' $ gets stFilters
-  decodedStreamContent ris filters len s
+  decodedStreamContent ris filters decryptor len s
 
 getLastXRef :: MonadIO m => Pdf m XRef
 getLastXRef = do
@@ -216,10 +223,14 @@ setUserPassword pass = annotateError "setUserPassword" $ do
   decryptor <- mkStandardDecryptor tr enc pass
   lift $ Pdf' $ modify $ \s -> s {stDecryptor = Just decryptor}
 
+-- | Decryptor
+getDecryptor :: Monad m => Pdf m (Maybe Decryptor)
+getDecryptor = lift $ Pdf' $ gets stDecryptor
+
 -- | Decrypt PDF object using user password is set
 decrypt :: MonadIO m => Ref -> Object a -> Pdf m (Object a)
 decrypt ref o = do
-  decryptor <- lift $ Pdf' $ gets stDecryptor
+  decryptor <- getDecryptor
   case decryptor of
     Nothing -> return o
     Just decr -> liftIO $ decryptObject (decr ref) o

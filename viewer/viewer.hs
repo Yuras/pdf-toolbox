@@ -30,15 +30,16 @@ main = do
   _ <- forkIO $ pdfThread h mvar
 
   (rootNode, totalPages, title) <- pdfSync mvar $ do
+    encrypted <- isEncrypted
+    when encrypted $ do
+      liftIO $ print "WARNING: Document is encrypted, it is not fully supported yet"
+      setUserPassword defaultUserPassord
     pdf <- document
     title <- do
       info <- documentInfo pdf
       case info of
         Nothing -> return Nothing
         Just i -> infoTitle i
-    enc <- documentEncryption pdf
-    when (isJust enc) $
-      liftIO $ print "WARNING: Document is encrypted, it is not fully supported yet"
     root <- documentCatalog pdf >>= catalogPageNode
     total <- pageNodeNKids root
     return (root, total, title)
@@ -135,9 +136,14 @@ startRender mvar page = do
     streams <- forM contents $ \ref -> do
       s@(Stream dict _) <- lookupObject ref >>= toStream
       len <- lookupDict (fromString "Length") dict >>= deref >>= fromObject >>= intValue
-      return (s, len)
+      return (s, ref, len)
     ris <- getRIS
-    is <- parseContentStream ris knownFilters streams
+    decryptor <- do
+      dec <-getDecryptor
+      case dec of
+        Nothing -> return (const return)
+        Just d -> return d
+    is <- parseContentStream ris knownFilters decryptor streams
 
     let loop p = do
           next <- readNextOperator is

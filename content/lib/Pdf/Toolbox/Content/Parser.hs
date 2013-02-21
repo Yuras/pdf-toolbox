@@ -23,9 +23,9 @@ import Pdf.Toolbox.Core.Parsers.Object
 import Pdf.Toolbox.Content.Ops
 
 -- | Parse content streams for a page
-parseContentStream :: MonadIO m => RIS -> [StreamFilter] -> [(Stream Int64, Int)] -> PdfE m (InputStream Expr)
-parseContentStream ris filters streams = do
-  is <- combineStreams ris filters streams
+parseContentStream :: MonadIO m => RIS -> [StreamFilter] -> (Ref -> IS -> IO IS) -> [(Stream Int64, Ref, Int)] -> PdfE m (InputStream Expr)
+parseContentStream ris filters decryptor streams = do
+  is <- combineStreams ris filters decryptor streams
   liftIO $ Streams.parserToInputStream parseContent is
 
 -- | Read the next operator if any
@@ -41,15 +41,15 @@ readNextOperator is = go []
       Just (Obj o) -> go (o : args)
       Just (Op o) -> return $ Just (o, reverse args)
 
-combineStreams :: MonadIO m => RIS -> [StreamFilter] -> [(Stream Int64, Int)] -> PdfE m IS
-combineStreams _ _ [] = liftIO Streams.nullInput
-combineStreams ris filters (x:xs) = do
+combineStreams :: MonadIO m => RIS -> [StreamFilter] -> (Ref -> IS -> IO IS) -> [(Stream Int64, Ref, Int)] -> PdfE m IS
+combineStreams _ _ _ [] = liftIO Streams.nullInput
+combineStreams ris filters decryptor (x:xs) = do
   reader <- mkReader x xs
   ref <- liftIO $ newIORef reader
   liftIO $ Streams.makeInputStream (doRead ref)
   where
-  mkReader (s, len) ss = do
-    Stream _ is <- decodedStreamContent ris filters len s
+  mkReader (s, ref, len) ss = do
+    Stream _ is <- decodedStreamContent ris filters (decryptor ref) len s
     return (is, ss)
   doRead ref = do
     (is, ss) <- liftIO $ readIORef ref

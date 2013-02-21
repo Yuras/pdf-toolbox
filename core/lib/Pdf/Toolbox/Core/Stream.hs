@@ -54,8 +54,14 @@ rawStreamContent ris len (Stream dict off) = annotateError ("reading raw stream 
 --
 -- Note: \"Length\" could be an indirect object, that is why
 -- we cann't read it ourself
-decodedStreamContent :: MonadIO m => RIS -> [StreamFilter] -> Int -> Stream Int64 -> PdfE m (Stream IS)
-decodedStreamContent ris filters len s = rawStreamContent ris len s >>= decodeStream filters
+decodedStreamContent :: MonadIO m
+                     => RIS                -- ^ random input stream to read from
+                     -> [StreamFilter]     -- ^ stream filters
+                     -> (IS -> IO IS)      -- ^ decryptor
+                     -> Int                -- ^ stream length
+                     -> Stream Int64       -- ^ stream with offset
+                     -> PdfE m (Stream IS)
+decodedStreamContent ris filters decryptor len s = rawStreamContent ris len s >>= decodeStream filters decryptor
 
 -- | Read 'Stream' at the current position in the 'RIS'
 readStream :: MonadIO m => RIS -> PdfE m (Stream Int64)
@@ -65,11 +71,12 @@ readStream ris = do
 
 -- | Decode stream content
 --
--- The 'IS' is valid only until the next 'MonadPdfIO' operation
-decodeStream :: MonadIO m => [StreamFilter] -> Stream IS -> PdfE m (Stream IS)
-decodeStream filters (Stream dict istream) = annotateError "Can't decode stream" $ do
+-- The 'IS' is valid only until the next 'RIS' operation
+decodeStream :: MonadIO m => [StreamFilter] -> (IS -> IO IS) -> Stream IS -> PdfE m (Stream IS)
+decodeStream filters decryptor (Stream dict istream) = annotateError "Can't decode stream" $ do
+  is <- liftIO $ decryptor istream
   list <- buildFilterList dict
-  Stream dict `liftM` foldM decode istream list
+  Stream dict `liftM` foldM decode is list
   where
   decode is (name, params) = do
     f <- findFilter name

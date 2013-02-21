@@ -20,7 +20,7 @@ class Monad m => MonadPdf m where
   --
   -- Note: the 'IS' returned is valid only until the next 'lookupObject'
   -- or any other operation, that requares seek
-  streamContent :: Stream Int64 -> PdfE m (Stream IS)
+  streamContent :: Ref -> Stream Int64 -> PdfE m (Stream IS)
 
 -- | Recursively load indirect object
 deref :: (MonadPdf m, Show a) => Object a -> PdfE m (Object ())
