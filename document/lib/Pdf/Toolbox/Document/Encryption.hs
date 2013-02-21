@@ -60,6 +60,14 @@ mkStandardDecryptor :: Monad m
                     -> ByteString      -- ^ user password
                     -> PdfE m Decryptor
 mkStandardDecryptor tr enc pass = do
+  Name filterType <- lookupDict "Filter" enc >>= fromObject
+  unless (filterType == "Standard") $ left $ UnexpectedError $ "Unsupported encryption handler: " ++ show filterType
+  vVal <- lookupDict "V" enc >>= fromObject >>= intValue
+  n <- case vVal of
+         1 -> return 5
+         _ -> do
+           len <- lookupDict "Length" enc >>= fromObject >>= intValue
+           return $ len `div` 8
   Str oVal <- lookupDict "O" enc >>= fromObject
   pVal <- (BS.pack . BSL.unpack . toLazyByteString . word32LE . fromIntegral)
     `liftM` (lookupDict "P" enc >>= fromObject >>= intValue)
@@ -68,10 +76,14 @@ mkStandardDecryptor tr enc pass = do
     case ids of
       [] -> left $ UnexpectedError $ "ID array is empty"
       (x:_) -> fromObject x
-  let ekey = BS.take 5 $ MD5.hash $ BS.concat [pass', oVal, pVal, idVal]
+  let ekey' = BS.take n $ MD5.hash $ BS.concat [pass', oVal, pVal, idVal]
       pass' = pass   -- XXX: padding
+  rVal <- lookupDict "R" enc >>= fromObject >>= intValue
+  let ekey = if rVal < 3
+               then ekey'
+               else foldl (\bs _ -> BS.take n $ MD5.hash bs) ekey'  [1 :: Int .. 50]
   return $ \(Ref index gen) is -> do
-    let key = BS.take 10 $ MD5.hash $ BS.concat [
+    let key = BS.take (16 `min` n + 5) $ MD5.hash $ BS.concat [
           ekey,
           BS.pack $ take 3 $ BSL.unpack $ toLazyByteString $ int32LE $ fromIntegral index,
           BS.pack $ take 2 $ BSL.unpack $ toLazyByteString $ int32LE $ fromIntegral gen
