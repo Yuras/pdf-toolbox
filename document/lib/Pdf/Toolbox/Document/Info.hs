@@ -20,4 +20,4 @@ infoTitle :: MonadPdf m => Info -> PdfE m (Maybe Str)
 infoTitle (Info _ dict) =
   case lookupDict' "Title" dict of
     Nothing -> return Nothing
-    Just o -> Just `liftM` fromObject o
+    Just o -> liftM Just $ deref o >>= fromObject
