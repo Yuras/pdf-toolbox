@@ -12,28 +12,25 @@ module Main
 )
 where
 
-import Data.Monoid
-import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
-import Data.ByteString.Lazy.Builder
-import System.IO
+import Control.Monad
+import qualified System.IO.Streams as Streams
 
 import Pdf.Toolbox.Core
 
 main :: IO ()
 main = do
-  let patch = buildPatch objects (fromIntegral $ BS.length header) tr
-      header = "%PDF-1.7\n"
-      tr = Dict [
+  --let patch = buildPatch objects (fromIntegral $ BS.length header) tr
+  let tr = Dict [
         ("Size", ONumber $ NumInt $ length objects),
         ("Root", ORef catalogRef)
         ]
       objects = [
-        (Just $ ODict catalog, catalogRef),
-        (Just $ ODict rootNode, rootNodeRef),
-        (Just $ ODict page, pageRef),
-        (Just $ OStream content, contentRef),
-        (Just $ ODict font, fontRef)
+        (ODict catalog, catalogRef),
+        (ODict rootNode, rootNodeRef),
+        (ODict page, pageRef),
+        (OStream content, contentRef),
+        (ODict font, fontRef)
         ]
       catalog = Dict [
         ("Type", OName "Catalog"),
@@ -76,4 +73,8 @@ main = do
       pageRef = Ref 3 0
       contentRef = Ref 4 0
       fontRef = Ref 5 0
-  hPutBuilder stdout $ byteString header `mappend` patch
+  --hPutBuilder stdout $ byteString header `mappend` patch
+  runPdfWriter Streams.stdout $ do
+    writePdfHeader
+    forM_ objects $ \(obj, ref) -> writeObject ref obj
+    writeXRefTable 0 tr
