@@ -42,7 +42,7 @@ library
                        Pdf.Toolbox.Core.Stream
                        Pdf.Toolbox.Core.XRef
                        Pdf.Toolbox.Core.Util
-                       Pdf.Toolbox.Core.IncrementalUpdate
+                       Pdf.Toolbox.Core.Writer
   -- other-modules:       
   build-depends:       base ==4.6.*,
                        bytestring,
@@ -51,4 +51,5 @@ library
                        attoparsec,
                        errors,
                        transformers,
+                       containers,
                        zlib-bindings

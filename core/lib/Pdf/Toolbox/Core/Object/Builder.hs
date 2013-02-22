@@ -30,6 +30,7 @@ import Pdf.Toolbox.Core.Object.Types
 -- | Build indirect object
 buildIndirectObject :: Ref -> Object BSL.ByteString -> Builder
 buildIndirectObject (Ref i g) object =
+  char7 '\n' `mappend`
   intDec i `mappend`
   char7 ' ' `mappend`
   intDec g `mappend`
