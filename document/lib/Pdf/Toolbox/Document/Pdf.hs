@@ -52,10 +52,10 @@ newtype Pdf' m a = Pdf' (StateT PdfState m a)
   deriving (Monad, Functor, MonadIO, MonadTrans)
 
 -- | Convenient type alias
-type Pdf m a = PdfE (Pdf' m) a
+type Pdf m = PdfE (Pdf' m)
 
 instance MonadIO m => MonadPdf (Pdf' m) where
-  lookupObject ref = do
+  lookupObject ref = annotateError ("lookupObject: " ++ show ref) $ do
     cached <- getFromCache ref
     case cached of
       Just o -> return o

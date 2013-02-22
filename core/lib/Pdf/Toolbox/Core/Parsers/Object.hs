@@ -209,6 +209,7 @@ parseObject = do
 -- Right (Ref 1 2,ONumber (NumInt 12))
 parseIndirectObject :: Parser (Ref, Object ())
 parseIndirectObject = do
+  P.skipSpace
   index <- P.decimal :: Parser Int
   P.skipSpace
   gen <- P.decimal :: Parser Int

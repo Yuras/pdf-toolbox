@@ -20,7 +20,6 @@ import Pdf.Toolbox.Core
 
 main :: IO ()
 main = do
-  --let patch = buildPatch objects (fromIntegral $ BS.length header) tr
   let tr = Dict [
         ("Size", ONumber $ NumInt $ length objects),
         ("Root", ORef catalogRef)
@@ -73,7 +72,6 @@ main = do
       pageRef = Ref 3 0
       contentRef = Ref 4 0
       fontRef = Ref 5 0
-  --hPutBuilder stdout $ byteString header `mappend` patch
   runPdfWriter Streams.stdout $ do
     writePdfHeader
     forM_ objects $ \(obj, ref) -> writeObject ref obj

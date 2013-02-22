@@ -32,6 +32,7 @@ import Data.ByteString.Lazy.Builder.ASCII
 import Data.Function
 import Data.Monoid
 import Control.Monad
+import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
 import Control.Monad.IO.Class
 import System.IO.Streams (OutputStream)
@@ -42,7 +43,7 @@ import Pdf.Toolbox.Core.Object.Builder
 
 -- | The monad
 newtype PdfWriter m a = PdfWriter (StateT PdfState m a)
-  deriving (Monad, MonadIO)
+  deriving (Monad, MonadIO, MonadTrans)
 
 -- | Execute writer action
 runPdfWriter :: MonadIO m

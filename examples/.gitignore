@@ -1,3 +1,5 @@
 change-document-title
 create-simple-pdf-file
+unpack-and-decrypt-pdf-file
+*.pdf
 .build/
