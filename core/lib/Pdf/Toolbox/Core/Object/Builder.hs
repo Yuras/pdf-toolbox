@@ -24,6 +24,7 @@ import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
 import Data.ByteString.Lazy.Builder.ASCII
+import Text.Printf
 
 import Pdf.Toolbox.Core.Object.Types
 
@@ -64,7 +65,7 @@ buildStream (Stream dict content) =
 
 buildNumber :: Number -> Builder
 buildNumber (NumInt i) = intDec i
-buildNumber (NumReal d) = doubleDec d
+buildNumber (NumReal d) = string7 $ printf "%f" d
 
 buildBoolean :: Boolean -> Builder
 buildBoolean (Boolean True) = byteString "true"
