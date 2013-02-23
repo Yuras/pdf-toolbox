@@ -11,6 +11,7 @@ module Pdf.Toolbox.Document.Pdf
   runPdfWithHandle,
   document,
   flushObjectCache,
+  withoutObjectCache,
   getRIS,
   knownFilters,
   isEncrypted,
@@ -42,6 +43,7 @@ data PdfState = PdfState {
   stRIS :: RIS,
   stFilters :: [StreamFilter],
   stLastXRef :: Maybe XRef,
+  stAddToObjectCache :: Bool,
   stObjectCache :: Map Ref (Object Int64),
   stXRefStreamCache :: Map Int64 [ByteString],
   stDecryptor :: Maybe Decryptor
@@ -168,8 +170,23 @@ getFromCache ref = do
   return $ Map.lookup ref cache
 
 addObjectToCache :: Monad m => Ref -> Object Int64 -> Pdf m ()
-addObjectToCache ref o = lift $ Pdf' $ modify $ \st ->
-  st {stObjectCache = Map.insert ref o $ stObjectCache st}
+addObjectToCache ref o = do
+  add <- lift $ Pdf' $ gets stAddToObjectCache
+  when add $
+    lift $ Pdf' $ modify $ \st ->
+      st {stObjectCache = Map.insert ref o $ stObjectCache st}
+
+-- | Perform action without adding objects to cache.
+-- Note: the existent cache is not flushed, and is used
+-- within the action
+withoutObjectCache :: Monad m => Pdf m () -> Pdf m ()
+withoutObjectCache action = do
+  old <- lift $ Pdf' $ do
+    val <- gets stAddToObjectCache
+    modify $ \st -> st {stAddToObjectCache = False}
+    return val
+  action
+  lift $ Pdf' $ modify $ \st -> st {stAddToObjectCache = old}
 
 -- | Remove all objects from cache
 flushObjectCache :: Monad m => Pdf m ()
@@ -192,7 +209,8 @@ runPdf' ris filters (Pdf' action) = evalStateT action $ PdfState {
   stLastXRef = Nothing,
   stObjectCache = Map.empty,
   stXRefStreamCache = Map.empty,
-  stDecryptor = Nothing
+  stDecryptor = Nothing,
+  stAddToObjectCache = True
   }
 
 -- | Get PDF document

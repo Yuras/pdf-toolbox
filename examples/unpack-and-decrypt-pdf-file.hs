@@ -25,7 +25,10 @@ main :: IO ()
 main = do
   [input] <- getArgs
   res <- withBinaryFile input ReadMode $ \handle ->
-    runPdfWithHandle handle knownFilters $ do
+    runPdfWithHandle handle knownFilters $
+    -- we take each object only once, and object cache
+    -- will only slow down everything
+    withoutObjectCache $ do
     encrypted <- isEncrypted
     when encrypted $ setUserPassword defaultUserPassord
     Document _ tr <- document
@@ -35,7 +38,7 @@ main = do
         loop (ODict (Dict vals)) = forM_ vals $ loop . mapObject (error "impossible") . snd
         loop (OArray (Array vals)) = forM_ vals $ loop . mapObject (error "impossible")
         loop (ORef r) = do
-          -- check chat the object is not already written.
+          -- check that the object is not already written.
           -- necessary to prevent circles
           member <- gets $ Set.member r
           if member
