@@ -8,8 +8,8 @@ where
 
 import Data.Int
 import qualified Data.ByteString.Lazy as BSL
-import Data.Set (Set)
-import qualified Data.Set as Set
+import Data.IntSet (IntSet)
+import qualified Data.IntSet as IntSet
 import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
@@ -34,24 +34,24 @@ main = do
     Document _ tr <- document
 
     let
-        loop :: Object Int64 -> StateT (Set Ref) (PdfWriter (Pdf IO)) ()
+        loop :: Object Int64 -> StateT IntSet (PdfWriter (Pdf IO)) ()
         loop (ODict (Dict vals)) = forM_ vals $ loop . mapObject (error "impossible") . snd
         loop (OArray (Array vals)) = forM_ vals $ loop . mapObject (error "impossible")
-        loop (ORef r) = do
+        loop (ORef r@(Ref index _)) = do
           -- check that the object is not already written.
           -- necessary to prevent circles
-          member <- gets $ Set.member r
+          member <- gets $ IntSet.member index
           if member
             then return ()
             else do
               o <- lift $ lift $ lookupObject r
               lift ( lift $ loadStream r o) >>= lift . writeObject r
-              modify $ Set.insert r
+              modify $ IntSet.insert index
               loop o
         loop _ = return ()
 
     runPdfWriter Streams.stdout $ do
-      flip evalStateT Set.empty $ do
+      flip evalStateT IntSet.empty $ do
         lift writePdfHeader
         -- traverse all the objects starting from trailer
         -- and write out all the indirect objects found
