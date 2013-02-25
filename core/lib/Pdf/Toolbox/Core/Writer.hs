@@ -61,10 +61,10 @@ runPdfWriter output (PdfWriter action) = do
   evalStateT action emptyState
 
 data Elem = Elem {
-  elemIndex :: Int,
-  elemGen :: Int,
-  elemOffset :: Int64,
-  elemFree :: Bool
+  elemIndex :: {-# UNPACK #-} !Int,
+  elemGen :: {-# UNPACK #-} !Int,
+  elemOffset :: {-# UNPACK #-} !Int64,
+  elemFree :: !Bool
   }
 
 instance Eq Elem where
@@ -105,8 +105,9 @@ writeXRefTable :: MonadIO m
 writeXRefTable offset tr = do
   st <- PdfWriter get
   off <- (+ offset) `liftM` countWritten
-  let elems = Set.map (\e -> e {elemOffset = elemOffset e + offset})  $ stObjects st
-      content = buildXRefTable (Set.toAscList elems) `mappend`
+  let elems = Set.mapMonotonic (\e -> e {elemOffset = elemOffset e + offset})  $ stObjects st
+      content = byteString "xref\n" `mappend`
+                buildXRefTable (Set.toAscList elems) `mappend`
                 byteString "trailer\n" `mappend`
                 buildDict tr `mappend`
                 byteString "\nstartxref\n" `mappend`
@@ -117,19 +118,21 @@ writeXRefTable offset tr = do
 countWritten :: MonadIO m => PdfWriter m Int64
 countWritten = do
   st <- PdfWriter get
-  c <- liftIO $ stCount st
-  PdfWriter $ put $ st {stOffset = stOffset st + c}
-  return $ stOffset st + c
+  c <- (stOffset st +) `liftM` liftIO (stCount st)
+  PdfWriter $ put $ st {stOffset = c}
+  return $! c
 
 addElem :: Monad m => Elem -> PdfWriter m ()
-addElem e = PdfWriter $ modify $ \st -> st {stObjects = Set.insert e (stObjects st)}
+addElem e = do
+  st <- PdfWriter get
+  when (Set.member e $ stObjects st) $ error $ "PdfWriter: attempt to write object with the same index: " ++ show (elemIndex e)
+  PdfWriter $ put st {stObjects = Set.insert e $ stObjects st}
 
 dumpObject :: MonadIO m => OutputStream ByteString -> Ref -> Object BSL.ByteString -> m ()
 dumpObject out ref o = liftIO $ Streams.writeLazyByteString (toLazyByteString $ buildIndirectObject ref o) out
 
 buildXRefTable :: [Elem] -> Builder
 buildXRefTable entries =
-  string7 "xref\n" `mappend`
   mconcat (map buildXRefSection $ sections entries)
   where
   sections :: [Elem] -> [[Elem]]
@@ -168,3 +171,49 @@ buildFixed len c i =
   let v = take len $ show i
       l = length v
   in string7 $ replicate (len - l) c ++ v
+
+{-
+-- At attempt to do it directly with Set.
+-- Actually uses 2x memory...
+buildXRefTable :: Set Elem -> Builder
+buildXRefTable elems
+  | Set.null elems = mempty
+  | otherwise = buildXRefSection elems
+
+buildXRefSection :: Set Elem -> Builder
+buildXRefSection elems =
+  intDec (elemIndex start) `mappend`
+  char7 ' ' `mappend`
+  intDec len `mappend`
+  char7 '\n' `mappend`
+  section `mappend`
+  buildXRefTable rest
+  where
+  (start, len, rest) = sectionLength elems
+  section = buildSection len elems
+
+buildSection :: Int -> Set Elem -> Builder
+buildSection 0 _ = mempty
+buildSection l els =
+  let (x, xs) = Set.deleteFindMin els
+  in buildFixed 10 '0' (elemOffset x) `mappend`
+     char7 ' ' `mappend`
+     buildFixed 5 '0' (elemGen x) `mappend`
+     char7 ' ' `mappend`
+     char7 (if elemFree x then 'f' else 'n') `mappend`
+     string7 "\r\n" `mappend`
+     buildSection (l - 1) xs
+
+sectionLength :: Set Elem -> (Elem, Int, Set Elem)
+sectionLength els =
+  let (x, xs) = Set.deleteFindMin els
+      (count, rest) = go 1 (elemIndex x) xs
+  in (x, count, rest)
+  where
+  go n val xs
+    | Set.null xs = (n, xs)
+    | otherwise = let (next, rest) = Set.deleteFindMin xs
+                  in if elemIndex next == val + 1
+                       then go (n + 1) (val + 1) rest
+                       else (n, xs)
+-}
