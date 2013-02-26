@@ -75,9 +75,9 @@ instance Ord Elem where
 
 data PdfState = PdfState {
   stOutput :: OutputStream ByteString,
-  stObjects :: Set Elem,
+  stObjects :: !(Set Elem),
   stCount :: IO Int64,
-  stOffset :: Int64
+  stOffset :: {-# UNPACK #-} !Int64
   }
 
 -- | Write PDF header. Used for generating new PDF files.
