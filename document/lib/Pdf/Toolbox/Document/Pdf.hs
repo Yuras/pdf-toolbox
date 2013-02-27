@@ -127,8 +127,7 @@ lookupXRefEntry ref (XRefTable off) = do
   ris <- getRIS
   seek ris off
   _ <- inputStream ris >>= isTable
-  pos <- tell ris
-  fmap XRefTableEntry `liftM` lookupTableEntry ris pos ref
+  fmap XRefTableEntry `liftM` lookupTableEntry ris ref
 lookupXRefEntry ref (XRefStream _ s) = do
   decoded <- getXRefStream s
   fmap XRefStreamEntry `liftM` lookupStreamEntry decoded ref

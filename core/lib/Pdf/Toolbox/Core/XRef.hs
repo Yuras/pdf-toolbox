@@ -124,15 +124,13 @@ skipSubsection is count = dropExactly (count * 20) is
 
 -- | Read xref entry for the indirect object from xref table
 --
--- xref table offset should point to the begining of the next
+-- RIS position should point to the begining of the next
 -- line after \"xref\" keyword
 lookupTableEntry :: MonadIO m
                => RIS             -- ^ input stream to read from
-               -> Int64           -- ^ offset of xref table
                -> Ref             -- ^ indirect object to look for
                -> PdfE m (Maybe TableEntry)
-lookupTableEntry ris offset (Ref index gen) = annotateError "Can't read entry from xref table" $ do
-  seek ris offset
+lookupTableEntry ris (Ref index gen) = annotateError "Can't read entry from xref table" $
   inputStream ris >>= subsectionHeader >>= go
   where
   go (start, count) = do
