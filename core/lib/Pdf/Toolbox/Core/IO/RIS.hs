@@ -54,19 +54,26 @@ seek (RIS ref) pos = do
 fromHandle' :: Handle -> Int -> IO RIS
 fromHandle' h buf = do
   sz <- hFileSize h
-  stream <- Streams.makeInputStream f
+  posRef <- newIORef 0
+  stream <- Streams.makeInputStream (f posRef)
   (s, c) <- Streams.countInput stream
   RIS <$> newIORef RIS' {
     risSeek = \pos -> do
       hSeek h AbsoluteSeek (fromIntegral pos)
-      return f,
+      ref <- newIORef $ fromIntegral pos
+      return $ f ref,
     risInputStream = s,
     risPos = c,
     risSize = fromIntegral sz
     }
   where
-  f = do
+  f ref = do
+    prevPos <- readIORef ref
+    curtPos <- hTell h
+    hSeek h AbsoluteSeek prevPos
     chunk <- BS.hGetSome h buf
+    hSeek h AbsoluteSeek curtPos
+    writeIORef ref $! prevPos + fromIntegral (BS.length chunk)
     return $! if BS.null chunk then Nothing else Just chunk
 
 -- | Create RIS from 'Handle' with default chunk size
