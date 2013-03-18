@@ -31,13 +31,15 @@ import Pdf.Toolbox.Document.Internal.Types
 
 data AppState = AppState {
   stNextFree :: Int,
-  stPageRefs :: [Ref]
+  stPageRefs :: [Ref],
+  stRootNode :: Ref
   }
 
 initialAppState :: AppState
 initialAppState = AppState {
   stNextFree = 1,
-  stPageRefs = []
+  stPageRefs = [],
+  stRootNode = error "stRootNode"
   }
 
 nextFreeIndex :: Monad m => StateT AppState m Int
@@ -95,6 +97,7 @@ writeStream s@(Stream dict _) = do
 
 writePdfPage :: Page -> Pdf (StateT AppState (PdfWriter IO)) ()
 writePdfPage page@(Page _ pageDict) = do
+  parentRef <- liftApp $ gets stRootNode
   pageIndex <- liftApp nextFreeIndex
   let pageRef = Ref pageIndex 0
   liftApp $ putPageRef pageRef
@@ -106,7 +109,8 @@ writePdfPage page@(Page _ pageDict) = do
   liftWriter $ writeObject pageRef $ ODict $ Dict [
     ("Type", OName "Page"),
     ("Contents", OArray $ Array $ map ORef contentRefs'),
-    ("Resources", resources)
+    ("Resources", resources),
+    ("Parent", ORef parentRef)
     ]
 
 writePdfFile :: FilePath -> StateT AppState (PdfWriter IO) ()
@@ -127,8 +131,7 @@ writeTrailer :: StateT AppState (PdfWriter IO) ()
 writeTrailer = do
   pageRefs <- gets stPageRefs
 
-  rootIndex <- nextFreeIndex
-  let rootRef = Ref rootIndex 0
+  rootRef <- gets stRootNode
   lift $ writeObject rootRef $ ODict $ Dict [
     ("Type", OName "Pages"),
     ("Count", ONumber $ NumInt $ length pageRefs),
@@ -139,6 +142,10 @@ writeTrailer = do
   let catalogRef = Ref catalogIndex 0
   lift $ writeObject catalogRef $ ODict $ Dict [("Type", OName "Catalog"), ("Pages", ORef rootRef)]
 
+  -- TODO: acroread can't open file without the next two lines... Investigate it.
+  i <- nextFreeIndex
+  lift $ writeObject (Ref i 0) (OStr "Test")
+
   count <- gets stNextFree
   lift $ writeXRefTable 0 (Dict [("Size", ONumber $ NumInt $ count - 1), ("Root", ORef catalogRef)])
 
@@ -148,6 +155,8 @@ main = do
   runPdfWriter Streams.stdout $ do
     writePdfHeader
     flip evalStateT initialAppState $ do
+      index <- nextFreeIndex
+      modify $ \st -> st {stRootNode = Ref index 0}
       forM_ files writePdfFile
       writeTrailer
   return ()
