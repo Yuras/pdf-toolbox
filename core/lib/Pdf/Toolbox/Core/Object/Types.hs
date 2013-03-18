@@ -78,3 +78,6 @@ data Object a =
 
 instance IsString Name where
   fromString = Name . fromString
+
+instance IsString Str where
+  fromString = Str . fromString
