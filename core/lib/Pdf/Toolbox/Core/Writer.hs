@@ -18,6 +18,7 @@ module Pdf.Toolbox.Core.Writer
   runPdfWriter,
   writePdfHeader,
   writeObject,
+  deleteObject,
   writeXRefTable
 )
 where
@@ -95,6 +96,11 @@ writeObject ref@(Ref index gen) obj = do
   addElem $ Elem index gen pos False
   dumpObject (stOutput st) ref obj
   return ()
+
+-- | Delete object
+deleteObject :: MonadIO m => Ref -> Int64 -> PdfWriter m ()
+deleteObject (Ref index gen) nextFree =
+  addElem $ Elem index gen nextFree True
 
 -- | Write xref table. Should be the last call.
 -- Used for generating and incremental updates.

@@ -8,6 +8,7 @@
 -- TODO: Encrypted files are not supported
 -- TODO: Annotations, media box
 -- TODO: Inherited resources
+-- TODO: Resources (fonts, etc) are written a number of times, check for dublicates
 
 module Main
 (
@@ -142,10 +143,6 @@ writeTrailer = do
   let catalogRef = Ref catalogIndex 0
   lift $ writeObject catalogRef $ ODict $ Dict [("Type", OName "Catalog"), ("Pages", ORef rootRef)]
 
-  -- TODO: acroread can't open file without the next two lines... Investigate it.
-  i <- nextFreeIndex
-  lift $ writeObject (Ref i 0) (OStr "Test")
-
   count <- gets stNextFree
   lift $ writeXRefTable 0 (Dict [("Size", ONumber $ NumInt $ count - 1), ("Root", ORef catalogRef)])
 
@@ -154,6 +151,7 @@ main = do
   files <- getArgs
   runPdfWriter Streams.stdout $ do
     writePdfHeader
+    deleteObject (Ref 0 65535) 0
     flip evalStateT initialAppState $ do
       index <- nextFreeIndex
       modify $ \st -> st {stRootNode = Ref index 0}
