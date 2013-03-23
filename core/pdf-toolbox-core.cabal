@@ -46,7 +46,6 @@ library
   -- other-modules:       
   build-depends:       base ==4.6.*,
                        bytestring,
-                       -- see https://github.com/snapframework/io-streams
                        io-streams,
                        attoparsec,
                        errors,
