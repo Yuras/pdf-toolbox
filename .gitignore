@@ -2,3 +2,5 @@
 .*.swp
 dist/
 tmp/
+.cabal-sandbox/
+cabal.sandbox.config
