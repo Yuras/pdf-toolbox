@@ -23,8 +23,10 @@ module Pdf.Toolbox.Document.Pdf
 )
 where
 
+import Data.Monoid
 import Data.Int
 import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad
@@ -237,7 +239,7 @@ setUserPassword pass = annotateError "setUserPassword" $ do
   enc <- case lookupDict' "Encrypt" tr of
     Nothing -> left $ UnexpectedError "The document is not encrypted"
     Just enc -> deref enc >>= fromObject
-  decryptor <- mkStandardDecryptor tr enc pass
+  decryptor <- mkStandardDecryptor tr enc $ BS.take 32 $ pass `mappend` defaultUserPassord
   lift $ Pdf' $ modify $ \s -> s {stDecryptor = Just decryptor}
 
 -- | Decryptor
