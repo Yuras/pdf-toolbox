@@ -1,3 +1,11 @@
 
-all:
-	ghc --make -o viewer viewer.hs -outputdir=.build -i../core/lib -i../document/lib -i../content/lib -Wall
+all: build
+
+debug: clean
+	cabal configure --disable-library-profiling --disable-shared --disable-optimization --ghc-options="-Wall"
+
+clean:
+	cabal clean
+
+build:
+	cabal build
