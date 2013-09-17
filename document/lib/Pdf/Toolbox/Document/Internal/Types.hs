@@ -1,3 +1,4 @@
+{-# OPTIONS_HADDOCK not-home #-}
 
 -- | Internal type declarations
 
