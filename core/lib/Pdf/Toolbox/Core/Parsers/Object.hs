@@ -113,8 +113,9 @@ parseStr = do
                  _ -> do
                    ch1 <- P.anyChar
                    ch2 <- P.anyChar
-                   takeStr lvl (toEnum (fromEnum ch' * 64 + fromEnum ch1 * 8 + fromEnum ch2) : res)
+                   takeStr lvl (toEnum (charToInt ch' * 64 + charToInt ch1 * 8 + charToInt ch2) : res)
       _ -> takeStr lvl (ch : res)
+  charToInt ch = fromEnum ch - 48
 
 -- |
 -- >>> parseOnly parseHexStr "<68656C6C6F>"
