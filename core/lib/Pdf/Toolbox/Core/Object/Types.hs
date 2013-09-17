@@ -32,7 +32,7 @@ newtype Boolean = Boolean Bool
 
 -- | Names usually are used as keys in dictionaries
 --
--- They starts with \'/\', but we strip it out, see 'Text.Pdf.Parser.Object.parseName'
+-- They starts with \'/\', but we strip it out, see 'Pdf.Toolbox.Core.Parsers.Object.parseName'
 newtype Name = Name ByteString
   deriving (Eq, Show)
 
