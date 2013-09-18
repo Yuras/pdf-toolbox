@@ -79,6 +79,7 @@ parseTrailerAfterTable :: Parser Dict
 parseTrailerAfterTable = do
   _ <- P.string "trailer"
   endOfLine
+  P.skipSpace
   parseDict
 
 -- | Parse XRef table entry. Returns offset, generation and whether the object is free.
