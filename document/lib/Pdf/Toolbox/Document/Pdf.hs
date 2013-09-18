@@ -232,7 +232,9 @@ isEncrypted = annotateError "isEncrypted" $ do
     Just _ -> return True
 
 -- | Set the password to be user for decryption
-setUserPassword :: MonadIO m => ByteString -> Pdf m ()
+--
+-- Returns False when the password is wrong
+setUserPassword :: MonadIO m => ByteString -> Pdf m Bool
 setUserPassword pass = annotateError "setUserPassword" $ do
   ris <- getRIS
   tr <- lastXRef ris >>= trailer ris
@@ -240,7 +242,10 @@ setUserPassword pass = annotateError "setUserPassword" $ do
     Nothing -> left $ UnexpectedError "The document is not encrypted"
     Just enc -> deref enc >>= fromObject
   decryptor <- mkStandardDecryptor tr enc $ BS.take 32 $ pass `mappend` defaultUserPassord
-  lift $ Pdf' $ modify $ \s -> s {stDecryptor = Just decryptor}
+  lift $ Pdf' $ modify $ \s -> s {stDecryptor = decryptor}
+  case decryptor of
+    Nothing -> return False
+    _ -> return True
 
 -- | Decryptor
 getDecryptor :: Monad m => Pdf m (Maybe Decryptor)

@@ -11,6 +11,7 @@ module Pdf.Toolbox.Document.Encryption
 )
 where
 
+import Data.Bits (xor)
 import Data.IORef
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
@@ -57,17 +58,18 @@ defaultUserPassord = BS.pack [
 mkStandardDecryptor :: Monad m
                     => Dict            -- ^ document trailer
                     -> Dict            -- ^ encryption dictionary
-                    -> ByteString      -- ^ user password
-                    -> PdfE m Decryptor
+                    -> ByteString      -- ^ user password (32 bytes exactly, see 7.6.3.3 Encryption Key Algorithm)
+                    -> PdfE m (Maybe Decryptor)
 mkStandardDecryptor tr enc pass = do
   Name filterType <- lookupDict "Filter" enc >>= fromObject
   unless (filterType == "Standard") $ left $ UnexpectedError $ "Unsupported encryption handler: " ++ show filterType
   vVal <- lookupDict "V" enc >>= fromObject >>= intValue
   n <- case vVal of
          1 -> return 5
-         _ -> do
+         2 -> do
            len <- lookupDict "Length" enc >>= fromObject >>= intValue
            return $ len `div` 8
+         _ -> left $ UnexpectedError $ "Unsuported encryption handler version: " ++ show vVal
   Str oVal <- lookupDict "O" enc >>= fromObject
   pVal <- (BS.pack . BSL.unpack . toLazyByteString . word32LE . fromIntegral)
     `liftM` (lookupDict "P" enc >>= fromObject >>= intValue)
@@ -76,27 +78,44 @@ mkStandardDecryptor tr enc pass = do
     case ids of
       [] -> left $ UnexpectedError $ "ID array is empty"
       (x:_) -> fromObject x
-  let ekey' = BS.take n $ MD5.hash $ BS.concat [pass', oVal, pVal, idVal]
-      pass' = pass   -- XXX: padding
+  let ekey' = BS.take n $ MD5.hash $ BS.concat [pass, oVal, pVal, idVal]
   rVal <- lookupDict "R" enc >>= fromObject >>= intValue
   let ekey = if rVal < 3
                then ekey'
                else foldl (\bs _ -> BS.take n $ MD5.hash bs) ekey'  [1 :: Int .. 50]
-  return $ \(Ref index gen) is -> do
-    let key = BS.take (16 `min` n + 5) $ MD5.hash $ BS.concat [
-          ekey,
-          BS.pack $ take 3 $ BSL.unpack $ toLazyByteString $ int32LE $ fromIntegral index,
-          BS.pack $ take 2 $ BSL.unpack $ toLazyByteString $ int32LE $ fromIntegral gen
-          ]
-        ctx = RC4.initCtx key
-    ioRef <- newIORef ctx
-    let readNext = do
-          chunk <- Streams.read is
-          case chunk of
-            Nothing -> return Nothing
-            Just c -> do
-              ctx' <- readIORef ioRef
-              let (ctx'', res) = RC4.combine ctx' c
-              writeIORef ioRef ctx''
-              return (Just res)
-    Streams.makeInputStream readNext
+
+  Str uVal <- lookupDict "U" enc >>= fromObject
+  let ok =
+        case rVal of
+          2 ->
+            let uVal' = snd $ RC4.combine (RC4.initCtx ekey) defaultUserPassord
+            in uVal == uVal'
+          _ ->
+            let pass1 = snd $ RC4.combine (RC4.initCtx ekey) $ BS.take 16 $ MD5.hash $ BS.concat [defaultUserPassord, idVal]
+                uVal' = loop 1 pass1
+                loop 20 input = input
+                loop i input = loop (i + 1) $ snd $ RC4.combine (RC4.initCtx $ BS.map (`xor` i) ekey) input
+            in BS.take 16 uVal == BS.take 16 uVal'
+
+  let decryptor = \(Ref index gen) is -> do
+        let key = BS.take (16 `min` n + 5) $ MD5.hash $ BS.concat [
+              ekey,
+              BS.pack $ take 3 $ BSL.unpack $ toLazyByteString $ int32LE $ fromIntegral index,
+              BS.pack $ take 2 $ BSL.unpack $ toLazyByteString $ int32LE $ fromIntegral gen
+              ]
+            ctx = RC4.initCtx key
+        ioRef <- newIORef ctx
+        let readNext = do
+              chunk <- Streams.read is
+              case chunk of
+                Nothing -> return Nothing
+                Just c -> do
+                  ctx' <- readIORef ioRef
+                  let (ctx'', res) = RC4.combine ctx' c
+                  writeIORef ioRef ctx''
+                  return (Just res)
+        Streams.makeInputStream readNext
+
+  if ok
+    then return $ Just decryptor
+    else return Nothing

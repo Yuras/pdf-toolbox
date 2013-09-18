@@ -33,7 +33,8 @@ main = do
     encrypted <- isEncrypted
     when encrypted $ do
       liftIO $ print "WARNING: Document is encrypted, it is not fully supported yet"
-      setUserPassword defaultUserPassord
+      ok <- setUserPassword defaultUserPassord
+      unless ok $ error "Need user password"
     pdf <- document
     title <- do
       info <- documentInfo pdf
