@@ -5,7 +5,7 @@
 module Pdf.Toolbox.Document.Encryption
 (
   Decryptor,
-  defaultUserPassord,
+  defaultUserPassword,
   mkStandardDecryptor,
   decryptObject
 )
@@ -47,8 +47,8 @@ decryptDict decryptor (Dict vals) = Dict `liftM` forM vals decr
     return (key, res)
 
 -- | The default user password
-defaultUserPassord :: ByteString
-defaultUserPassord = BS.pack [
+defaultUserPassword :: ByteString
+defaultUserPassword = BS.pack [
   0x28, 0xBF, 0x4E, 0x5E, 0x4E, 0x75, 0x8A, 0x41, 0x64, 0x00, 0x4E,
   0x56, 0xFF, 0xFA, 0x01, 0x08, 0x2E, 0x2E, 0x00, 0xB6, 0xD0, 0x68,
   0x3E, 0x80, 0x2F, 0x0C, 0xA9, 0xFE, 0x64, 0x53, 0x69, 0x7A
@@ -88,10 +88,10 @@ mkStandardDecryptor tr enc pass = do
   let ok =
         case rVal of
           2 ->
-            let uVal' = snd $ RC4.combine (RC4.initCtx ekey) defaultUserPassord
+            let uVal' = snd $ RC4.combine (RC4.initCtx ekey) defaultUserPassword
             in uVal == uVal'
           _ ->
-            let pass1 = snd $ RC4.combine (RC4.initCtx ekey) $ BS.take 16 $ MD5.hash $ BS.concat [defaultUserPassord, idVal]
+            let pass1 = snd $ RC4.combine (RC4.initCtx ekey) $ BS.take 16 $ MD5.hash $ BS.concat [defaultUserPassword, idVal]
                 uVal' = loop 1 pass1
                 loop 20 input = input
                 loop i input = loop (i + 1) $ snd $ RC4.combine (RC4.initCtx $ BS.map (`xor` i) ekey) input

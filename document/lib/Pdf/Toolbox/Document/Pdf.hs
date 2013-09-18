@@ -16,7 +16,7 @@ module Pdf.Toolbox.Document.Pdf
   knownFilters,
   isEncrypted,
   setUserPassword,
-  defaultUserPassord,
+  defaultUserPassword,
   decrypt,
   getDecryptor,
   MonadIO(..)
@@ -241,7 +241,7 @@ setUserPassword pass = annotateError "setUserPassword" $ do
   enc <- case lookupDict' "Encrypt" tr of
     Nothing -> left $ UnexpectedError "The document is not encrypted"
     Just enc -> deref enc >>= fromObject
-  decryptor <- mkStandardDecryptor tr enc $ BS.take 32 $ pass `mappend` defaultUserPassord
+  decryptor <- mkStandardDecryptor tr enc $ BS.take 32 $ pass `mappend` defaultUserPassword
   lift $ Pdf' $ modify $ \s -> s {stDecryptor = decryptor}
   case decryptor of
     Nothing -> return False
