@@ -9,7 +9,7 @@ module Pdf.Toolbox.Content.Transform
   translation,
   transform,
   translate,
-  multuply
+  multiply
 )
 where
 
@@ -35,11 +35,11 @@ transform (Transform a b c d e f) (Vector x y) = Vector (a * x + c * y + e) (b *
 
 -- | Translate
 translate :: Num a => a -> a -> Transform a -> Transform a
-translate tx ty t = translation tx ty `multuply` t
+translate tx ty t = translation tx ty `multiply` t
 
 -- | Combine two transformations
-multuply :: Num a => Transform a -> Transform a -> Transform a
-multuply (Transform a1 b1 c1 d1 e1 f1) (Transform a2 b2 c2 d2 e2 f2) = Transform a b c d e f
+multiply :: Num a => Transform a -> Transform a -> Transform a
+multiply (Transform a1 b1 c1 d1 e1 f1) (Transform a2 b2 c2 d2 e2 f2) = Transform a b c d e f
   where
   a = a1 * a2 + b1 * c2
   b = a1 * b2 + b1 * d2

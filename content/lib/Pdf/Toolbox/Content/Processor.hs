@@ -23,6 +23,7 @@ import Pdf.Toolbox.Content.Transform
 -- | Graphics state
 data GraphicsState = GraphicsState {
   gsInText :: Bool,    -- ^ Indicates that we are inside text object
+  gsCurrentTransformMatrix :: Transform Double,
   gsTextMatrix :: Transform Double,      -- ^ Defined only inside text object
   gsTextLineMatrix :: Transform Double,  -- ^ Defined only inside text object
   gsTextLeading :: Double
@@ -33,6 +34,7 @@ data GraphicsState = GraphicsState {
 initialGraphicsState :: GraphicsState
 initialGraphicsState = GraphicsState {
   gsInText = False,
+  gsCurrentTransformMatrix = identity,
   gsTextMatrix = identity,
   gsTextLineMatrix = identity,
   gsTextLeading = 0
@@ -130,6 +132,20 @@ processOp (Op_TL, [lo]) p = do
     gsTextLeading = l
     }}
 processOp (Op_TL, args) _ = left $ UnexpectedError $ "Op_TL: wrong number of arguments: " ++ show args
+
+processOp (Op_cm, [a', b', c', d', e', f']) p = do
+  a <- fromObject a' >>= realValue
+  b <- fromObject b' >>= realValue
+  c <- fromObject c' >>= realValue
+  d <- fromObject d' >>= realValue
+  e <- fromObject e' >>= realValue
+  f <- fromObject f' >>= realValue
+  let gstate = prState p
+      ctm = gsCurrentTransformMatrix gstate `multiply` Transform a b c d e f
+  return p {prState = gstate {
+    gsCurrentTransformMatrix = ctm
+    }}
+processOp (Op_cm, args) _ = left $ UnexpectedError $ "Op_cm: wrong number of arguments: " ++ show args
 
 processOp _ p = return p
 

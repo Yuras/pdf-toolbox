@@ -155,12 +155,14 @@ startRender mvar page = do
                 (Op_Tj, [OStr (Str str)]) -> do
                   let gstate = prState p
                       tm = gsTextMatrix gstate
-                      pos = transform tm (Vector 0 0)
+                      ctm = gsCurrentTransformMatrix gstate
+                      pos = transform (multiply tm ctm) (Vector 0 0)
                   liftIO $ writeChan chan $ Just (pos, BS8.unpack str)
                 (Op_TJ, [OArray (Array array)]) -> do
                   let gstate = prState p
                       tm = gsTextMatrix gstate
-                      pos = transform tm (Vector 0 0)
+                      ctm = gsCurrentTransformMatrix gstate
+                      pos = transform (multiply tm ctm) (Vector 0 0)
                       toS (OStr (Str s)) = BS8.unpack s
                       toS _ = ""
                   liftIO $ writeChan chan $ Just (pos, concatMap toS array)
