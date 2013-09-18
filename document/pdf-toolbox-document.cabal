@@ -30,6 +30,7 @@ library
                        Pdf.Toolbox.Document.Catalog
                        Pdf.Toolbox.Document.PageNode
                        Pdf.Toolbox.Document.Page
+                       Pdf.Toolbox.Document.FontDict
                        Pdf.Toolbox.Document.Encryption
                        Pdf.Toolbox.Document.Internal.Types
                        Pdf.Toolbox.Document.Internal.Util

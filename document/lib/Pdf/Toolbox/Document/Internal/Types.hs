@@ -9,7 +9,8 @@ module Pdf.Toolbox.Document.Internal.Types
   PageTree(..),
   PageNode(..),
   Page(..),
-  Info(..)
+  Info(..),
+  FontDict(..)
 )
 where
 
@@ -41,4 +42,8 @@ data Page = Page Ref Dict
 
 -- | Information dictionary
 data Info = Info Ref Dict
+  deriving Show
+
+-- | Font dictionary
+data FontDict = FontDict Dict
   deriving Show

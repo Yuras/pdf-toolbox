@@ -23,6 +23,7 @@ module Pdf.Toolbox.Document
   module Pdf.Toolbox.Document.PageNode,
   module Pdf.Toolbox.Document.Page,
   module Pdf.Toolbox.Document.Info,
+  module Pdf.Toolbox.Document.FontDict,
   module Pdf.Toolbox.Core.Error,
   module Pdf.Toolbox.Core.Object.Types,
   module Pdf.Toolbox.Core.Object.Util
@@ -41,3 +42,4 @@ import Pdf.Toolbox.Document.Info
 import Pdf.Toolbox.Document.Catalog
 import Pdf.Toolbox.Document.PageNode
 import Pdf.Toolbox.Document.Page
+import Pdf.Toolbox.Document.FontDict

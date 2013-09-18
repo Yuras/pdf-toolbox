@@ -7,7 +7,8 @@ module Pdf.Toolbox.Document.Page
   Page,
   pageParentNode,
   pageContents,
-  pageMediaBox
+  pageMediaBox,
+  pageFontDicts
 )
 where
 
@@ -65,3 +66,18 @@ mediaBox tree = do
                       Just p -> return $ PageTreeNode p
                   PageTreeLeaf page -> PageTreeNode `liftM` pageParentNode page
       mediaBox parent
+
+-- | Font dictionaries for the page
+pageFontDicts :: MonadPdf m => Page -> PdfE m [(Name, FontDict)]
+pageFontDicts (Page _ dict) =
+  case lookupDict' "Resources" dict of
+    Nothing -> return []
+    Just res -> do
+      resDict <- deref res >>= fromObject
+      case lookupDict' "Font" resDict of
+        Nothing -> return []
+        Just fonts -> do
+          Dict fontsDict <- deref fonts >>= fromObject
+          forM fontsDict $ \(name, font) -> do
+            fontDict <- deref font >>= fromObject
+            return (name, FontDict fontDict)
