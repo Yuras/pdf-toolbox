@@ -54,7 +54,7 @@ main = do
       ris <- getRIS
       seek ris 0
       inputStream ris
-    liftIO $ Streams.withFileAsOutput output WriteMode (BlockBuffering Nothing) $ \ostream -> do
+    liftIO $ Streams.withFileAsOutput output $ \ostream -> do
       Streams.connect is ostream
       runPdfWriter ostream $ do
         writeObject infoRef (ODict newInfo)

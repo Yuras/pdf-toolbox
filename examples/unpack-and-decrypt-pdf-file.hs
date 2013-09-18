@@ -30,7 +30,9 @@ main = do
     -- will only slow down everything
     withoutObjectCache $ do
     encrypted <- isEncrypted
-    when encrypted $ setUserPassword defaultUserPassord
+    when encrypted $ do
+      ok <- setUserPassword defaultUserPassword
+      unless ok $ error "Need user password"
     Document _ tr <- document
 
     let
