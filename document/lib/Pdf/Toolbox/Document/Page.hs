@@ -20,6 +20,7 @@ import Pdf.Toolbox.Document.Types
 import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.PageNode
 import Pdf.Toolbox.Document.Internal.Types
+import Pdf.Toolbox.Document.Internal.Util
 
 -- | Page's parent node
 pageParentNode :: MonadPdf m => Page -> PdfE m PageNode
@@ -80,4 +81,5 @@ pageFontDicts (Page _ dict) =
           Dict fontsDict <- deref fonts >>= fromObject
           forM fontsDict $ \(name, font) -> do
             fontDict <- deref font >>= fromObject
+            ensureType "Font" fontDict
             return (name, FontDict fontDict)
