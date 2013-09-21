@@ -141,7 +141,7 @@ processOp (Op_cm, [a', b', c', d', e', f']) p = do
   e <- fromObject e' >>= realValue
   f <- fromObject f' >>= realValue
   let gstate = prState p
-      ctm = gsCurrentTransformMatrix gstate `multiply` Transform a b c d e f
+      ctm = Transform a b c d e f `multiply` gsCurrentTransformMatrix gstate
   return p {prState = gstate {
     gsCurrentTransformMatrix = ctm
     }}
