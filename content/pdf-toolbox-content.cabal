@@ -19,8 +19,12 @@ library
                        Pdf.Toolbox.Content.Ops
                        Pdf.Toolbox.Content.Processor
                        Pdf.Toolbox.Content.Transform
+                       Pdf.Toolbox.Content.UnicodeCMap
   build-depends:       base ==4.6.*,
+                       containers,
                        attoparsec,
                        bytestring,
+                       base16-bytestring,
+                       text,
                        io-streams,
                        pdf-toolbox-core ==0.0.1.*
