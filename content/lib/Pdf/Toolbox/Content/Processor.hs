@@ -13,6 +13,7 @@ module Pdf.Toolbox.Content.Processor
 )
 where
 
+import Data.ByteString (ByteString)
 import Control.Monad
 
 import Pdf.Toolbox.Core
@@ -24,6 +25,8 @@ import Pdf.Toolbox.Content.Transform
 data GraphicsState = GraphicsState {
   gsInText :: Bool,    -- ^ Indicates that we are inside text object
   gsCurrentTransformMatrix :: Transform Double,
+  gsFont :: Maybe ByteString,
+  gsFontSize :: Maybe Double,
   gsTextMatrix :: Transform Double,      -- ^ Defined only inside text object
   gsTextLineMatrix :: Transform Double,  -- ^ Defined only inside text object
   gsTextLeading :: Double
@@ -35,6 +38,8 @@ initialGraphicsState :: GraphicsState
 initialGraphicsState = GraphicsState {
   gsInText = False,
   gsCurrentTransformMatrix = identity,
+  gsFont = Nothing,
+  gsFontSize = Nothing,
   gsTextMatrix = identity,
   gsTextLineMatrix = identity,
   gsTextLeading = 0
@@ -146,6 +151,16 @@ processOp (Op_cm, [a', b', c', d', e', f']) p = do
     gsCurrentTransformMatrix = ctm
     }}
 processOp (Op_cm, args) _ = left $ UnexpectedError $ "Op_cm: wrong number of arguments: " ++ show args
+
+processOp (Op_Tf, [fontO, szO]) p = do
+  Name font <- fromObject fontO
+  sz <- fromObject szO >>= realValue
+  let gstate = prState p
+  return p {prState = gstate {
+    gsFont = Just font,
+    gsFontSize = Just sz
+    }}
+processOp (Op_Tf, args) _ = left $ UnexpectedError $ "Op_Tf: wrong number of agruments: " ++ show args
 
 processOp _ p = return p
 
