@@ -21,7 +21,9 @@ executable pdf-toolbox-viewer
   main-is:             viewer.hs
   build-depends:       base ==4.6.*,
                        bytestring,
+                       text,
                        transformers,
+                       io-streams,
                        cairo,
                        gtk,
                        pdf-toolbox-document,
