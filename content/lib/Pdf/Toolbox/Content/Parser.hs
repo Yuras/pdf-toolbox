@@ -13,6 +13,7 @@ import Data.Attoparsec.Char8 (Parser)
 import qualified Data.Attoparsec.Char8 as Parser
 import Data.IORef
 import Control.Applicative
+import Control.Exception
 import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 import qualified System.IO.Streams.Attoparsec as Streams
@@ -30,10 +31,15 @@ parseContentStream ris filters decryptor streams = do
 
 -- | Read the next operator if any
 readNextOperator :: MonadIO m => InputStream Expr -> PdfE m (Maybe Operator)
-readNextOperator is = go []
+readNextOperator is = annotateError "reading the next operator from content stream" $ go []
   where
   go args = do
-    expr <- liftIO $ Streams.read is
+    expr <- do
+      e <- tryPdfIO $ (Right <$> Streams.read is)
+        `catch` (\e -> return $ Left $ UnexpectedError $ show (e :: Streams.ParseException))
+      case e of
+        Right expr -> return expr
+        Left er -> left er
     case expr of
       Nothing -> case args of
                    [] -> return Nothing
