@@ -24,7 +24,16 @@ import Pdf.Toolbox.Core.Parsers.Object
 import Pdf.Toolbox.Content.Ops
 
 -- | Parse content streams for a page
-parseContentStream :: MonadIO m => RIS -> [StreamFilter] -> (Ref -> IS -> IO IS) -> [(Stream Int64, Ref, Int)] -> PdfE m (InputStream Expr)
+--
+-- Note: we need content stream ref to be able to decrypt stream content.
+-- We need stream length because it can be an indirect object in
+-- stream dictionary
+parseContentStream :: MonadIO m
+                   => RIS                         -- ^ random input stream to read data from
+                   -> [StreamFilter]              -- ^ how to unpack data
+                   -> (Ref -> IS -> IO IS)        -- ^ how to decrypt data
+                   -> [(Stream Int64, Ref, Int)]  -- ^ content streams (with offset), their refs and length
+                   -> PdfE m (InputStream Expr)
 parseContentStream ris filters decryptor streams = do
   is <- combineStreams ris filters decryptor streams
   liftIO $ Streams.parserToInputStream parseContent is
