@@ -168,7 +168,7 @@ startRender mvar page = do
       return (s, ref, len)
     ris <- getRIS
     decryptor <- do
-      dec <-getDecryptor
+      dec <- getDecryptor
       case dec of
         Nothing -> return (const return)
         Just d -> return d

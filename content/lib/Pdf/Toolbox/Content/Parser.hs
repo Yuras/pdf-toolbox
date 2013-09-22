@@ -75,7 +75,17 @@ combineStreams ris filters decryptor (x:xs) = do
 
 parseContent :: Parser (Maybe Expr)
 parseContent
-  = (Parser.skipSpace >> Parser.endOfInput >> return Nothing)
+  = (skipSpace >> Parser.endOfInput >> return Nothing)
   <|> do
-    Parser.skipSpace
+    skipSpace
     fmap Just $ fmap Obj parseObject <|> fmap (Op . toOp) (Parser.takeWhile1 isRegularChar)
+
+-- Treat comments as spaces
+skipSpace :: Parser ()
+skipSpace = do
+  Parser.skipSpace
+  _ <- many $ do
+    _ <- Parser.char '%'
+    Parser.skipWhile $ \c -> c /= '\n' && c /= '\r'
+    Parser.skipSpace
+  return ()
