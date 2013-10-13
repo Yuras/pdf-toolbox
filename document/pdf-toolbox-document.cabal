@@ -37,8 +37,10 @@ library
   build-depends:       base ==4.6.*,
                        transformers,
                        containers,
+                       text,
                        bytestring,
                        io-streams,
                        cipher-rc4,
                        cryptohash,
-                       pdf-toolbox-core ==0.0.1.*
+                       pdf-toolbox-core ==0.0.1.*,
+                       pdf-toolbox-content ==0.0.1.*

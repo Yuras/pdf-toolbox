@@ -12,13 +12,11 @@ module Pdf.Toolbox.Document.Pdf
   document,
   flushObjectCache,
   withoutObjectCache,
-  getRIS,
   knownFilters,
   isEncrypted,
   setUserPassword,
   defaultUserPassword,
   decrypt,
-  getDecryptor,
   MonadIO(..)
 )
 where
@@ -76,6 +74,9 @@ instance MonadIO m => MonadPdf (Pdf' m) where
         Nothing -> return return
         Just d -> return $ d ref
     takeStreamContent decryptor s
+  getDecryptor = lift $ Pdf' $ gets stDecryptor
+  getRIS = lift $ Pdf' $ gets stRIS
+  getStreamFilters = lift $ Pdf' $ gets stFilters
 
 readObjectForEntry :: MonadIO m => Ref -> XRefEntry -> Pdf m (Object Int64)
 readObjectForEntry ref (XRefTableEntry entry)
@@ -155,15 +156,6 @@ getLastXRef = do
       xref <- getRIS >>= lastXRef
       lift $ Pdf' $ modify $ \st -> st {stLastXRef = Just xref}
       return xref
-
--- | Access to the underlying random access input stream.
--- Can be used when you need to switch from high level
--- to low level of details
-getRIS :: Monad m => Pdf m RIS
-getRIS = lift $ Pdf' $ gets stRIS
-
---lookupM :: MonadIO m => Ref -> Pdf m (Object ())
---lookupM r = mapObject (const ()) `liftM` lookupObject r
 
 getFromCache :: Monad m => Ref -> Pdf m (Maybe (Object Int64))
 getFromCache ref = do
@@ -246,10 +238,6 @@ setUserPassword pass = annotateError "setUserPassword" $ do
   case decryptor of
     Nothing -> return False
     _ -> return True
-
--- | Decryptor
-getDecryptor :: Monad m => Pdf m (Maybe Decryptor)
-getDecryptor = lift $ Pdf' $ gets stDecryptor
 
 -- | Decrypt PDF object using user password is set
 decrypt :: MonadIO m => Ref -> Object a -> Pdf m (Object a)
