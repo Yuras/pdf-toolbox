@@ -14,6 +14,8 @@ or low level (xref, trailer, object) structure of PDF file.
 You can even switch between levels of details on the fly.
  * Extremely fast and memory efficient when you need to inspect only part of the document
  * Resonably fast and memory efficient in general case
+ * Text extraction with exact glyph positions (mostly works, but in progress yet).
+It can be used e.g. to implement text selection and copying in pdf viewer
  * Full support of xref streams and object streams
  * Supports editing of PDF files (incremental updates)
  * Basic support for PDF file generating
