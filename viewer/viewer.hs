@@ -231,13 +231,30 @@ pageGlyphDecoder :: (MonadPdf m, MonadIO m) => Page -> PdfE m GlyphDecoder
 pageGlyphDecoder page = do
   fontDicts <- Map.fromList <$> pageFontDicts page
   decoders <- Traversable.forM fontDicts $ \(FontDict fontDict) -> do
+    widths <-
+      case lookupDict' (fromString "Widths") fontDict of
+        Nothing -> return Nothing
+        Just v -> do
+          Array array <- deref v >>= fromObject
+          widths <- mapM (fromObject >=> realValue) array
+          firstChar <- lookupDict (fromString "FirstChar") fontDict >>= fromObject >>= intValue
+          lastChar <- lookupDict (fromString "LastChar") fontDict >>= fromObject >>= intValue
+          return $ Just (widths, firstChar, lastChar)
+    let getWidth bs =
+          case widths of
+            Nothing -> 1
+            Just (ws, firstChar, lastChar) ->
+              let code = fst $ BS.foldr (\b (s, i) -> (s + fromIntegral b * i, i * 255)) (0, 1) bs
+              in if code >= firstChar && code <= lastChar && (code - firstChar) < length ws
+                   then (ws !! (code - firstChar)) / 1000
+                   else 1
     case lookupDict' (fromString "ToUnicode") fontDict of
       Nothing -> return $ \(Str str) -> flip map (BS8.unpack str) $ \c -> (Glyph {
         glyphCode = BS8.pack [c],
         glyphTopLeft = Vector 0 0,
         glyphBottomRight = Vector 1 1,
         glyphText = Just $ Text.pack [c]
-        }, 1)
+        }, getWidth $ BS8.pack [c])
       Just o -> do
         ref <- fromObject o
         toUnicode <- lookupObject ref
@@ -248,14 +265,14 @@ pageGlyphDecoder page = do
             cmap <- case parseUnicodeCMap content of
                       Left e -> left $ UnexpectedError $ "can't parse cmap: " ++ show e
                       Right cmap -> return cmap
-            return $ cmapDecodeString cmap
+            return $ (map $ \g -> (g, getWidth (glyphCode g))) . cmapDecodeString cmap
           _ -> left $ UnexpectedError "ToUnicode: not a stream"
   return $ \fontName str ->
     case Map.lookup fontName decoders of
       Nothing -> []
       Just decoder -> decoder str
 
-cmapDecodeString :: UnicodeCMap -> Str -> [(Glyph, Double)]
+cmapDecodeString :: UnicodeCMap -> Str -> [Glyph]
 cmapDecodeString cmap (Str str) = go str
   where
   go s =
@@ -268,7 +285,7 @@ cmapDecodeString cmap (Str str) = go str
           glyphBottomRight = Vector 1 1,
           glyphText = unicodeCMapDecodeGlyph cmap g
           }
-        in (glyph, 1) : go rest
+        in glyph : go rest
 
 
 startRender :: MVar (Pdf IO Bool) -> Page -> IO (Chan (Maybe Glyph))
