@@ -17,6 +17,11 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Concurrent
 import System.IO
+import System.Directory
+import System.FilePath
+import System.Random (randomIO)
+import System.Process
+import System.Exit
 import qualified System.IO.Streams as Streams
 import Graphics.UI.Gtk hiding (Rectangle, FontMap)
 import Graphics.Rendering.Cairo hiding (transform, Glyph)
@@ -31,6 +36,7 @@ import Pdf.Toolbox.Content.UnicodeCMap
 main :: IO ()
 main = do
   [file] <- initGUI
+
   mvar <- newEmptyMVar
   withBinaryFile file ReadMode $ \h -> do
   _ <- forkIO $ pdfThread h mvar
@@ -100,17 +106,30 @@ main = do
   widgetShowAll window
   draw <- widgetGetDrawWindow canvas
   _ <- on canvas exposeEvent $ do
-    liftIO $ renderWithDrawable draw $ onDraw mvar page
+    liftIO $ renderWithDrawable draw $ onDraw file mvar page
     return True
 
   mainGUI
 
-onDraw :: MVar (Pdf IO Bool) -> IORef (Page, Int) -> Render ()
-onDraw mvar page = do
+onDraw :: FilePath -> MVar (Pdf IO Bool) -> IORef (Page, Int) -> Render ()
+onDraw file mvar page = do
+  (pg, num) <- liftIO $ readIORef page
+
+  randomNum <- liftIO $ randomIO :: Render Int
+  tmpDir <- liftIO $ getTemporaryDirectory
+  let tmpFile = tmpDir </> ("pdf-toolbox-viewer-" ++ show randomNum ++ ".png")
+  (_, _, _, procHandle) <- liftIO $ createProcess $ proc "convert" [file ++ "[" ++ show num ++ "]", tmpFile]
+  hasPng <- (== ExitSuccess) <$> liftIO (waitForProcess procHandle)
+  when hasPng $ do
+    surface <- liftIO $ imageSurfaceCreateFromPNG tmpFile
+    setSourceSurface surface 0 0
+    paint
+    surfaceFinish surface
+    liftIO $ removeFile tmpFile
+
   setSourceRGB 1 1 1
   setLineWidth 1
 
-  (pg, _) <- liftIO $ readIORef page
   Rectangle llx lly urx ury <- liftIO $ pdfSync mvar $ pageMediaBox pg
 
   chan <- liftIO $ startRender mvar pg
@@ -121,7 +140,7 @@ onDraw mvar page = do
   lineTo urx lly
   lineTo llx lly
   closePath
-  fill
+  stroke
 
   setSourceRGB 0 0 0
   let loop = do
@@ -208,7 +227,7 @@ startRender mvar page = do
             Nothing -> do
               forM_ (prGlyphs p) $ \glyph ->
                 liftIO $ writeChan chan (Just glyph)
-              liftIO $ print $ prGlyphs p
+              --liftIO $ print $ prGlyphs p
             Just op -> processOp op p >>= loop
     loop $ mkProcessor {
       prFontMap = fontMap
