@@ -252,7 +252,7 @@ pageGlyphDecoder page = do
       Nothing -> return $ \(Str str) -> flip map (BS8.unpack str) $ \c -> (Glyph {
         glyphCode = BS8.pack [c],
         glyphTopLeft = Vector 0 0,
-        glyphBottomRight = Vector 1 1,
+        glyphBottomRight = Vector (getWidth $ BS8.pack [c]) 1,
         glyphText = Just $ Text.pack [c]
         }, getWidth $ BS8.pack [c])
       Just o -> do
@@ -265,15 +265,15 @@ pageGlyphDecoder page = do
             cmap <- case parseUnicodeCMap content of
                       Left e -> left $ UnexpectedError $ "can't parse cmap: " ++ show e
                       Right cmap -> return cmap
-            return $ (map $ \g -> (g, getWidth (glyphCode g))) . cmapDecodeString cmap
+            return $ (map $ \g -> (g, getWidth (glyphCode g))) . cmapDecodeString getWidth cmap
           _ -> left $ UnexpectedError "ToUnicode: not a stream"
   return $ \fontName str ->
     case Map.lookup fontName decoders of
       Nothing -> []
       Just decoder -> decoder str
 
-cmapDecodeString :: UnicodeCMap -> Str -> [Glyph]
-cmapDecodeString cmap (Str str) = go str
+cmapDecodeString :: (BS.ByteString -> Double) -> UnicodeCMap -> Str -> [Glyph]
+cmapDecodeString getWidth cmap (Str str) = go str
   where
   go s =
     case unicodeCMapNextGlyph cmap s of
@@ -282,7 +282,7 @@ cmapDecodeString cmap (Str str) = go str
         let glyph = Glyph {
           glyphCode = g,
           glyphTopLeft = Vector 0 0,
-          glyphBottomRight = Vector 1 1,
+          glyphBottomRight = Vector (getWidth g) 1,
           glyphText = unicodeCMapDecodeGlyph cmap g
           }
         in glyph : go rest
