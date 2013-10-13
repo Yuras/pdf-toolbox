@@ -210,19 +210,19 @@ onDraw file mvar viewerState = do
         case cmd of
           Nothing -> return ()
           Just glyph -> do
-            let Vector x y = glyphPos glyph
-                Vector w h = glyphSize glyph
+            let Vector x1 y1 = glyphTopLeft glyph
+                Vector x2 y2 = glyphBottomRight glyph
             when (viewerRenderText st) $ do
               setSourceRGB 0 0 0
               case glyphText glyph of
                 Nothing -> return ()
                 Just txt -> do
-                  moveTo x (ury - y)
+                  moveTo x1 (ury - y1)
                   showText $ Text.unpack txt
                   stroke
             when (viewerRenderGlyphs st) $ do
               setSourceRGBA 0 0 0 0.2
-              rectangle x (ury - y) w h
+              rectangle x1 (ury - y1) (x2 - x1) (y2 - y1)
               fill
             loop
   loop
@@ -233,10 +233,10 @@ pageFontMap page = do
   Traversable.forM fontDicts $ \(FontDict fontDict) -> do
     case lookupDict' (fromString "ToUnicode") fontDict of
       Nothing -> return FontInfo {
-        fontDecodeString = \_ (Str str) -> flip map (BS8.unpack str) $ \c -> Glyph {
+        fontDecodeString = \(Str str) -> flip map (BS8.unpack str) $ \c -> Glyph {
           glyphCode = BS8.pack [c],
-          glyphPos = Vector 0 0,
-          glyphSize = Vector 1 1,
+          glyphTopLeft = Vector 0 0,
+          glyphBottomRight = Vector 1 1,
           glyphText = Just $ Text.pack [c]
           }
         }
@@ -251,7 +251,7 @@ pageFontMap page = do
                       Left e -> left $ UnexpectedError $ "can't parse cmap: " ++ show e
                       Right cmap -> return cmap
             return FontInfo {
-              fontDecodeString = \_ -> cmapDecodeString cmap
+              fontDecodeString = cmapDecodeString cmap
               }
           _ -> left $ UnexpectedError "ToUnicode: not a stream"
 
@@ -264,8 +264,8 @@ cmapDecodeString cmap (Str str) = go str
       Just (g, rest) ->
         let glyph = Glyph {
           glyphCode = g,
-          glyphPos = Vector 0 0,
-          glyphSize = Vector 1 1,
+          glyphTopLeft = Vector 0 0,
+          glyphBottomRight = Vector 1 1,
           glyphText = unicodeCMapDecodeGlyph cmap g
           }
         in glyph : go rest

@@ -29,7 +29,7 @@ import Pdf.Toolbox.Content.Ops
 import Pdf.Toolbox.Content.Transform
 
 data FontInfo = FontInfo {
-  fontDecodeString :: Double -> Str -> [Glyph]
+  fontDecodeString :: Str -> [Glyph]
   }
 
 instance Show FontInfo where
@@ -39,8 +39,8 @@ type FontMap = Map Name FontInfo
 
 data Glyph = Glyph {
   glyphCode :: ByteString,
-  glyphPos :: Vector Double,
-  glyphSize :: Vector Double,
+  glyphTopLeft :: Vector Double,
+  glyphBottomRight :: Vector Double,
   glyphText :: Maybe Text
   }
   deriving Show
@@ -205,7 +205,7 @@ processOp (Op_Tj, [OStr str]) p = do
     case Map.lookup fontName (prFontMap p) of
       Nothing -> left $ UnexpectedError $ "Op_Tj: font not found: " ++ show fontName
       Just f -> return f
-  let (tm, glyphs) = positionGlyghs (gsCurrentTransformMatrix gstate) (gsTextMatrix gstate) $ fontDecodeString font fontSize str
+  let (tm, glyphs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate) (gsTextMatrix gstate) $ fontDecodeString font str
   return p {
     prGlyphs = prGlyphs p ++ glyphs,
     prState = gstate {
@@ -231,7 +231,7 @@ processOp (Op_TJ, [OArray (Array array)]) p = do
   let (textMatrix, glyphs) = loop (gsTextMatrix gstate) [] array
         where
         loop tm res [] = (tm, res)
-        loop tm res (OStr str : rest) = let (tm', gs) = positionGlyghs (gsCurrentTransformMatrix gstate) tm (fontDecodeString font fontSize str)
+        loop tm res (OStr str : rest) = let (tm', gs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate) tm (fontDecodeString font str)
                                         in loop tm' (res ++ gs) rest
         loop tm res (ONumber (NumInt i): rest) = loop (translate (fromIntegral (-i) * fontSize / 1000) 0 tm) res rest
         loop tm res (ONumber (NumReal d): rest) = loop (translate (-d * fontSize / 1000) 0 tm) res rest
@@ -251,14 +251,18 @@ ensureInTextObject inText p =
   unless (inText == gsInText (prState p)) $ left $
     UnexpectedError $ "ensureInTextObject: expected: " ++ show inText ++ ", found: " ++ show (gsInText $ prState p)
 
-positionGlyghs :: Transform Double -> Transform Double -> [Glyph] -> (Transform Double, [Glyph])
-positionGlyghs ctm textMatrix = go textMatrix []
+positionGlyghs :: Double -> Transform Double -> Transform Double -> [Glyph] -> (Transform Double, [Glyph])
+positionGlyghs fontSize ctm textMatrix = go textMatrix []
   where
   go tm res [] = (tm, reverse res)
   go tm res (g:gs) =
     let g' = g {
-          glyphPos = transform (multiply tm ctm) (glyphPos g)
+          glyphTopLeft = transform (multiply tm ctm) topLeft,
+          glyphBottomRight = transform (multiply tm ctm) bottomRight
           }
-        Vector width _ = glyphSize g
+        topLeft = transform (scale fontSize fontSize) $ glyphTopLeft g
+        bottomRight = transform (scale fontSize fontSize) $ glyphBottomRight g
+        width = case (topLeft, bottomRight) of
+                  (Vector l _, Vector r _) -> r - l
         tm' = translate width 0 tm
     in go tm' (g':res) gs

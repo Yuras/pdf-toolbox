@@ -7,6 +7,7 @@ module Pdf.Toolbox.Content.Transform
   Vector(..),
   identity,
   translation,
+  scale,
   transform,
   translate,
   multiply
@@ -28,6 +29,10 @@ identity = Transform 1 0 0 1 0 0
 -- | Translation
 translation :: Num a => a -> a -> Transform a
 translation tx ty = Transform 1 0 0 1 tx ty
+
+-- | Scale
+scale :: Num a => a -> a -> Transform a
+scale sx sy = Transform sx 0 0 sy 0 0
 
 -- | Apply transformation to vector
 transform :: Num a => Transform a -> Vector a -> Vector a
