@@ -275,7 +275,6 @@ startRender :: MVar (Pdf IO Bool) -> Page -> IO (Chan (Maybe Glyph))
 startRender mvar page = do
   chan <- newChan
   putMVar mvar $ do
-    --fontMap <- pageFontMap page
     glyphDecoder <- pageGlyphDecoder page
 
     contents <- pageContents page
