@@ -33,6 +33,14 @@ import Pdf.Toolbox.Content.Processor
 import Pdf.Toolbox.Content.Transform
 import Pdf.Toolbox.Content.UnicodeCMap
 
+data ViewerState = ViewerState {
+  viewerPage :: Page,
+  viewerPageNum :: Int,
+  viewerRenderIM :: Bool,
+  viewerRenderText :: Bool,
+  viewerRenderGlyphs :: Bool
+  }
+
 main :: IO ()
 main = do
   [file] <- initGUI
@@ -60,7 +68,13 @@ main = do
   firstPage <- pdfSync mvar $ do
     pageNodePageByNum rootNode 0
 
-  page <- newIORef (firstPage, 0)
+  viewerState <- newIORef ViewerState {
+    viewerPage = firstPage,
+    viewerPageNum = 0,
+    viewerRenderIM = False,
+    viewerRenderText = True,
+    viewerRenderGlyphs = False
+    }
 
   let winTitle = maybe "Untitled" (\(Str s) -> BS8.unpack s) title
 
@@ -84,48 +98,97 @@ main = do
   nextButton <- buttonNewWithLabel "Next"
   boxPackStart hbuttonBox nextButton PackNatural 0
 
+  renderPdfToggle <- checkButtonNewWithLabel "Render via ImageMagick"
+  set renderPdfToggle [
+    toggleButtonActive := False
+    ]
+  boxPackStart hbuttonBox renderPdfToggle PackNatural 0
+
+  renderTextToggle <- checkButtonNewWithLabel "Render extracted text"
+  set renderTextToggle [
+    toggleButtonActive := True
+    ]
+  boxPackStart hbuttonBox renderTextToggle PackNatural 0
+
+  renderGlyphsToggle <- checkButtonNewWithLabel "Render glyphs"
+  set renderGlyphsToggle [
+    toggleButtonActive := False
+    ]
+  boxPackStart hbuttonBox renderGlyphsToggle PackNatural 0
+
   frame <- frameNew
   boxPackStart vbox frame PackGrow 0
 
   canvas <- drawingAreaNew
   containerAdd frame canvas
 
+  _ <- on renderPdfToggle toggled $ do
+    st <- get renderPdfToggle toggleButtonActive
+    modifyIORef viewerState $ \s -> s {
+      viewerRenderIM = st
+      }
+    widgetQueueDraw canvas
+
+  _ <- on renderTextToggle toggled $ do
+    st <- get renderTextToggle toggleButtonActive
+    modifyIORef viewerState $ \s -> s {
+      viewerRenderText = st
+      }
+    widgetQueueDraw canvas
+
+  _ <- on renderGlyphsToggle toggled $ do
+    st <- get renderGlyphsToggle toggleButtonActive
+    modifyIORef viewerState $ \s -> s {
+      viewerRenderGlyphs = st
+      }
+    widgetQueueDraw canvas
+
   _ <- on prevButton buttonActivated $ do
-    (_, num) <- readIORef page
+    num <- viewerPageNum <$> readIORef viewerState
     when (num > 0) $ do
       p <- pdfSync mvar $ pageNodePageByNum rootNode (num - 1)
-      writeIORef page (p, num - 1)
+      modifyIORef viewerState $ \s -> s {
+        viewerPage = p,
+        viewerPageNum = num - 1
+        }
       widgetQueueDraw canvas
+
   _ <- on nextButton buttonActivated $ do
-    (_, num) <- readIORef page
+    num <- viewerPageNum <$> readIORef viewerState
     when (num < totalPages - 1) $ do
       p <- pdfSync mvar $ pageNodePageByNum rootNode (num + 1)
-      writeIORef page (p, num + 1)
+      modifyIORef viewerState $ \s -> s {
+        viewerPage = p,
+        viewerPageNum = num + 1
+        }
       widgetQueueDraw canvas
 
   widgetShowAll window
   draw <- widgetGetDrawWindow canvas
   _ <- on canvas exposeEvent $ do
-    liftIO $ renderWithDrawable draw $ onDraw file mvar page
+    liftIO $ renderWithDrawable draw $ onDraw file mvar viewerState
     return True
 
   mainGUI
 
-onDraw :: FilePath -> MVar (Pdf IO Bool) -> IORef (Page, Int) -> Render ()
-onDraw file mvar page = do
-  (pg, num) <- liftIO $ readIORef page
+onDraw :: FilePath -> MVar (Pdf IO Bool) -> IORef ViewerState -> Render ()
+onDraw file mvar viewerState = do
+  st <- liftIO $ readIORef viewerState
+  let pg = viewerPage st
+      num = viewerPageNum st
 
-  randomNum <- liftIO $ randomIO :: Render Int
-  tmpDir <- liftIO $ getTemporaryDirectory
-  let tmpFile = tmpDir </> ("pdf-toolbox-viewer-" ++ show randomNum ++ ".png")
-  (_, _, _, procHandle) <- liftIO $ createProcess $ proc "convert" [file ++ "[" ++ show num ++ "]", tmpFile]
-  hasPng <- (== ExitSuccess) <$> liftIO (waitForProcess procHandle)
-  when hasPng $ do
-    surface <- liftIO $ imageSurfaceCreateFromPNG tmpFile
-    setSourceSurface surface 0 0
-    paint
-    surfaceFinish surface
-    liftIO $ removeFile tmpFile
+  when (viewerRenderIM st) $ do
+    randomNum <- liftIO $ randomIO :: Render Int
+    tmpDir <- liftIO $ getTemporaryDirectory
+    let tmpFile = tmpDir </> ("pdf-toolbox-viewer-" ++ show randomNum ++ ".png")
+    (_, _, _, procHandle) <- liftIO $ createProcess $ proc "convert" [file ++ "[" ++ show num ++ "]", tmpFile]
+    hasPng <- (== ExitSuccess) <$> liftIO (waitForProcess procHandle)
+    when hasPng $ do
+      surface <- liftIO $ imageSurfaceCreateFromPNG tmpFile
+      setSourceSurface surface 0 0
+      paint
+      surfaceFinish surface
+      liftIO $ removeFile tmpFile
 
   setSourceRGB 1 1 1
   setLineWidth 1
@@ -142,19 +205,25 @@ onDraw file mvar page = do
   closePath
   stroke
 
-  setSourceRGB 0 0 0
   let loop = do
         cmd <- liftIO $ readChan chan
         case cmd of
           Nothing -> return ()
           Just glyph -> do
             let Vector x y = glyphPos glyph
-            case glyphText glyph of
-              Nothing -> return ()
-              Just txt -> do
-                moveTo x (ury - y)
-                showText $ Text.unpack txt
-                stroke
+                Vector w h = glyphSize glyph
+            when (viewerRenderText st) $ do
+              setSourceRGB 0 0 0
+              case glyphText glyph of
+                Nothing -> return ()
+                Just txt -> do
+                  moveTo x (ury - y)
+                  showText $ Text.unpack txt
+                  stroke
+            when (viewerRenderGlyphs st) $ do
+              setSourceRGBA 0 0 0 0.2
+              rectangle x (ury - y) w h
+              fill
             loop
   loop
 
@@ -167,7 +236,7 @@ pageFontMap page = do
         fontDecodeString = \_ (Str str) -> flip map (BS8.unpack str) $ \c -> Glyph {
           glyphCode = BS8.pack [c],
           glyphPos = Vector 0 0,
-          glyphSize = Vector 0.5 0,
+          glyphSize = Vector 1 1,
           glyphText = Just $ Text.pack [c]
           }
         }
@@ -196,7 +265,7 @@ cmapDecodeString cmap (Str str) = go str
         let glyph = Glyph {
           glyphCode = g,
           glyphPos = Vector 0 0,
-          glyphSize = Vector 0.5 0,
+          glyphSize = Vector 1 1,
           glyphText = unicodeCMapDecodeGlyph cmap g
           }
         in glyph : go rest
