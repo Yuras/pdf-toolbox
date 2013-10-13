@@ -7,12 +7,19 @@ module Pdf.Toolbox.Content.Processor
 (
   Processor(..),
   GraphicsState(..),
+  FontInfo(..),
+  FontMap,
+  Glyph(..),
   initialGraphicsState,
   mkProcessor,
   processOp
 )
 where
 
+import Data.Monoid
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Text (Text)
 import Data.ByteString (ByteString)
 import Control.Monad
 
@@ -21,11 +28,28 @@ import Pdf.Toolbox.Core
 import Pdf.Toolbox.Content.Ops
 import Pdf.Toolbox.Content.Transform
 
+data FontInfo = FontInfo {
+  fontDecodeString :: Double -> Str -> [Glyph]
+  }
+
+instance Show FontInfo where
+  show _ = "FontInfo"
+
+type FontMap = Map Name FontInfo
+
+data Glyph = Glyph {
+  glyphCode :: ByteString,
+  glyphPos :: Vector Double,
+  glyphSize :: Vector Double,
+  glyphText :: Maybe Text
+  }
+  deriving Show
+
 -- | Graphics state
 data GraphicsState = GraphicsState {
   gsInText :: Bool,    -- ^ Indicates that we are inside text object
   gsCurrentTransformMatrix :: Transform Double,
-  gsFont :: Maybe ByteString,
+  gsFont :: Maybe Name,
   gsFontSize :: Maybe Double,
   gsTextMatrix :: Transform Double,      -- ^ Defined only inside text object
   gsTextLineMatrix :: Transform Double,  -- ^ Defined only inside text object
@@ -48,7 +72,9 @@ initialGraphicsState = GraphicsState {
 -- | Processor maintains graphics state
 data Processor = Processor {
   prState :: GraphicsState,
-  prStateStack :: [GraphicsState]
+  prStateStack :: [GraphicsState],
+  prFontMap :: FontMap,
+  prGlyphs :: [Glyph]
   }
   deriving Show
 
@@ -56,8 +82,11 @@ data Processor = Processor {
 mkProcessor :: Processor
 mkProcessor = Processor {
   prState = initialGraphicsState,
-  prStateStack = []
+  prStateStack = [],
+  prFontMap = mempty,
+  prGlyphs = mempty
   }
+
 -- | Process one operation
 processOp :: Monad m => Operator -> Processor -> PdfE m Processor
 
@@ -153,7 +182,7 @@ processOp (Op_cm, [a', b', c', d', e', f']) p = do
 processOp (Op_cm, args) _ = left $ UnexpectedError $ "Op_cm: wrong number of arguments: " ++ show args
 
 processOp (Op_Tf, [fontO, szO]) p = do
-  Name font <- fromObject fontO
+  font <- fromObject fontO
   sz <- fromObject szO >>= realValue
   let gstate = prState p
   return p {prState = gstate {
@@ -162,9 +191,74 @@ processOp (Op_Tf, [fontO, szO]) p = do
     }}
 processOp (Op_Tf, args) _ = left $ UnexpectedError $ "Op_Tf: wrong number of agruments: " ++ show args
 
+processOp (Op_Tj, [OStr str]) p = do
+  let gstate = prState p
+  fontName <-
+    case gsFont gstate of
+      Nothing -> left $ UnexpectedError "Op_Tj: font not set"
+      Just fn -> return fn
+  fontSize <-
+    case gsFontSize gstate of
+      Nothing -> left $ UnexpectedError "Op_Tj: font size not set"
+      Just fs -> return fs
+  font <-
+    case Map.lookup fontName (prFontMap p) of
+      Nothing -> left $ UnexpectedError $ "Op_Tj: font not found: " ++ show fontName
+      Just f -> return f
+  let (tm, glyphs) = positionGlyghs (gsCurrentTransformMatrix gstate) (gsTextMatrix gstate) $ fontDecodeString font fontSize str
+  return p {
+    prGlyphs = prGlyphs p ++ glyphs,
+    prState = gstate {
+      gsTextMatrix = tm
+      }
+    }
+processOp (Op_Tj, args) _ = left $ UnexpectedError $ "Op_Tj: wrong number of agruments:" ++ show args
+
+processOp (Op_TJ, [OArray (Array array)]) p = do
+  let gstate = prState p
+  fontName <-
+    case gsFont gstate of
+      Nothing -> left $ UnexpectedError "Op_Tj: font not set"
+      Just fn -> return fn
+  fontSize <-
+    case gsFontSize gstate of
+      Nothing -> left $ UnexpectedError "Op_Tj: font size not set"
+      Just fs -> return fs
+  font <-
+    case Map.lookup fontName (prFontMap p) of
+      Nothing -> left $ UnexpectedError $ "Op_Tj: font not found: " ++ show fontName
+      Just f -> return f
+  let (textMatrix, glyphs) = loop (gsTextMatrix gstate) [] array
+        where
+        loop tm res [] = (tm, res)
+        loop tm res (OStr str : rest) = let (tm', gs) = positionGlyghs (gsCurrentTransformMatrix gstate) tm (fontDecodeString font fontSize str)
+                                        in loop tm' (res ++ gs) rest
+        loop tm res (ONumber (NumInt i): rest) = loop (translate (fromIntegral (-i) * fontSize / 1000) 0 tm) res rest
+        loop tm res (ONumber (NumReal d): rest) = loop (translate (-d * fontSize / 1000) 0 tm) res rest
+        loop tm res (_:rest) = loop tm res rest
+  return p {
+    prGlyphs = prGlyphs p ++ glyphs,
+    prState = gstate {
+      gsTextMatrix = textMatrix
+      }
+    }
+processOp (Op_TJ, args) _ = left $ UnexpectedError $ "Op_TJ: wrong number of agruments:" ++ show args
+
 processOp _ p = return p
 
 ensureInTextObject :: Monad m => Bool -> Processor -> PdfE m ()
 ensureInTextObject inText p =
   unless (inText == gsInText (prState p)) $ left $
     UnexpectedError $ "ensureInTextObject: expected: " ++ show inText ++ ", found: " ++ show (gsInText $ prState p)
+
+positionGlyghs :: Transform Double -> Transform Double -> [Glyph] -> (Transform Double, [Glyph])
+positionGlyghs ctm textMatrix = go textMatrix []
+  where
+  go tm res [] = (tm, reverse res)
+  go tm res (g:gs) =
+    let g' = g {
+          glyphPos = transform (multiply tm ctm) (glyphPos g)
+          }
+        Vector width _ = glyphSize g
+        tm' = translate width 0 tm
+    in go tm' (g':res) gs

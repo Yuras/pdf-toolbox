@@ -5,27 +5,24 @@ module Main
 )
 where
 
-import Data.Monoid
-import Data.Maybe
 import Data.String
 import Data.Functor
+import qualified Data.Traversable as Traversable
+import qualified Data.Map as Map
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text
-import qualified Data.Text.Encoding.Error as TextE
 import Data.IORef
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Concurrent
 import System.IO
 import qualified System.IO.Streams as Streams
-import Graphics.UI.Gtk hiding (Rectangle)
-import Graphics.Rendering.Cairo hiding (transform)
+import Graphics.UI.Gtk hiding (Rectangle, FontMap)
+import Graphics.Rendering.Cairo hiding (transform, Glyph)
 
 import Pdf.Toolbox.Document
 import Pdf.Toolbox.Document.Internal.Types
-import Pdf.Toolbox.Content.Ops
 import Pdf.Toolbox.Content.Parser
 import Pdf.Toolbox.Content.Processor
 import Pdf.Toolbox.Content.Transform
@@ -131,35 +128,66 @@ onDraw mvar page = do
         cmd <- liftIO $ readChan chan
         case cmd of
           Nothing -> return ()
-          Just (Vector x y, str) -> do
-            moveTo x (ury - y)
-            showText str
-            stroke
+          Just glyph -> do
+            let Vector x y = glyphPos glyph
+            case glyphText glyph of
+              Nothing -> return ()
+              Just txt -> do
+                moveTo x (ury - y)
+                showText $ Text.unpack txt
+                stroke
             loop
   loop
 
-startRender :: MVar (Pdf IO Bool) -> Page -> IO (Chan (Maybe (Vector Double, String)))
+pageFontMap :: (MonadPdf m, MonadIO m) => Page -> PdfE m FontMap
+pageFontMap page = do
+  fontDicts <- Map.fromList <$> pageFontDicts page
+  Traversable.forM fontDicts $ \(FontDict fontDict) -> do
+    case lookupDict' (fromString "ToUnicode") fontDict of
+      Nothing -> return FontInfo {
+        fontDecodeString = \_ (Str str) -> flip map (BS8.unpack str) $ \c -> Glyph {
+          glyphCode = BS8.pack [c],
+          glyphPos = Vector 0 0,
+          glyphSize = Vector 0.5 0,
+          glyphText = Just $ Text.pack [c]
+          }
+        }
+      Just o -> do
+        ref <- fromObject o
+        toUnicode <- lookupObject ref
+        case toUnicode of
+          OStream s -> do
+            Stream _ is <- streamContent ref s
+            content <- BS.concat <$> liftIO (Streams.toList is)
+            cmap <- case parseUnicodeCMap content of
+                      Left e -> left $ UnexpectedError $ "can't parse cmap: " ++ show e
+                      Right cmap -> return cmap
+            return FontInfo {
+              fontDecodeString = \_ -> cmapDecodeString cmap
+              }
+          _ -> left $ UnexpectedError "ToUnicode: not a stream"
+
+cmapDecodeString :: UnicodeCMap -> Str -> [Glyph]
+cmapDecodeString cmap (Str str) = go str
+  where
+  go s =
+    case unicodeCMapNextGlyph cmap s of
+      Nothing -> []
+      Just (g, rest) ->
+        let glyph = Glyph {
+          glyphCode = g,
+          glyphPos = Vector 0 0,
+          glyphSize = Vector 0.5 0,
+          glyphText = unicodeCMapDecodeGlyph cmap g
+          }
+        in glyph : go rest
+
+
+startRender :: MVar (Pdf IO Bool) -> Page -> IO (Chan (Maybe Glyph))
 startRender mvar page = do
   chan <- newChan
   putMVar mvar $ do
-    fontDicts <- pageFontDicts page
-
-    -- Collect unicode cmaps for all fonts
-    cmaps <- forM fontDicts $ \(name, FontDict dict) -> do
-      case lookupDict' (fromString "ToUnicode") dict of
-        Nothing -> return (name, Nothing)
-        Just o -> do
-          ref <- fromObject o
-          toUnicode <- lookupObject ref
-          case toUnicode of
-            OStream s -> do
-              Stream _ is <- streamContent ref s
-              content <- BS.concat <$> liftIO (Streams.toList is)
-              cmap <- case parseUnicodeCMap content of
-                        Left _err -> error $ "can't parse cmap: " ++ _err
-                        Right cmap -> return $ Just cmap
-              return (name, cmap)
-            _ -> left $ UnexpectedError "ToUnicode: not a stream"
+    fontMap <- pageFontMap page
 
     contents <- pageContents page
     streams <- forM contents $ \ref -> do
@@ -174,49 +202,17 @@ startRender mvar page = do
         Just d -> return d
     is <- parseContentStream ris knownFilters decryptor streams
 
-    -- Convert bytestring to text via unicode cmap
-    let cmapDecode cmap str = mconcat $ cmapDecode' cmap str
-        cmapDecode' cmap str =
-          case unicodeCMapNextGlyph cmap str of
-            Just (glyph, rest) ->
-              case unicodeCMapDecodeGlyph cmap glyph of
-                Nothing -> cmapDecode' cmap rest
-                Just txt -> txt : cmapDecode' cmap rest
-            _ -> []
-
     let loop p = do
           next <- readNextOperator is
           case next of
-            Nothing -> return ()
-            Just op -> do
-              case op of
-                (Op_Tj, [OStr (Str str)]) -> do
-                  let gstate = prState p
-                      tm = gsTextMatrix gstate
-                      ctm = gsCurrentTransformMatrix gstate
-                      pos = transform (multiply tm ctm) (Vector 0 0)
-                      fontName = fromMaybe mempty $ gsFont gstate
-                      mcmap = lookup (Name fontName) cmaps
-                      str' = case mcmap of
-                               Just (Just cmap) -> cmapDecode cmap str
-                               _ -> Text.decodeUtf8With (TextE.replace '?') str
-                  liftIO $ writeChan chan $ Just (pos, Text.unpack str')
-                (Op_TJ, [OArray (Array array)]) -> do
-                  let gstate = prState p
-                      tm = gsTextMatrix gstate
-                      ctm = gsCurrentTransformMatrix gstate
-                      pos = transform (multiply tm ctm) (Vector 0 0)
-                      fontName = fromMaybe mempty $ gsFont gstate
-                      mcmap = lookup (Name fontName) cmaps
-                      toS (OStr (Str s)) =
-                        case mcmap of
-                          Just (Just cmap) -> Text.unpack $ cmapDecode cmap s
-                          _ -> BS8.unpack s
-                      toS _ = ""
-                  liftIO $ writeChan chan $ Just (pos, concatMap toS array)
-                _ -> return ()
-              processOp op p >>= loop
-    loop mkProcessor
+            Nothing -> do
+              forM_ (prGlyphs p) $ \glyph ->
+                liftIO $ writeChan chan (Just glyph)
+              liftIO $ print $ prGlyphs p
+            Just op -> processOp op p >>= loop
+    loop $ mkProcessor {
+      prFontMap = fontMap
+      }
     liftIO $ writeChan chan Nothing
     return False
   return chan

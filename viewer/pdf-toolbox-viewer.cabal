@@ -23,6 +23,7 @@ executable pdf-toolbox-viewer
                        bytestring,
                        text,
                        transformers,
+                       containers,
                        io-streams,
                        cairo,
                        gtk,

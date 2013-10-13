@@ -47,4 +47,3 @@ multiply (Transform a1 b1 c1 d1 e1 f1) (Transform a2 b2 c2 d2 e2 f2) = Transform
   d = c1 * b2 + d1 * d2
   e = e1 * a2 + f1 * c2 + e2
   f = e1 * b2 + f1 * d2 + f2
-
