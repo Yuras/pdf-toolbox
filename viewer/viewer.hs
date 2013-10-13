@@ -227,18 +227,16 @@ onDraw file mvar viewerState = do
             loop
   loop
 
-pageFontMap :: (MonadPdf m, MonadIO m) => Page -> PdfE m FontMap
-pageFontMap page = do
+pageGlyphDecoder :: (MonadPdf m, MonadIO m) => Page -> PdfE m GlyphDecoder
+pageGlyphDecoder page = do
   fontDicts <- Map.fromList <$> pageFontDicts page
-  Traversable.forM fontDicts $ \(FontDict fontDict) -> do
+  decoders <- Traversable.forM fontDicts $ \(FontDict fontDict) -> do
     case lookupDict' (fromString "ToUnicode") fontDict of
-      Nothing -> return FontInfo {
-        fontDecodeString = \(Str str) -> flip map (BS8.unpack str) $ \c -> Glyph {
-          glyphCode = BS8.pack [c],
-          glyphTopLeft = Vector 0 0,
-          glyphBottomRight = Vector 1 1,
-          glyphText = Just $ Text.pack [c]
-          }
+      Nothing -> return $ \(Str str) -> flip map (BS8.unpack str) $ \c -> Glyph {
+        glyphCode = BS8.pack [c],
+        glyphTopLeft = Vector 0 0,
+        glyphBottomRight = Vector 1 1,
+        glyphText = Just $ Text.pack [c]
         }
       Just o -> do
         ref <- fromObject o
@@ -250,10 +248,12 @@ pageFontMap page = do
             cmap <- case parseUnicodeCMap content of
                       Left e -> left $ UnexpectedError $ "can't parse cmap: " ++ show e
                       Right cmap -> return cmap
-            return FontInfo {
-              fontDecodeString = cmapDecodeString cmap
-              }
+            return $ cmapDecodeString cmap
           _ -> left $ UnexpectedError "ToUnicode: not a stream"
+  return $ \fontName str ->
+    case Map.lookup fontName decoders of
+      Nothing -> []
+      Just decoder -> decoder str
 
 cmapDecodeString :: UnicodeCMap -> Str -> [Glyph]
 cmapDecodeString cmap (Str str) = go str
@@ -275,7 +275,8 @@ startRender :: MVar (Pdf IO Bool) -> Page -> IO (Chan (Maybe Glyph))
 startRender mvar page = do
   chan <- newChan
   putMVar mvar $ do
-    fontMap <- pageFontMap page
+    --fontMap <- pageFontMap page
+    glyphDecoder <- pageGlyphDecoder page
 
     contents <- pageContents page
     streams <- forM contents $ \ref -> do
@@ -299,7 +300,7 @@ startRender mvar page = do
               --liftIO $ print $ prGlyphs p
             Just op -> processOp op p >>= loop
     loop $ mkProcessor {
-      prFontMap = fontMap
+      prGlyphDecoder = glyphDecoder
       }
     liftIO $ writeChan chan Nothing
     return False

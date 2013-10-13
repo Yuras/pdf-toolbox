@@ -7,8 +7,7 @@ module Pdf.Toolbox.Content.Processor
 (
   Processor(..),
   GraphicsState(..),
-  FontInfo(..),
-  FontMap,
+  GlyphDecoder,
   Glyph(..),
   initialGraphicsState,
   mkProcessor,
@@ -17,8 +16,6 @@ module Pdf.Toolbox.Content.Processor
 where
 
 import Data.Monoid
-import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.Text (Text)
 import Data.ByteString (ByteString)
 import Control.Monad
@@ -28,19 +25,20 @@ import Pdf.Toolbox.Core
 import Pdf.Toolbox.Content.Ops
 import Pdf.Toolbox.Content.Transform
 
-data FontInfo = FontInfo {
-  fontDecodeString :: Str -> [Glyph]
-  }
+-- | Given font name and string, it should return list of glyphs
+-- with bounding boxes defined in glyph space. It should not try
+-- to position or scale glyphs in user space.
+type GlyphDecoder = Name -> Str -> [Glyph]
 
-instance Show FontInfo where
-  show _ = "FontInfo"
-
-type FontMap = Map Name FontInfo
-
+-- | Glyph
 data Glyph = Glyph {
+  -- | The code as read from content stream
   glyphCode :: ByteString,
+  -- | Top-left corner of glyph's bounding box
   glyphTopLeft :: Vector Double,
+  -- | Bottom-right corner of glyph's bounding box
   glyphBottomRight :: Vector Double,
+  -- | Text ectracted from the glyph
   glyphText :: Maybe Text
   }
   deriving Show
@@ -73,17 +71,16 @@ initialGraphicsState = GraphicsState {
 data Processor = Processor {
   prState :: GraphicsState,
   prStateStack :: [GraphicsState],
-  prFontMap :: FontMap,
+  prGlyphDecoder :: GlyphDecoder,
   prGlyphs :: [Glyph]
   }
-  deriving Show
 
 -- | Create processor in initial state
 mkProcessor :: Processor
 mkProcessor = Processor {
   prState = initialGraphicsState,
   prStateStack = [],
-  prFontMap = mempty,
+  prGlyphDecoder = \_ _ -> [],
   prGlyphs = mempty
   }
 
@@ -201,11 +198,7 @@ processOp (Op_Tj, [OStr str]) p = do
     case gsFontSize gstate of
       Nothing -> left $ UnexpectedError "Op_Tj: font size not set"
       Just fs -> return fs
-  font <-
-    case Map.lookup fontName (prFontMap p) of
-      Nothing -> left $ UnexpectedError $ "Op_Tj: font not found: " ++ show fontName
-      Just f -> return f
-  let (tm, glyphs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate) (gsTextMatrix gstate) $ fontDecodeString font str
+  let (tm, glyphs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate) (gsTextMatrix gstate) $ prGlyphDecoder p fontName str
   return p {
     prGlyphs = prGlyphs p ++ glyphs,
     prState = gstate {
@@ -224,14 +217,10 @@ processOp (Op_TJ, [OArray (Array array)]) p = do
     case gsFontSize gstate of
       Nothing -> left $ UnexpectedError "Op_Tj: font size not set"
       Just fs -> return fs
-  font <-
-    case Map.lookup fontName (prFontMap p) of
-      Nothing -> left $ UnexpectedError $ "Op_Tj: font not found: " ++ show fontName
-      Just f -> return f
   let (textMatrix, glyphs) = loop (gsTextMatrix gstate) [] array
         where
         loop tm res [] = (tm, res)
-        loop tm res (OStr str : rest) = let (tm', gs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate) tm (fontDecodeString font str)
+        loop tm res (OStr str : rest) = let (tm', gs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate) tm (prGlyphDecoder p fontName str)
                                         in loop tm' (res ++ gs) rest
         loop tm res (ONumber (NumInt i): rest) = loop (translate (fromIntegral (-i) * fontSize / 1000) 0 tm) res rest
         loop tm res (ONumber (NumReal d): rest) = loop (translate (-d * fontSize / 1000) 0 tm) res rest
