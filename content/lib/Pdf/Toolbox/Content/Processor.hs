@@ -26,9 +26,18 @@ import Pdf.Toolbox.Content.Ops
 import Pdf.Toolbox.Content.Transform
 
 -- | Given font name and string, it should return list of glyphs
--- with bounding boxes defined in glyph space. It should not try
--- to position or scale glyphs in user space.
-type GlyphDecoder = Name -> Str -> [Glyph]
+-- and their widths.
+--
+-- Note: it should not try to position or scale glyphs to user space,
+-- bounding boxes should be defined in glyph space.
+--
+-- Note: glyph width is a distance between the glyph's origin and
+-- the next glyph's origin, so it generally can't be calculated
+-- from bounding box
+--
+-- Note: the 'Processor' actually doesn't cares about glyph's
+-- bounding box, so you can return anything you want
+type GlyphDecoder = Name -> Str -> [(Glyph, Double)]
 
 -- | Glyph
 data Glyph = Glyph {
@@ -240,18 +249,16 @@ ensureInTextObject inText p =
   unless (inText == gsInText (prState p)) $ left $
     UnexpectedError $ "ensureInTextObject: expected: " ++ show inText ++ ", found: " ++ show (gsInText $ prState p)
 
-positionGlyghs :: Double -> Transform Double -> Transform Double -> [Glyph] -> (Transform Double, [Glyph])
+positionGlyghs :: Double -> Transform Double -> Transform Double -> [(Glyph, Double)] -> (Transform Double, [Glyph])
 positionGlyghs fontSize ctm textMatrix = go textMatrix []
   where
   go tm res [] = (tm, reverse res)
-  go tm res (g:gs) =
+  go tm res ((g, width):gs) =
     let g' = g {
           glyphTopLeft = transform (multiply tm ctm) topLeft,
           glyphBottomRight = transform (multiply tm ctm) bottomRight
           }
         topLeft = transform (scale fontSize fontSize) $ glyphTopLeft g
         bottomRight = transform (scale fontSize fontSize) $ glyphBottomRight g
-        width = case (topLeft, bottomRight) of
-                  (Vector l _, Vector r _) -> r - l
-        tm' = translate width 0 tm
+        tm' = translate (width * fontSize) 0 tm
     in go tm' (g':res) gs

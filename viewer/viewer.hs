@@ -232,12 +232,12 @@ pageGlyphDecoder page = do
   fontDicts <- Map.fromList <$> pageFontDicts page
   decoders <- Traversable.forM fontDicts $ \(FontDict fontDict) -> do
     case lookupDict' (fromString "ToUnicode") fontDict of
-      Nothing -> return $ \(Str str) -> flip map (BS8.unpack str) $ \c -> Glyph {
+      Nothing -> return $ \(Str str) -> flip map (BS8.unpack str) $ \c -> (Glyph {
         glyphCode = BS8.pack [c],
         glyphTopLeft = Vector 0 0,
         glyphBottomRight = Vector 1 1,
         glyphText = Just $ Text.pack [c]
-        }
+        }, 1)
       Just o -> do
         ref <- fromObject o
         toUnicode <- lookupObject ref
@@ -255,7 +255,7 @@ pageGlyphDecoder page = do
       Nothing -> []
       Just decoder -> decoder str
 
-cmapDecodeString :: UnicodeCMap -> Str -> [Glyph]
+cmapDecodeString :: UnicodeCMap -> Str -> [(Glyph, Double)]
 cmapDecodeString cmap (Str str) = go str
   where
   go s =
@@ -268,7 +268,7 @@ cmapDecodeString cmap (Str str) = go str
           glyphBottomRight = Vector 1 1,
           glyphText = unicodeCMapDecodeGlyph cmap g
           }
-        in glyph : go rest
+        in (glyph, 1) : go rest
 
 
 startRender :: MVar (Pdf IO Bool) -> Page -> IO (Chan (Maybe Glyph))
