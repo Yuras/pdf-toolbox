@@ -9,7 +9,7 @@ module Pdf.Toolbox.Document.Page
   pageContents,
   pageMediaBox,
   pageFontDicts,
-  pageText
+  pageExtractText
 )
 where
 
@@ -98,8 +98,8 @@ pageFontDicts (Page _ dict) =
 --
 -- Right now it doesn't even try to insert additional spaces or newlines,
 -- and returns text as it is embeded. But someday it will.
-pageText :: (MonadPdf m, MonadIO m) => Page -> PdfE m Text
-pageText page = do
+pageExtractText :: (MonadPdf m, MonadIO m) => Page -> PdfE m Text
+pageExtractText page = do
   -- collect unicode cmaps to be able to decode glyphs
   fontDicts <- Map.fromList <$> pageFontDicts page
   glyphDecoders <- Traversable.forM fontDicts $ \(FontDict fontDict) ->
