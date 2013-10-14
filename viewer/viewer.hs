@@ -12,7 +12,11 @@ import qualified Data.Map as Map
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text
 import Data.IORef
+import qualified Data.Encoding as Encoding
+import qualified Data.Encoding.CP1252 as Encoding
+import qualified Data.Encoding.MacOSRoman as Encoding
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Concurrent
@@ -249,12 +253,30 @@ pageGlyphDecoder page = do
                    then (ws !! (code - firstChar)) / 1000
                    else 1
     case lookupDict' (fromString "ToUnicode") fontDict of
-      Nothing -> return $ \(Str str) -> flip map (BS8.unpack str) $ \c -> (Glyph {
-        glyphCode = BS8.pack [c],
-        glyphTopLeft = Vector 0 0,
-        glyphBottomRight = Vector (getWidth $ BS8.pack [c]) 1,
-        glyphText = Just $ Text.pack [c]
-        }, getWidth $ BS8.pack [c])
+      Nothing -> do
+        txtDecode <-
+          case lookupDict' (fromString "Encoding") fontDict of
+            Just (OName enc) | enc == (fromString "WinAnsiEncoding") -> return $ \bs ->
+              case Encoding.decodeStrictByteStringExplicit Encoding.CP1252 bs of
+                Left _ -> Nothing
+                Right t -> Just $ Text.pack t
+            Just (OName enc) | enc == (fromString "MacRomanEncoding") -> return $ \bs ->
+              case Encoding.decodeStrictByteStringExplicit Encoding.MacOSRoman bs of
+                Left _ -> Nothing
+                Right t -> Just $ Text.pack t
+            _ -> return $ \bs ->
+              case Text.decodeUtf8' bs of
+                Left _ -> Nothing
+                Right t -> Just t
+        return $ \(Str str) -> flip map (BS8.unpack str) $ \c ->
+          let code = BS8.pack [c]
+              txt = txtDecode code
+          in (Glyph {
+            glyphCode = code,
+            glyphTopLeft = Vector 0 0,
+            glyphBottomRight = Vector (getWidth code) 1,
+            glyphText = txt
+            }, getWidth code)
       Just o -> do
         ref <- fromObject o
         toUnicode <- lookupObject ref
