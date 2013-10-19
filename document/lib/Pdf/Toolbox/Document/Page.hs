@@ -142,11 +142,8 @@ pageExtractText page = do
     return (s, ref, len)
 
   -- parse content streams
-  decryptor <- do
-    dec <- getDecryptor
-    case dec of
-      Nothing -> return (const return)
-      Just d -> return d
+  decryptor <- fromMaybe (const return) <$> getDecryptor
+
   ris <- getRIS
   filters <- getStreamFilters
   is <- parseContentStream ris filters decryptor streams
