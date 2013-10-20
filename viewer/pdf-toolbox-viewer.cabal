@@ -31,6 +31,5 @@ executable pdf-toolbox-viewer
                        io-streams,
                        cairo,
                        gtk,
-                       encoding,
                        pdf-toolbox-document,
                        pdf-toolbox-content

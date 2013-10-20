@@ -43,7 +43,7 @@ data FontInfo
 data FISimple = FISimple {
   fiSimpleUnicodeCMap :: Maybe UnicodeCMap,
   fiSimpleEncoding :: Maybe SimpleFontEncoding,
-  fiSimpleWidths :: Maybe (Int, Int, [Double])
+  fiSimpleWidths :: Maybe (Int, Int, [Double])  -- ^ FirstChar, LastChar, list of widths
   }
   deriving (Show)
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main
 (
@@ -5,21 +6,13 @@ module Main
 )
 where
 
-import Data.List
-import Data.Monoid
 import Data.String
 import Data.Functor
 import qualified Data.Traversable as Traversable
-import Data.Map (Map)
 import qualified Data.Map as Map
-import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text
 import Data.IORef
-import qualified Data.Encoding as Encoding
-import qualified Data.Encoding.CP1252 as Encoding
-import qualified Data.Encoding.MacOSRoman as Encoding
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Concurrent
@@ -29,12 +22,10 @@ import System.FilePath
 import System.Random (randomIO)
 import System.Process
 import System.Exit
-import qualified System.IO.Streams as Streams
 import Graphics.UI.Gtk hiding (Rectangle, FontMap)
 import Graphics.Rendering.Cairo hiding (transform, Glyph)
 
 import Pdf.Toolbox.Document
-import Pdf.Toolbox.Document.Internal.Types
 import Pdf.Toolbox.Content
 
 data ViewerState = ViewerState {
@@ -56,7 +47,7 @@ main = do
   (rootNode, totalPages, title) <- pdfSync mvar $ do
     encrypted <- isEncrypted
     when encrypted $ do
-      liftIO $ print "WARNING: Document is encrypted, it is not fully supported yet"
+      liftIO $ putStrLn "WARNING: Document is encrypted, it is not fully supported yet"
       ok <- setUserPassword defaultUserPassword
       unless ok $ error "Need user password"
     pdf <- document
@@ -231,144 +222,16 @@ onDraw file mvar viewerState = do
             loop
   loop
 
-data CIDFontWidth = CIDFontWidth {
-  cidFontWidthChars :: Map Int Double,
-  cidFontWidthRanges :: [(Int, Int, Double)]
-  }
-  deriving (Show)
-
-instance Monoid CIDFontWidth where
-  mempty = CIDFontWidth {
-    cidFontWidthChars = mempty,
-    cidFontWidthRanges = mempty
-    }
-  w1 `mappend` w2 = CIDFontWidth {
-    cidFontWidthChars = cidFontWidthChars w1 `mappend` cidFontWidthChars w2,
-    cidFontWidthRanges = cidFontWidthRanges w1 `mappend` cidFontWidthRanges w2
-    }
-
-makeCIDFontWidth :: Monad m => Array -> PdfE m CIDFontWidth
-makeCIDFontWidth (Array vals) = go mempty vals
-  where
-  go res [] = return res
-  go res (ONumber x1 : ONumber x2 : ONumber x3 : xs) = do
-    n1 <- intValue x1
-    n2 <- intValue x2
-    n3 <- realValue x3
-    go res {cidFontWidthRanges = (n1, n2, n3) : cidFontWidthRanges res} xs
-  go res (ONumber x: OArray (Array arr): xs) = do
-    n <- intValue x
-    ws <- forM arr $ \w -> fromObject w >>= realValue
-    go res {cidFontWidthChars = Map.fromList (zip [n ..] ws) `mappend` cidFontWidthChars res} xs
-  go _ _ = left $ UnexpectedError "Can't parse CIDFont width"
-
-cidFontGetWidth :: CIDFontWidth -> Int -> Maybe Double
-cidFontGetWidth w code =
-  case Map.lookup code (cidFontWidthChars w) of
-    Just width -> Just width
-    Nothing -> case find (\(start, end, _) -> code >= start && code <= end) (cidFontWidthRanges w) of
-                 Just (_, _, width) -> Just width
-                 _ -> Nothing
-
 pageGlyphDecoder :: (MonadPdf m, MonadIO m) => Page -> PdfE m GlyphDecoder
 pageGlyphDecoder page = do
   fontDicts <- Map.fromList <$> pageFontDicts page
-  decoders <- Traversable.forM fontDicts $ \fd@(FontDict fontDict) -> do
-    cidGetWidth <- do
-      subtype <- fontDictSubtype fd
-      case subtype of
-        FontType0 -> do
-          descFont <- do
-            descFontArr <- lookupDict (fromString "DescendantFonts") fontDict >>= deref >>= fromObject
-            case descFontArr of
-              Array [o] -> deref o >>= fromObject
-              _ -> left $ UnexpectedError "Unexpected value of DescendantFonts key in font dictionary"
-          defaultWidth <-
-            case lookupDict' (fromString "DW") descFont of
-              Nothing -> return 1000
-              Just o -> deref o >>= fromObject >>= realValue
-          widths <-
-            case lookupDict' (fromString "W") descFont of
-              Nothing -> return mempty
-              Just o -> deref o >>= fromObject >>= makeCIDFontWidth
-          return $ Just $ \code -> fromMaybe defaultWidth $ cidFontGetWidth widths code
-        _ -> return Nothing
-    widths <-
-      case lookupDict' (fromString "Widths") fontDict of
-        Nothing -> return Nothing
-        Just v -> do
-          Array array <- deref v >>= fromObject
-          widths <- mapM (fromObject >=> realValue) array
-          firstChar <- lookupDict (fromString "FirstChar") fontDict >>= fromObject >>= intValue
-          lastChar <- lookupDict (fromString "LastChar") fontDict >>= fromObject >>= intValue
-          return $ Just (widths, firstChar, lastChar)
-    let getWidth code =
-          case widths of
-            Nothing ->
-              case cidGetWidth of
-                Nothing -> 0
-                Just getW -> getW code / 1000
-            Just (ws, firstChar, lastChar) ->
-              if code >= firstChar && code <= lastChar && (code - firstChar) < length ws
-                 then (ws !! (code - firstChar)) / 1000
-                 else 1
-    case lookupDict' (fromString "ToUnicode") fontDict of
-      Nothing -> do
-        txtDecode <-
-          case lookupDict' (fromString "Encoding") fontDict of
-            Just (OName enc) | enc == (fromString "WinAnsiEncoding") -> return $ \bs ->
-              case Encoding.decodeStrictByteStringExplicit Encoding.CP1252 bs of
-                Left _ -> Nothing
-                Right t -> Just $ Text.pack t
-            Just (OName enc) | enc == (fromString "MacRomanEncoding") -> return $ \bs ->
-              case Encoding.decodeStrictByteStringExplicit Encoding.MacOSRoman bs of
-                Left _ -> Nothing
-                Right t -> Just $ Text.pack t
-            _ -> return $ \bs ->
-              case Text.decodeUtf8' bs of
-                Left _ -> Nothing
-                Right t -> Just t
-        return $ \(Str str) -> flip map (BS8.unpack str) $ \c ->
-          let txt = txtDecode $ BS8.pack [c]
-              code = fromEnum c
-          in (Glyph {
-            glyphCode = fromEnum c,
-            glyphTopLeft = Vector 0 0,
-            glyphBottomRight = Vector (getWidth code) 1,
-            glyphText = txt
-            }, getWidth code)
-      Just o -> do
-        ref <- fromObject o
-        toUnicode <- lookupObject ref
-        case toUnicode of
-          OStream s -> do
-            Stream _ is <- streamContent ref s
-            content <- BS.concat <$> liftIO (Streams.toList is)
-            cmap <- case parseUnicodeCMap content of
-                      Left e -> left $ UnexpectedError $ "can't parse cmap: " ++ show e
-                      Right cmap -> return cmap
-            return $ (map $ \g -> (g, getWidth (glyphCode g))) . cmapDecodeString getWidth cmap
-          _ -> left $ UnexpectedError "ToUnicode: not a stream"
+  decoders <- Traversable.forM fontDicts $ \fontDict -> do
+    fontInfo <- fontDictLoadInfo fontDict
+    return $ fontInfoDecodeGlyphs fontInfo
   return $ \fontName str ->
     case Map.lookup fontName decoders of
       Nothing -> []
-      Just decoder -> decoder str
-
-cmapDecodeString :: (Int -> Double) -> UnicodeCMap -> Str -> [Glyph]
-cmapDecodeString getWidth cmap (Str str) = go str
-  where
-  go s =
-    case unicodeCMapNextGlyph cmap s of
-      Nothing -> []
-      Just (g, rest) ->
-        let glyph = Glyph {
-          glyphCode = g,
-          glyphTopLeft = Vector 0 0,
-          glyphBottomRight = Vector (getWidth g) 1,
-          glyphText = unicodeCMapDecodeGlyph cmap g
-          }
-        in glyph : go rest
-
+      Just decode -> decode str
 
 startRender :: MVar (Pdf IO Bool) -> Page -> IO (Chan (Maybe Glyph))
 startRender mvar page = do
