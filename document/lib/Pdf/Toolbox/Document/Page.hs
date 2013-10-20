@@ -17,15 +17,8 @@ import Data.Functor
 import qualified Data.Traversable as Traversable
 import Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as BS8
 import qualified Data.Map as Map
-import qualified Data.Encoding as Encoding
-import qualified Data.Encoding.CP1252 as Encoding
-import qualified Data.Encoding.MacOSRoman as Encoding
 import Control.Monad
-import qualified System.IO.Streams as Streams
 
 import Pdf.Toolbox.Core
 import Pdf.Toolbox.Content
@@ -33,6 +26,7 @@ import Pdf.Toolbox.Content
 import Pdf.Toolbox.Document.Types
 import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.PageNode
+import Pdf.Toolbox.Document.FontDict
 import Pdf.Toolbox.Document.Internal.Types
 import Pdf.Toolbox.Document.Internal.Util
 
@@ -106,50 +100,9 @@ pageExtractText :: (MonadPdf m, MonadIO m) => Page -> PdfE m Text
 pageExtractText page = do
   -- collect unicode cmaps to be able to decode glyphs
   fontDicts <- Map.fromList <$> pageFontDicts page
-  glyphDecoders <- Traversable.forM fontDicts $ \(FontDict fontDict) ->
-    -- Note: we are not interested in glyph positions (at least for now)
-    -- so lets fake bounding box and width
-    case lookupDict' "ToUnicode" fontDict of
-      Nothing -> do
-        txtDecode <-
-          case lookupDict' "Encoding" fontDict of
-            Just (OName enc) | enc == "WinAnsiEncoding" -> return $ \bs ->
-              case Encoding.decodeStrictByteStringExplicit Encoding.CP1252 bs of
-                Left _ -> Nothing
-                Right t -> Just $ Text.pack t
-            Just (OName enc) | enc == "MacRomanEncoding" -> return $ \bs ->
-              case Encoding.decodeStrictByteStringExplicit Encoding.MacOSRoman bs of
-                Left _ -> Nothing
-                Right t -> Just $ Text.pack t
-            _ -> return $ \bs ->
-              -- Unknown encoding, lets just treat it as utf8
-              -- XXX: need proper support for other encodings
-              case Text.decodeUtf8' bs of
-                Left _ -> Nothing
-                Right t -> Just t
-        return $ \(Str str) -> flip map (BS8.unpack str) $ \c ->
-          let txt = txtDecode $ BS8.pack [c]
-          in (Glyph {
-            glyphCode = fromEnum c,
-            glyphTopLeft = Vector 0 0,
-            glyphBottomRight = Vector 1 1,
-            glyphText = txt
-            }, 1)
-      Just o -> do
-        -- Ok, we have cmap. Lets parse it
-        ref <- fromObject o
-        toUnicode <- lookupObject ref
-        case toUnicode of
-          OStream s -> do
-            Stream _ is <- streamContent ref s
-            content <- BS.concat <$> liftIO (Streams.toList is)
-            cmap <-
-              case parseUnicodeCMap content of
-                Left e -> left $ UnexpectedError $ "Can't parse cmap: " ++ show e
-                Right v -> return v
-            return $ (map $ \g -> (g, 1)) . cmapDecodeString cmap
-          _ -> left $ UnexpectedError "ToUnicode: not a stream"
-  let glyphDecoder = \fontName str ->
+  glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
+    fontInfoDecodeGlyphs <$> fontDictLoadInfo fontDict
+  let glyphDecoder fontName = \str ->
         case Map.lookup fontName glyphDecoders of
           Nothing -> []
           Just decode -> decode str
@@ -177,19 +130,3 @@ pageExtractText page = do
   loop $ mkProcessor {
     prGlyphDecoder = glyphDecoder
     }
-
-  where
-  cmapDecodeString :: UnicodeCMap -> Str -> [Glyph]
-  cmapDecodeString cmap (Str str) = go str
-    where
-    go s =
-      case unicodeCMapNextGlyph cmap s of
-        Nothing -> []
-        Just (g, rest) ->
-          let glyph = Glyph {
-            glyphCode = g,
-            glyphTopLeft = Vector 0 0,
-            glyphBottomRight = Vector 1 1,
-            glyphText = unicodeCMapDecodeGlyph cmap g
-            }
-          in glyph : go rest
