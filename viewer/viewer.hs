@@ -286,11 +286,11 @@ pageGlyphDecoder page = do
           defaultWidth <-
             case lookupDict' (fromString "DW") descFont of
               Nothing -> return 1000
-              Just o -> fromObject o >>= realValue
+              Just o -> deref o >>= fromObject >>= realValue
           widths <-
             case lookupDict' (fromString "W") descFont of
               Nothing -> return mempty
-              Just o -> fromObject o >>= makeCIDFontWidth
+              Just o -> deref o >>= fromObject >>= makeCIDFontWidth
           return $ Just $ \code -> fromMaybe defaultWidth $ cidFontGetWidth widths code
         _ -> return Nothing
     widths <-
