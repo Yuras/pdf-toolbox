@@ -32,10 +32,7 @@ import Graphics.Rendering.Cairo hiding (transform, Glyph)
 
 import Pdf.Toolbox.Document
 import Pdf.Toolbox.Document.Internal.Types
-import Pdf.Toolbox.Content.Parser
-import Pdf.Toolbox.Content.Processor
-import Pdf.Toolbox.Content.Transform
-import Pdf.Toolbox.Content.UnicodeCMap
+import Pdf.Toolbox.Content
 
 data ViewerState = ViewerState {
   viewerPage :: Page,
@@ -337,6 +334,8 @@ startRender mvar page = do
                 forM_ glyphs $ \glyph ->
                   liftIO $ writeChan chan (Just glyph)
               --liftIO $ print $ prGlyphs p
+            Just (Op_apostrophe, args) -> error $ "Op_apostrophe (please report): " ++ show args
+            Just (Op_quote, args) -> error $ "Op_quote (please report): " ++ show args
             Just op -> processOp op p >>= loop
     loop $ mkProcessor {
       prGlyphDecoder = glyphDecoder
