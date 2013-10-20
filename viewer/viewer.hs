@@ -241,14 +241,13 @@ pageGlyphDecoder page = do
           firstChar <- lookupDict (fromString "FirstChar") fontDict >>= fromObject >>= intValue
           lastChar <- lookupDict (fromString "LastChar") fontDict >>= fromObject >>= intValue
           return $ Just (widths, firstChar, lastChar)
-    let getWidth bs =
+    let getWidth code =
           case widths of
             Nothing -> 1
             Just (ws, firstChar, lastChar) ->
-              let code = fst $ BS.foldr (\b (s, i) -> (s + fromIntegral b * i, i * 255)) (0, 1) bs
-              in if code >= firstChar && code <= lastChar && (code - firstChar) < length ws
-                   then (ws !! (code - firstChar)) / 1000
-                   else 1
+              if code >= firstChar && code <= lastChar && (code - firstChar) < length ws
+                 then (ws !! (code - firstChar)) / 1000
+                 else 1
     case lookupDict' (fromString "ToUnicode") fontDict of
       Nothing -> do
         txtDecode <-
@@ -266,10 +265,10 @@ pageGlyphDecoder page = do
                 Left _ -> Nothing
                 Right t -> Just t
         return $ \(Str str) -> flip map (BS8.unpack str) $ \c ->
-          let code = BS8.pack [c]
-              txt = txtDecode code
+          let txt = txtDecode $ BS8.pack [c]
+              code = fromEnum c
           in (Glyph {
-            glyphCode = code,
+            glyphCode = fromEnum c,
             glyphTopLeft = Vector 0 0,
             glyphBottomRight = Vector (getWidth code) 1,
             glyphText = txt
@@ -291,7 +290,7 @@ pageGlyphDecoder page = do
       Nothing -> []
       Just decoder -> decoder str
 
-cmapDecodeString :: (BS.ByteString -> Double) -> UnicodeCMap -> Str -> [Glyph]
+cmapDecodeString :: (Int -> Double) -> UnicodeCMap -> Str -> [Glyph]
 cmapDecodeString getWidth cmap (Str str) = go str
   where
   go s =

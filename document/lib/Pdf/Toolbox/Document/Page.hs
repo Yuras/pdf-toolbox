@@ -128,10 +128,9 @@ pageExtractText page = do
                 Left _ -> Nothing
                 Right t -> Just t
         return $ \(Str str) -> flip map (BS8.unpack str) $ \c ->
-          let code = BS8.pack [c]
-              txt = txtDecode code
+          let txt = txtDecode $ BS8.pack [c]
           in (Glyph {
-            glyphCode = code,
+            glyphCode = fromEnum c,
             glyphTopLeft = Vector 0 0,
             glyphBottomRight = Vector 1 1,
             glyphText = txt

@@ -18,7 +18,6 @@ where
 
 import Data.Monoid
 import Data.Text (Text)
-import Data.ByteString (ByteString)
 import Control.Monad
 
 import Pdf.Toolbox.Core
@@ -43,7 +42,7 @@ type GlyphDecoder = Name -> Str -> [(Glyph, Double)]
 -- | Glyph
 data Glyph = Glyph {
   -- | The code as read from content stream
-  glyphCode :: ByteString,
+  glyphCode :: Int,
   -- | Top-left corner of glyph's bounding box
   glyphTopLeft :: Vector Double,
   -- | Bottom-right corner of glyph's bounding box

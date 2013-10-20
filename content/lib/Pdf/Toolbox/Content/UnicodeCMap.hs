@@ -30,8 +30,8 @@ import Control.Monad
 -- to a stream with unicode CMap
 data UnicodeCMap = UnicodeCMap {
   unicodeCMapCodeRanges :: [(ByteString, ByteString)],
-  unicodeCMapChars :: Map ByteString Text,
-  unicodeCMapRanges :: [(ByteString, ByteString, Char)]
+  unicodeCMapChars :: Map Int Text,
+  unicodeCMapRanges :: [(Int, Int, Char)]
   }
   deriving (Show)
 
@@ -52,8 +52,8 @@ parseUnicodeCMap cmap =
   chars = parseOnly charsParser cmap
   ranges = parseOnly rangesParser cmap
 
--- | Take the next glyph from string, also returns the rest of the string
-unicodeCMapNextGlyph :: UnicodeCMap -> ByteString -> Maybe (ByteString, ByteString)
+-- | Take the next glyph code from string, also returns the rest of the string
+unicodeCMapNextGlyph :: UnicodeCMap -> ByteString -> Maybe (Int, ByteString)
 unicodeCMapNextGlyph cmap = go 1
   where
   go 5 _ = Nothing
@@ -62,26 +62,27 @@ unicodeCMapNextGlyph cmap = go 1
     if BS.length glyph /= n
       then Nothing
       else if any (inRange glyph) (unicodeCMapCodeRanges cmap)
-             then Just (glyph, BS.drop n str)
+             then Just (toCode glyph, BS.drop n str)
              else go (n + 1) str
   inRange glyph (start, end) = glyph >= start && glyph <= end
 
+toCode :: ByteString -> Int
+toCode bs = fst $ BS.foldr (\b (sm, i) -> (sm + fromIntegral b * i, i * 255)) (0, 1) bs
 -- | Convert glyph to text
 --
 -- Note: one glyph can represent more then one char, e.g. for ligatures
-unicodeCMapDecodeGlyph :: UnicodeCMap -> ByteString -> Maybe Text
+unicodeCMapDecodeGlyph :: UnicodeCMap -> Int -> Maybe Text
 unicodeCMapDecodeGlyph cmap glyph =
   case Map.lookup glyph (unicodeCMapChars cmap) of
     Just txt -> Just txt
     Nothing ->
       case filter inRange (unicodeCMapRanges cmap) of
-        [(start, _, char)] -> Just (Text.singleton $ toEnum $ (fromEnum char) + bsDiff glyph start)
+        [(start, _, char)] -> Just (Text.singleton $ toEnum $ (fromEnum char) + (glyph - start))
         _ -> Nothing
   where
   inRange (start, end, _) = glyph >= start && glyph <= end
-  bsDiff bs1 bs2 = snd $ foldr (\v (i, s) -> (i * 255, s + fromIntegral v * i)) (1 :: Int, 0) $ map (uncurry (-)) $ BS.zip bs1 bs2
 
-charsParser :: Parser (Map ByteString Text)
+charsParser :: Parser (Map Int Text)
 charsParser = do
   n <- P.option 0 $ skipTillParser $ do
     n <- P.decimal
@@ -98,11 +99,11 @@ charsParser = do
     _ <- P.char '<'
     j <- P.takeTill (== '>') >>= fromHex
     _ <- P.char '>'
-    return (i, Text.decodeUtf16BE j)
+    return (toCode i, Text.decodeUtf16BE j)
 
   return $ Map.fromList chars
 
-rangesParser :: Parser [(ByteString, ByteString, Char)]
+rangesParser :: Parser [(Int, Int, Char)]
 rangesParser = do
   n <- P.option 0 $ skipTillParser $ do
     n <- P.decimal
@@ -123,7 +124,7 @@ rangesParser = do
     _ <- P.char '<'
     k <- P.takeTill (== '>') >>= fromHex
     _ <- P.char '>'
-    return (i, j, Text.head $ Text.decodeUtf16BE k)
+    return (toCode i, toCode j, Text.head $ Text.decodeUtf16BE k)
 
 codeRangesParser :: Parser [(ByteString, ByteString)]
 codeRangesParser = do
