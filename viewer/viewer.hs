@@ -177,12 +177,14 @@ onDraw file mvar viewerState = do
     let tmpFile = tmpDir </> ("pdf-toolbox-viewer-" ++ show randomNum ++ ".png")
     (_, _, _, procHandle) <- liftIO $ createProcess $ proc "convert" [file ++ "[" ++ show num ++ "]", tmpFile]
     hasPng <- (== ExitSuccess) <$> liftIO (waitForProcess procHandle)
-    when hasPng $ do
-      surface <- liftIO $ imageSurfaceCreateFromPNG tmpFile
-      setSourceSurface surface 0 0
-      paint
-      surfaceFinish surface
-      liftIO $ removeFile tmpFile
+    if hasPng
+      then do
+        surface <- liftIO $ imageSurfaceCreateFromPNG tmpFile
+        setSourceSurface surface 0 0
+        paint
+        surfaceFinish surface
+        liftIO $ removeFile tmpFile
+      else liftIO $ putStrLn "Can't render pdf via ImageMagick. Please check that you have \"convert\" in PATH"
 
   setSourceRGB 1 1 1
   setLineWidth 1
