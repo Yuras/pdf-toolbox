@@ -140,10 +140,30 @@ fontInfoDecodeGlyphs (FontInfoSimple fi) = \(Str bs) ->
       }, width)
 fontInfoDecodeGlyphs (FontInfoComposite fi) = \str ->
   case fiCompositeUnicodeCMap fi of
-    Nothing -> []  -- XXX: use encoding here
+    Nothing ->  -- XXX: use encoding here
+      let Str bs = str
+      in tryDecode2byte $ BS.unpack bs
     Just toUnicode ->
       let getWidth = fromMaybe (fiCompositeDefaultWidth fi) . cidFontGetWidth (fiCompositeWidths fi)
       in cmapDecodeString getWidth toUnicode str
+  where
+  -- Most of the time composite fonts have 2-byte encoding,
+  -- so lets try that for now.
+  tryDecode2byte (b1:b2:rest) =
+    let code = fromIntegral b1 * 255 + fromIntegral b2
+        width = (/ 1000) $ fromMaybe (fiCompositeDefaultWidth fi) $ cidFontGetWidth (fiCompositeWidths fi) code
+        txt =
+          case Text.decodeUtf8' (BS.pack [b1, b2]) of
+            Right t -> Just t
+            _ -> Nothing
+        g = Glyph {
+          glyphCode = code,
+          glyphTopLeft = Vector 0 0,
+          glyphBottomRight = Vector width 1,
+          glyphText = txt
+          }
+    in (g, width) : tryDecode2byte rest
+  tryDecode2byte _ = []
 
 cmapDecodeString :: (Int -> Double) -> UnicodeCMap -> Str -> [(Glyph, Double)]
 cmapDecodeString getWidth cmap (Str str) = go str
