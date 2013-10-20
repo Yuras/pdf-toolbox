@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | Process content stream operators maintaining graphics state
 --
@@ -61,7 +62,8 @@ data GraphicsState = GraphicsState {
   gsTextMatrix :: Transform Double,      -- ^ Defined only inside text object
   gsTextLineMatrix :: Transform Double,  -- ^ Defined only inside text object
   gsTextLeading :: Double,
-  gsTextCharSpacing :: Double
+  gsTextCharSpacing :: Double,
+  gsTextWordSpacing :: Double
   }
   deriving Show
 
@@ -75,7 +77,8 @@ initialGraphicsState = GraphicsState {
   gsTextMatrix = identity,
   gsTextLineMatrix = identity,
   gsTextLeading = 0,
-  gsTextCharSpacing = 0
+  gsTextCharSpacing = 0,
+  gsTextWordSpacing = 0
   }
 
 -- | Processor maintains graphics state
@@ -209,7 +212,8 @@ processOp (Op_Tj, [OStr str]) p = do
     case gsFontSize gstate of
       Nothing -> left $ UnexpectedError "Op_Tj: font size not set"
       Just fs -> return fs
-  let (tm, glyphs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate) (gsTextMatrix gstate) (gsTextCharSpacing gstate) $
+  let (tm, glyphs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate)
+                       (gsTextMatrix gstate) (gsTextCharSpacing gstate) (gsTextWordSpacing gstate) $
                        prGlyphDecoder p fontName str
   return p {
     prGlyphs = prGlyphs p ++ [glyphs],
@@ -232,7 +236,8 @@ processOp (Op_TJ, [OArray (Array array)]) p = do
   let (textMatrix, glyphs) = loop (gsTextMatrix gstate) [] array
         where
         loop tm res [] = (tm, reverse res)
-        loop tm res (OStr str : rest) = let (tm', gs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate) tm (gsTextCharSpacing gstate)
+        loop tm res (OStr str : rest) = let (tm', gs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate)
+                                                          tm (gsTextCharSpacing gstate) (gsTextWordSpacing gstate)
                                                           (prGlyphDecoder p fontName str)
                                         in loop tm' (gs : res) rest
         loop tm res (ONumber (NumInt i): rest) = loop (translate (fromIntegral (-i) * fontSize / 1000) 0 tm) res rest
@@ -256,6 +261,16 @@ processOp (Op_Tc, [o]) p = do
     }
 processOp (Op_Tc, args) _ = left $ UnexpectedError $ "Op_Tc: wrong number of agruments:" ++ show args
 
+processOp (Op_Tw, [o]) p = do
+  spacing <- fromObject o >>= realValue
+  let gstate = prState p
+  return p {
+    prState = gstate {
+      gsTextWordSpacing = spacing
+      }
+    }
+processOp (Op_Tw, args) _ = left $ UnexpectedError $ "Op_Tw: wrong number of agruments:" ++ show args
+
 processOp _ p = return p
 
 ensureInTextObject :: Monad m => Bool -> Processor -> PdfE m ()
@@ -263,8 +278,8 @@ ensureInTextObject inText p =
   unless (inText == gsInText (prState p)) $ left $
     UnexpectedError $ "ensureInTextObject: expected: " ++ show inText ++ ", found: " ++ show (gsInText $ prState p)
 
-positionGlyghs :: Double -> Transform Double -> Transform Double -> Double -> [(Glyph, Double)] -> (Transform Double, [Glyph])
-positionGlyghs fontSize ctm textMatrix charSpacing = go textMatrix []
+positionGlyghs :: Double -> Transform Double -> Transform Double -> Double -> Double -> [(Glyph, Double)] -> (Transform Double, [Glyph])
+positionGlyghs fontSize ctm textMatrix charSpacing wordSpacing = go textMatrix []
   where
   go tm res [] = (tm, reverse res)
   go tm res ((g, width):gs) =
@@ -274,5 +289,8 @@ positionGlyghs fontSize ctm textMatrix charSpacing = go textMatrix []
           }
         topLeft = transform (scale fontSize fontSize) $ glyphTopLeft g
         bottomRight = transform (scale fontSize fontSize) $ glyphBottomRight g
-        tm' = translate (width * fontSize + charSpacing) 0 tm
+        spacing = charSpacing + case glyphText g of
+                                  Just " " -> wordSpacing
+                                  _ -> 0
+        tm' = translate (width * fontSize + spacing) 0 tm
     in go tm' (g':res) gs
