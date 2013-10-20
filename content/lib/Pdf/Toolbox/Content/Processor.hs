@@ -140,7 +140,6 @@ processOp (Op_Td, [txo, tyo]) p = do
     }}
 processOp (Op_Td, args) _ = left $ UnexpectedError $ "Op_Td: wrong number of arguments: " ++ show args
 
--- XXX: handle text leading here
 processOp (Op_TD, [txo, tyo]) p = do
   l <- fromObject tyo >>= realValue
   p' <- processOp (Op_TL, [ONumber $ NumReal $ negate l]) p
