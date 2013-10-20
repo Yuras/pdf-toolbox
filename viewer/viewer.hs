@@ -5,9 +5,12 @@ module Main
 )
 where
 
+import Data.List
+import Data.Monoid
 import Data.String
 import Data.Functor
 import qualified Data.Traversable as Traversable
+import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
@@ -228,10 +231,68 @@ onDraw file mvar viewerState = do
             loop
   loop
 
+data CIDFontWidth = CIDFontWidth {
+  cidFontWidthChars :: Map Int Double,
+  cidFontWidthRanges :: [(Int, Int, Double)]
+  }
+  deriving (Show)
+
+instance Monoid CIDFontWidth where
+  mempty = CIDFontWidth {
+    cidFontWidthChars = mempty,
+    cidFontWidthRanges = mempty
+    }
+  w1 `mappend` w2 = CIDFontWidth {
+    cidFontWidthChars = cidFontWidthChars w1 `mappend` cidFontWidthChars w2,
+    cidFontWidthRanges = cidFontWidthRanges w1 `mappend` cidFontWidthRanges w2
+    }
+
+makeCIDFontWidth :: Monad m => Array -> PdfE m CIDFontWidth
+makeCIDFontWidth (Array vals) = go mempty vals
+  where
+  go res [] = return res
+  go res (ONumber x1 : ONumber x2 : ONumber x3 : xs) = do
+    n1 <- intValue x1
+    n2 <- intValue x2
+    n3 <- realValue x3
+    go res {cidFontWidthRanges = (n1, n2, n3) : cidFontWidthRanges res} xs
+  go res (ONumber x: OArray (Array arr): xs) = do
+    n <- intValue x
+    ws <- forM arr $ \w -> fromObject w >>= realValue
+    go res {cidFontWidthChars = Map.fromList (zip [n ..] ws) `mappend` cidFontWidthChars res} xs
+  go _ _ = left $ UnexpectedError "Can't parse CIDFont width"
+
+cidFontGetWidth :: CIDFontWidth -> Int -> Maybe Double
+cidFontGetWidth w code =
+  case Map.lookup code (cidFontWidthChars w) of
+    Just width -> Just width
+    Nothing -> case find (\(start, end, _) -> code >= start && code <= end) (cidFontWidthRanges w) of
+                 Just (_, _, width) -> Just width
+                 _ -> Nothing
+
 pageGlyphDecoder :: (MonadPdf m, MonadIO m) => Page -> PdfE m GlyphDecoder
 pageGlyphDecoder page = do
   fontDicts <- Map.fromList <$> pageFontDicts page
-  decoders <- Traversable.forM fontDicts $ \(FontDict fontDict) -> do
+  decoders <- Traversable.forM fontDicts $ \fd@(FontDict fontDict) -> do
+    cidGetWidth <- do
+      subtype <- fontDictSubtype fd
+      case subtype of
+        FontType0 -> do
+          descFont <- do
+            descFontArr <- lookupDict (fromString "DescendantFonts") fontDict >>= deref >>= fromObject
+            case descFontArr of
+              Array [o] -> deref o >>= fromObject
+              _ -> left $ UnexpectedError "Unexpected value of DescendantFonts key in font dictionary"
+          defaultWidth <-
+            case lookupDict' (fromString "DW") descFont of
+              Nothing -> return 1000
+              Just o -> fromObject o >>= realValue
+          widths <-
+            case lookupDict' (fromString "W") descFont of
+              Nothing -> return mempty
+              Just o -> fromObject o >>= makeCIDFontWidth
+          return $ Just $ \code -> fromMaybe defaultWidth $ cidFontGetWidth widths code
+        _ -> return Nothing
     widths <-
       case lookupDict' (fromString "Widths") fontDict of
         Nothing -> return Nothing
@@ -243,7 +304,10 @@ pageGlyphDecoder page = do
           return $ Just (widths, firstChar, lastChar)
     let getWidth code =
           case widths of
-            Nothing -> 1
+            Nothing ->
+              case cidGetWidth of
+                Nothing -> 0
+                Just getW -> getW code / 1000
             Just (ws, firstChar, lastChar) ->
               if code >= firstChar && code <= lastChar && (code - firstChar) < length ws
                  then (ws !! (code - firstChar)) / 1000
