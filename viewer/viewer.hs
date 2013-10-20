@@ -333,8 +333,9 @@ startRender mvar page = do
           next <- readNextOperator is
           case next of
             Nothing -> do
-              forM_ (prGlyphs p) $ \glyph ->
-                liftIO $ writeChan chan (Just glyph)
+              forM_ (prGlyphs p) $ \glyphs ->
+                forM_ glyphs $ \glyph ->
+                  liftIO $ writeChan chan (Just glyph)
               --liftIO $ print $ prGlyphs p
             Just op -> processOp op p >>= loop
     loop $ mkProcessor {

@@ -152,7 +152,7 @@ pageExtractText page = do
   let loop p = do
         next <- readNextOperator is
         case next of
-          Nothing -> return $ Text.concat $ mapMaybe glyphText $ prGlyphs p
+          Nothing -> return $ Text.concat $ mapMaybe glyphText $ concat $ prGlyphs p
           Just op -> processOp op p >>= loop
   loop $ mkProcessor {
     prGlyphDecoder = glyphDecoder

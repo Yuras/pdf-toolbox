@@ -81,7 +81,7 @@ data Processor = Processor {
   prState :: GraphicsState,
   prStateStack :: [GraphicsState],
   prGlyphDecoder :: GlyphDecoder,
-  prGlyphs :: [Glyph]
+  prGlyphs :: [[Glyph]]         -- ^ Each element is a list of glyphs, drawn in one shot
   }
 
 -- | Create processor in initial state
@@ -209,7 +209,7 @@ processOp (Op_Tj, [OStr str]) p = do
       Just fs -> return fs
   let (tm, glyphs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate) (gsTextMatrix gstate) $ prGlyphDecoder p fontName str
   return p {
-    prGlyphs = prGlyphs p ++ glyphs,
+    prGlyphs = prGlyphs p ++ [glyphs],
     prState = gstate {
       gsTextMatrix = tm
       }
@@ -228,9 +228,9 @@ processOp (Op_TJ, [OArray (Array array)]) p = do
       Just fs -> return fs
   let (textMatrix, glyphs) = loop (gsTextMatrix gstate) [] array
         where
-        loop tm res [] = (tm, res)
+        loop tm res [] = (tm, reverse res)
         loop tm res (OStr str : rest) = let (tm', gs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate) tm (prGlyphDecoder p fontName str)
-                                        in loop tm' (res ++ gs) rest
+                                        in loop tm' (gs : res) rest
         loop tm res (ONumber (NumInt i): rest) = loop (translate (fromIntegral (-i) * fontSize / 1000) 0 tm) res rest
         loop tm res (ONumber (NumReal d): rest) = loop (translate (-d * fontSize / 1000) 0 tm) res rest
         loop tm res (_:rest) = loop tm res rest
