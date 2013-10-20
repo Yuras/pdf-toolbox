@@ -98,7 +98,7 @@ pageFontDicts (Page _ dict) =
 -- and returns text as it is embeded. But someday it will.
 pageExtractText :: (MonadPdf m, MonadIO m) => Page -> PdfE m Text
 pageExtractText page = do
-  -- collect unicode cmaps to be able to decode glyphs
+  -- load fonts and create glyph decoder
   fontDicts <- Map.fromList <$> pageFontDicts page
   glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
     fontInfoDecodeGlyphs <$> fontDictLoadInfo fontDict
