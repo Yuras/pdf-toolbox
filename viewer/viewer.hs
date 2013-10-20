@@ -6,7 +6,6 @@ module Main
 )
 where
 
-import Data.String
 import Data.Functor
 import qualified Data.Traversable as Traversable
 import qualified Data.Map as Map
@@ -242,7 +241,7 @@ startRender mvar page = do
     contents <- pageContents page
     streams <- forM contents $ \ref -> do
       s@(Stream dict _) <- lookupObject ref >>= toStream
-      len <- lookupDict (fromString "Length") dict >>= deref >>= fromObject >>= intValue
+      len <- lookupDict "Length" dict >>= deref >>= fromObject >>= intValue
       return (s, ref, len)
     ris <- getRIS
     decryptor <- do
