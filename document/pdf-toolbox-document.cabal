@@ -42,5 +42,6 @@ library
                        io-streams,
                        cipher-rc4,
                        cryptohash,
+                       encoding,
                        pdf-toolbox-core ==0.0.1.*,
                        pdf-toolbox-content ==0.0.1.*

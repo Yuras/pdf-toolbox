@@ -17,9 +17,13 @@ import Data.Functor
 import qualified Data.Traversable as Traversable
 import Data.Text (Text)
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.Map as Map
+import qualified Data.Encoding as Encoding
+import qualified Data.Encoding.CP1252 as Encoding
+import qualified Data.Encoding.MacOSRoman as Encoding
 import Control.Monad
 import qualified System.IO.Streams as Streams
 
@@ -106,15 +110,32 @@ pageExtractText page = do
     -- Note: we are not interested in glyph positions (at least for now)
     -- so lets fake bounding box and width
     case lookupDict' "ToUnicode" fontDict of
-      Nothing -> return $ \(Str str) -> flip map (BS8.unpack str) $ \c ->
-        -- Treat each Word8 as ASCII char
-        -- XXX: That is wrong, need to handle encoding...
-        (Glyph {
-          glyphCode = BS8.pack [c],
-          glyphTopLeft = Vector 0 0,
-          glyphBottomRight = Vector 1 1,
-          glyphText = Just $ Text.pack [c]
-          }, 1)
+      Nothing -> do
+        txtDecode <-
+          case lookupDict' "Encoding" fontDict of
+            Just (OName enc) | enc == "WinAnsiEncoding" -> return $ \bs ->
+              case Encoding.decodeStrictByteStringExplicit Encoding.CP1252 bs of
+                Left _ -> Nothing
+                Right t -> Just $ Text.pack t
+            Just (OName enc) | enc == "MacRomanEncoding" -> return $ \bs ->
+              case Encoding.decodeStrictByteStringExplicit Encoding.MacOSRoman bs of
+                Left _ -> Nothing
+                Right t -> Just $ Text.pack t
+            _ -> return $ \bs ->
+              -- Unknown encoding, lets just treat it as utf8
+              -- XXX: need proper support for other encodings
+              case Text.decodeUtf8' bs of
+                Left _ -> Nothing
+                Right t -> Just t
+        return $ \(Str str) -> flip map (BS8.unpack str) $ \c ->
+          let code = BS8.pack [c]
+              txt = txtDecode code
+          in (Glyph {
+            glyphCode = code,
+            glyphTopLeft = Vector 0 0,
+            glyphBottomRight = Vector 1 1,
+            glyphText = txt
+            }, 1)
       Just o -> do
         -- Ok, we have cmap. Lets parse it
         ref <- fromObject o
