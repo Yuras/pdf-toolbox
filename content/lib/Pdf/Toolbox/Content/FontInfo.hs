@@ -6,6 +6,7 @@ module Pdf.Toolbox.Content.FontInfo
 (
   FontInfo(..),
   FISimple(..),
+  FontBaseEncoding(..),
   SimpleFontEncoding(..),
   FIComposite(..),
   CIDFontWidths(..),
@@ -16,10 +17,14 @@ module Pdf.Toolbox.Content.FontInfo
 where
 
 import Data.List
+import Data.Word
 import Data.Monoid
+import Data.Functor
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
+import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import qualified Data.Encoding as Encoding
@@ -32,6 +37,7 @@ import Pdf.Toolbox.Core
 import Pdf.Toolbox.Content.UnicodeCMap
 import Pdf.Toolbox.Content.Transform
 import Pdf.Toolbox.Content.Processor (Glyph(..))
+import Pdf.Toolbox.Content.GlyphList
 
 -- | Font info
 data FontInfo
@@ -47,10 +53,19 @@ data FISimple = FISimple {
   }
   deriving (Show)
 
--- | Encoding of simple font
-data SimpleFontEncoding
-  = SimpleFontEncodingWinAnsi
-  | SimpleFontEncodingMacRoman
+-- | Standard encoding, other encodings are based on them
+data FontBaseEncoding
+  = FontBaseEncodingWinAnsi
+  | FontBaseEncodingMacRoman
+  deriving (Show)
+
+-- | Encoding fo simple font
+data SimpleFontEncoding = SimpleFontEncoding {
+  simpleFontBaseEncoding :: FontBaseEncoding,
+  -- | Mapping from glyph code to glyph name for cases when it is different
+  -- from base encoding
+  simpleFontDifferences :: [(Word8, ByteString)]
+  }
   deriving (Show)
 
 -- | Font info for Type0 font
@@ -77,6 +92,21 @@ instance Monoid CIDFontWidths where
     cidFontWidthsChars = cidFontWidthsChars w1 `mappend` cidFontWidthsChars w2,
     cidFontWidthsRanges = cidFontWidthsRanges w1 `mappend` cidFontWidthsRanges w2
     }
+
+simpleFontEncodingDecode :: SimpleFontEncoding -> Word8 -> Maybe Text
+simpleFontEncodingDecode enc code =
+  case lookup code (simpleFontDifferences enc) of
+    Nothing ->
+      case simpleFontBaseEncoding enc of
+        FontBaseEncodingWinAnsi ->
+          case Encoding.decodeStrictByteStringExplicit Encoding.CP1252 (BS.pack [code]) of
+            Left _ -> Nothing
+            Right t -> Just $ Text.pack t
+        FontBaseEncodingMacRoman ->
+          case Encoding.decodeStrictByteStringExplicit Encoding.MacOSRoman (BS.pack [code]) of
+            Left _ -> Nothing
+            Right t -> Just $ Text.pack t
+    Just glyphName -> (\c -> Text.pack [c]) <$> Map.lookup glyphName adobeGlyphList
 
 -- | Make `CIDFontWidths` from value of \"W\" key in descendant font
 makeCIDFontWidths :: Monad m => Array -> PdfE m CIDFontWidths
@@ -116,14 +146,7 @@ fontInfoDecodeGlyphs (FontInfoSimple fi) = \(Str bs) ->
                   case Text.decodeUtf8' (BS.pack [c]) of
                     Right t -> Just t
                     _ -> Nothing
-                Just SimpleFontEncodingWinAnsi ->
-                  case Encoding.decodeStrictByteStringExplicit Encoding.CP1252 (BS.pack [c]) of
-                    Left _ -> Nothing
-                    Right t -> Just $ Text.pack t
-                Just SimpleFontEncodingMacRoman ->
-                  case Encoding.decodeStrictByteStringExplicit Encoding.MacOSRoman (BS.pack [c]) of
-                    Left _ -> Nothing
-                    Right t -> Just $ Text.pack t
+                Just enc -> simpleFontEncodingDecode enc c
             Just toUnicode -> unicodeCMapDecodeGlyph toUnicode code
         width =
           case fiSimpleWidths fi of

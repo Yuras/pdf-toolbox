@@ -11,8 +11,10 @@ module Pdf.Toolbox.Document.FontDict
 )
 where
 
+import Data.Word
 import Data.Monoid
 import Data.Functor
+import Data.ByteString (ByteString)
 import Control.Monad
 import qualified System.IO.Streams as Streams
 
@@ -78,8 +80,30 @@ loadFontInfoSimple fontDict = do
   toUnicode <- loadUnicodeCMap fontDict
   encoding <-
     case lookupDict' "Encoding" fontDict of
-      Just (OName "WinAnsiEncoding") -> return $ Just SimpleFontEncodingWinAnsi
-      Just (OName "MacRomanEncoding") -> return $ Just SimpleFontEncodingMacRoman
+      Just (OName "WinAnsiEncoding") -> return $ Just SimpleFontEncoding {
+        simpleFontBaseEncoding = FontBaseEncodingWinAnsi,
+        simpleFontDifferences = []
+        }
+      Just (OName "MacRomanEncoding") -> return $ Just SimpleFontEncoding {
+        simpleFontBaseEncoding = FontBaseEncodingMacRoman,
+        simpleFontDifferences = []
+        }
+      Just o -> do
+        encDict <- deref o >>= fromObject
+        case lookupDict' "BaseEncoding" encDict of
+          Just (OName "WinAnsiEncoding") -> do
+            diffs <- loadEncodingDifferences encDict
+            return $ Just SimpleFontEncoding {
+              simpleFontBaseEncoding = FontBaseEncodingWinAnsi,
+              simpleFontDifferences = diffs
+              }
+          Just (OName "MacRomanEncoding") -> do
+            diffs <- loadEncodingDifferences encDict
+            return $ Just SimpleFontEncoding {
+              simpleFontBaseEncoding = FontBaseEncodingMacRoman,
+              simpleFontDifferences = diffs
+              }
+          _ -> return Nothing
       _ -> return Nothing
   widths <-
     case lookupDict' "Widths" fontDict of
@@ -95,6 +119,28 @@ loadFontInfoSimple fontDict = do
     fiSimpleEncoding = encoding,
     fiSimpleWidths = widths
     }
+
+loadEncodingDifferences :: MonadPdf m => Dict -> PdfE m [(Word8, ByteString)]
+loadEncodingDifferences dict = do
+  case lookupDict' "Differences" dict of
+    Nothing -> return []
+    Just o -> do
+      Array arr <- deref o >>= fromObject
+      case arr of
+        [] -> return []
+        (ONumber n : rest) -> do
+          n' <- fromIntegral <$> intValue n
+          go [] n' rest
+        _ -> left $ UnexpectedError "Differences array: the first object should be a number"
+  where
+  go res _ [] = return res
+  go res n (o:rest) =
+    case o of
+      (ONumber n') -> do
+        n'' <- fromIntegral <$> intValue n'
+        go res n'' rest
+      (OName (Name bs)) -> go (((n, bs)) : res) (n + 1) rest
+      _ -> left $ UnexpectedError $ "Differences array: unexpected object: " ++ show o
 
 loadUnicodeCMap :: (MonadPdf m, MonadIO m) => Dict -> PdfE m (Maybe UnicodeCMap)
 loadUnicodeCMap fontDict =

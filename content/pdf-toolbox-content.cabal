@@ -22,6 +22,7 @@ library
                        Pdf.Toolbox.Content.Transform
                        Pdf.Toolbox.Content.UnicodeCMap
                        Pdf.Toolbox.Content.FontInfo
+                       Pdf.Toolbox.Content.GlyphList
   build-depends:       base ==4.6.*,
                        containers,
                        attoparsec,
