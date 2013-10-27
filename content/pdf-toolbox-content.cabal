@@ -23,6 +23,7 @@ library
                        Pdf.Toolbox.Content.UnicodeCMap
                        Pdf.Toolbox.Content.FontInfo
                        Pdf.Toolbox.Content.GlyphList
+                       Pdf.Toolbox.Content.TexGlyphList
   build-depends:       base ==4.6.*,
                        containers,
                        attoparsec,
