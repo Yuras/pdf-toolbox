@@ -51,6 +51,23 @@ fontDictLoadInfo fd@(FontDict fontDict) = do
   subtype <- fontDictSubtype fd
   case subtype of
     FontType0 -> FontInfoComposite <$> loadFontInfoComposite fontDict
+    FontType3 -> do
+      fi <- loadFontInfoSimple fontDict
+      Array arr <- lookupDict "FontMatrix" fontDict >>= deref >>= fromObject
+      fontMatrix <-
+        case arr of
+          [a, b, c, d, e, f] -> do
+            a' <- fromObject a >>= realValue
+            b' <- fromObject b >>= realValue
+            c' <- fromObject c >>= realValue
+            d' <- fromObject d >>= realValue
+            e' <- fromObject e >>= realValue
+            f' <- fromObject f >>= realValue
+            return $ Transform a' b' c' d' e' f'
+          _ -> left $ UnexpectedError "FontMatrix: wrong number of elements"
+      return $ FontInfoSimple fi {
+        fiSimpleFontMatrix = fontMatrix
+        }
     _ -> FontInfoSimple <$> loadFontInfoSimple fontDict
 
 loadFontInfoComposite :: (MonadPdf m, MonadIO m) => Dict -> PdfE m FIComposite
@@ -123,7 +140,8 @@ loadFontInfoSimple fontDict = do
   return $ FISimple {
     fiSimpleUnicodeCMap = toUnicode,
     fiSimpleEncoding = encoding,
-    fiSimpleWidths = widths
+    fiSimpleWidths = widths,
+    fiSimpleFontMatrix = scale 0.001 0.001
     }
 
 loadEncodingDifferences :: MonadPdf m => Dict -> PdfE m [(Word8, ByteString)]

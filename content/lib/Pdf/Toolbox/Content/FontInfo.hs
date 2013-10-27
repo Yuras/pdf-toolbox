@@ -49,7 +49,8 @@ data FontInfo
 data FISimple = FISimple {
   fiSimpleUnicodeCMap :: Maybe UnicodeCMap,
   fiSimpleEncoding :: Maybe SimpleFontEncoding,
-  fiSimpleWidths :: Maybe (Int, Int, [Double])  -- ^ FirstChar, LastChar, list of widths
+  fiSimpleWidths :: Maybe (Int, Int, [Double]),  -- ^ FirstChar, LastChar, list of widths
+  fiSimpleFontMatrix :: Transform Double
   }
   deriving (Show)
 
@@ -177,7 +178,8 @@ fontInfoDecodeGlyphs (FontInfoSimple fi) = \(Str bs) ->
             Nothing -> 0
             Just (firstChar, lastChar, widths) ->
               if code >= firstChar && code <= lastChar && (code - firstChar) < length widths
-                 then (widths !! (code - firstChar)) / 1000
+                 then let Vector w _ = transform (fiSimpleFontMatrix fi) $ Vector (widths !! (code - firstChar)) 0
+                      in w
                  else 0
     in (Glyph {
       glyphCode = code,
