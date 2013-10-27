@@ -152,14 +152,26 @@ fontInfoDecodeGlyphs (FontInfoSimple fi) = \(Str bs) ->
                   case Text.decodeUtf8' (BS.pack [c]) of
                     Right t -> Just t
                     _ -> Nothing
-                Just enc -> simpleFontEncodingDecode enc c
+                Just enc ->
+                  case simpleFontEncodingDecode enc c of
+                    Just t -> Just t
+                    Nothing ->
+                      case Text.decodeUtf8' (BS.pack [c]) of
+                        Right t -> Just t
+                        _ -> Nothing
             Just toUnicode ->
               case unicodeCMapDecodeGlyph toUnicode code of
                 Just t -> Just t
                 Nothing ->
                   case fiSimpleEncoding fi of
                     Nothing -> Nothing
-                    Just enc -> simpleFontEncodingDecode enc c
+                    Just enc ->
+                      case simpleFontEncodingDecode enc c of
+                        Just t -> Just t
+                        Nothing ->
+                          case Text.decodeUtf8' (BS.pack [c]) of
+                            Right t -> Just t
+                            _ -> Nothing
         width =
           case fiSimpleWidths fi of
             Nothing -> 0
