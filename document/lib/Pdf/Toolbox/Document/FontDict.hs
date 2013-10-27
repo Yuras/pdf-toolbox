@@ -103,6 +103,12 @@ loadFontInfoSimple fontDict = do
               simpleFontBaseEncoding = FontBaseEncodingMacRoman,
               simpleFontDifferences = diffs
               }
+          Nothing -> do
+            diffs <- loadEncodingDifferences encDict
+            return $ Just SimpleFontEncoding {
+              simpleFontBaseEncoding = FontBaseEncodingWinAnsi,  -- XXX: should be StandardEncoding?
+              simpleFontDifferences = diffs
+              }
           _ -> return Nothing
       _ -> return Nothing
   widths <-
