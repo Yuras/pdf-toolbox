@@ -34,7 +34,7 @@ library
                        Pdf.Toolbox.Document.Encryption
                        Pdf.Toolbox.Document.Internal.Types
                        Pdf.Toolbox.Document.Internal.Util
-  build-depends:       base ==4.6.*,
+  build-depends:       base >= 4.6 && < 4.8,
                        transformers,
                        containers,
                        text,

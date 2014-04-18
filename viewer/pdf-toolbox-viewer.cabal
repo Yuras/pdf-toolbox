@@ -19,7 +19,7 @@ source-repository head
 
 executable pdf-toolbox-viewer
   main-is:             viewer.hs
-  build-depends:       base ==4.6.*,
+  build-depends:       base >= 4.6 && < 4.8,
                        bytestring,
                        text,
                        transformers,

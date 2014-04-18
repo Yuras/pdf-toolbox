@@ -24,12 +24,13 @@ library
                        Pdf.Toolbox.Content.FontInfo
                        Pdf.Toolbox.Content.GlyphList
                        Pdf.Toolbox.Content.TexGlyphList
-  build-depends:       base ==4.6.*,
+                       Pdf.Toolbox.Content.Encoding.WinAnsi
+                       Pdf.Toolbox.Content.Encoding.MacRoman
+  build-depends:       base >= 4.6 && < 4.8,
                        containers,
                        attoparsec,
                        bytestring,
                        base16-bytestring,
                        text,
                        io-streams,
-                       encoding,
                        pdf-toolbox-core ==0.0.2.*

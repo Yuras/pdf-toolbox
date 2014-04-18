@@ -46,7 +46,7 @@ library
                        Pdf.Toolbox.Core.Util
                        Pdf.Toolbox.Core.Writer
   -- other-modules:       
-  build-depends:       base ==4.6.*,
+  build-depends:       base >= 4.6 && < 4.8,
                        bytestring,
                        io-streams,
                        attoparsec,

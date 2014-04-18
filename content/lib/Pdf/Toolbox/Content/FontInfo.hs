@@ -26,9 +26,6 @@ import qualified Data.ByteString as BS
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
-import qualified Data.Encoding as Encoding
-import qualified Data.Encoding.CP1252 as Encoding
-import qualified Data.Encoding.MacOSRoman as Encoding
 import Control.Monad
 
 import Pdf.Toolbox.Core
@@ -38,6 +35,8 @@ import Pdf.Toolbox.Content.Transform
 import Pdf.Toolbox.Content.Processor (Glyph(..))
 import Pdf.Toolbox.Content.GlyphList
 import Pdf.Toolbox.Content.TexGlyphList
+import qualified Pdf.Toolbox.Content.Encoding.WinAnsi as WinAnsi
+import qualified Pdf.Toolbox.Content.Encoding.MacRoman as MacRoman
 
 -- | Font info
 data FontInfo
@@ -99,14 +98,8 @@ simpleFontEncodingDecode enc code =
   case lookup code (simpleFontDifferences enc) of
     Nothing ->
       case simpleFontBaseEncoding enc of
-        FontBaseEncodingWinAnsi ->
-          case Encoding.decodeStrictByteStringExplicit Encoding.CP1252 (BS.pack [code]) of
-            Left _ -> Nothing
-            Right t -> Just $ Text.pack t
-        FontBaseEncodingMacRoman ->
-          case Encoding.decodeStrictByteStringExplicit Encoding.MacOSRoman (BS.pack [code]) of
-            Left _ -> Nothing
-            Right t -> Just $ Text.pack t
+        FontBaseEncodingWinAnsi -> Map.lookup code WinAnsi.encoding
+        FontBaseEncodingMacRoman -> Map.lookup code MacRoman.encoding
     Just glyphName ->
       case Map.lookup glyphName adobeGlyphList of
         Just c -> Just $ Text.pack [c]
