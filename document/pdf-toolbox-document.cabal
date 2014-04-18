@@ -1,5 +1,5 @@
 name:                pdf-toolbox-document
-version:             0.0.2.0
+version:             0.0.3.0
 synopsis:            A collection of tools for processing PDF files.
 license:             BSD3
 license-file:        LICENSE
@@ -43,4 +43,4 @@ library
                        cipher-rc4,
                        cryptohash,
                        pdf-toolbox-core ==0.0.2.*,
-                       pdf-toolbox-content ==0.0.2.*
+                       pdf-toolbox-content ==0.0.3.*

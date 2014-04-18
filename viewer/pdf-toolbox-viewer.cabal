@@ -31,5 +31,5 @@ executable pdf-toolbox-viewer
                        io-streams,
                        cairo,
                        gtk,
-                       pdf-toolbox-document ==0.0.2.*,
-                       pdf-toolbox-content ==0.0.2.*
+                       pdf-toolbox-document ==0.0.3.*,
+                       pdf-toolbox-content ==0.0.3.*
