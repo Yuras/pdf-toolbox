@@ -125,8 +125,22 @@ pageExtractText page = do
   let loop p = do
         next <- readNextOperator is
         case next of
-          Nothing -> return $ Text.concat $ mapMaybe glyphText $ concat $ prGlyphs p
           Just op -> processOp op p >>= loop
+          Nothing -> return
+                   . Text.replace (Text.pack "- ") Text.empty
+                   . Text.concat . snd $
+                       let glyphs = concat $ prGlyphs p
+                           space = Text.pack " "
+                           estimate (lx2, result) glyph =
+                               let Vector x1 _ = glyphTopLeft glyph
+                                   Vector x2 _ = glyphBottomRight glyph
+                               in case glyphText glyph of
+                                    Nothing -> (0, result ++ [space])
+                                    Just txt -> (x2, result ++
+                                                 if abs (lx2 - x1) < 1.8
+                                                    then [txt]
+                                                    else [space, txt])
+                       in foldl estimate (0, []) glyphs
   loop $ mkProcessor {
     prGlyphDecoder = glyphDecoder
     }
