@@ -13,10 +13,12 @@ module Pdf.Toolbox.Document.Page
 )
 where
 
+import Data.Monoid
 import Data.Functor
 import qualified Data.Traversable as Traversable
 import Data.Text (Text)
-import qualified Data.Text as Text
+import qualified Data.Text.Lazy as TextL
+import qualified Data.Text.Lazy.Builder as TextB
 import qualified Data.Map as Map
 import Control.Monad
 
@@ -94,8 +96,8 @@ pageFontDicts (Page _ dict) =
 
 -- | Extract text from the page
 --
--- Right now it doesn't even try to insert additional spaces or newlines,
--- and returns text as it is embeded. But someday it will.
+-- It tries to add spaces between chars if they don't present
+-- as actual characters in content stream.
 pageExtractText :: (MonadPdf m, MonadIO m) => Page -> PdfE m Text
 pageExtractText page = do
   -- load fonts and create glyph decoder
@@ -125,8 +127,27 @@ pageExtractText page = do
   let loop p = do
         next <- readNextOperator is
         case next of
-          Nothing -> return $ Text.concat $ mapMaybe glyphText $ concat $ prGlyphs p
           Just op -> processOp op p >>= loop
+          Nothing -> return $ glyphsToText (prGlyphs p)
   loop $ mkProcessor {
     prGlyphDecoder = glyphDecoder
     }
+
+-- | Convert glyphs to text, trying to add spaces
+--
+-- It takes list of spans. Each span is a list of glyphs that are outputed in one shot.
+-- So we don't need to add space inside span, only between them.
+glyphsToText :: [[Glyph]] -> Text
+glyphsToText = TextL.toStrict . TextB.toLazyText . snd . foldl step ((0, False), mempty)
+  where
+  step acc [] = acc
+  step ((lx2, wasSpace), res) sp =
+    let Vector x1 _ = glyphTopLeft (head sp)
+        Vector x2 _ = glyphBottomRight (last sp)
+        space =
+          if wasSpace || abs (lx2 - x1) < 1.8
+            then mempty
+            else TextB.singleton ' '
+        txt = TextB.fromLazyText $ TextL.fromChunks $ mapMaybe glyphText sp
+        endWithSpace = glyphText (last sp) == Just " "
+    in ((x2, endWithSpace), mconcat [res, space, txt])
