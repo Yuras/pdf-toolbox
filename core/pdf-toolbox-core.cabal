@@ -10,6 +10,7 @@ category:            PDF
 build-type:          Simple
 cabal-version:       >=1.8
 homepage:            https://github.com/Yuras/pdf-toolbox
+extra-source-files:  changelog.md
 description:
   Low level tools for processing PDF files.
   .
@@ -49,7 +50,8 @@ library
   build-depends:       base >= 4.6 && < 4.8,
                        bytestring,
                        io-streams,
-                       attoparsec,
+                       attoparsec >= 0.10,
+                       scientific,
                        errors,
                        transformers,
                        containers,

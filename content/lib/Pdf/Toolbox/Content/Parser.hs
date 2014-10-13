@@ -9,8 +9,8 @@ module Pdf.Toolbox.Content.Parser
 where
 
 import Data.Int
-import Data.Attoparsec.Char8 (Parser)
-import qualified Data.Attoparsec.Char8 as Parser
+import Data.Attoparsec.ByteString.Char8 (Parser)
+import qualified Data.Attoparsec.ByteString.Char8 as Parser
 import Data.IORef
 import Control.Applicative
 import Control.Exception

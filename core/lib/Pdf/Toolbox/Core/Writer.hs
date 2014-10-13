@@ -1,5 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 
 -- | Write PDF files
 --
@@ -29,9 +30,15 @@ import qualified Data.Set as Set
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
+
+#if MIN_VERSION_bytestring(0, 10, 4)
+#else
 import Data.ByteString.Lazy.Builder.ASCII
+#endif
+
 import Data.Function
 import Data.Monoid
+import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
@@ -44,7 +51,7 @@ import Pdf.Toolbox.Core.Object.Builder
 
 -- | The monad
 newtype PdfWriter m a = PdfWriter (StateT PdfState m a)
-  deriving (Monad, MonadIO, MonadTrans)
+  deriving (Functor, Applicative, Monad, MonadIO, MonadTrans)
 
 -- | Execute writer action
 runPdfWriter :: MonadIO m

@@ -9,6 +9,8 @@ copyright:           Copyright (c) Yuras Shumovich 2013
 category:            PDF
 build-type:          Simple
 cabal-version:       >=1.8
+homepage:            https://github.com/Yuras/pdf-toolbox
+extra-source-files:  changelog.md
 description:
   Tools for processing PDF content streams
 
@@ -32,7 +34,7 @@ library
                        Pdf.Toolbox.Content.Encoding.MacRoman
   build-depends:       base >= 4.6 && < 4.8,
                        containers,
-                       attoparsec,
+                       attoparsec >= 0.10,
                        bytestring,
                        base16-bytestring,
                        text,

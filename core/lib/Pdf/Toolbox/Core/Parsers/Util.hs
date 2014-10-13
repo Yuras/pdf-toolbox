@@ -7,7 +7,7 @@ module Pdf.Toolbox.Core.Parsers.Util
 )
 where
 
-import Data.Attoparsec (Parser)
+import Data.Attoparsec.ByteString (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
 import Control.Applicative (many)
 

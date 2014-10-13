@@ -23,7 +23,7 @@ where
 
 import Data.Int
 import Data.Functor
-import Data.Attoparsec (Parser)
+import Data.Attoparsec.ByteString (Parser)
 import Data.ByteString (ByteString)
 import Control.Monad.IO.Class
 import Control.Exception

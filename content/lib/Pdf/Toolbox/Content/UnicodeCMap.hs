@@ -20,8 +20,8 @@ import qualified Data.ByteString.Base16 as Base16
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
-import Data.Attoparsec.Char8 (Parser, parseOnly)
-import qualified Data.Attoparsec.Char8 as P
+import Data.Attoparsec.ByteString.Char8 (Parser, parseOnly)
+import qualified Data.Attoparsec.ByteString.Char8 as P
 import Control.Monad
 
 -- | Unicode character map
