@@ -86,25 +86,25 @@ main = do
   hbuttonBox <- hButtonBoxNew
   boxPackStart vbox hbuttonBox PackNatural 0
 
-  prevButton <- buttonNewWithLabel "Prev"
+  prevButton <- buttonNewWithLabel ("Prev" :: String)
   boxPackStart hbuttonBox prevButton PackNatural 0
 
-  nextButton <- buttonNewWithLabel "Next"
+  nextButton <- buttonNewWithLabel ("Next" :: String)
   boxPackStart hbuttonBox nextButton PackNatural 0
 
-  renderPdfToggle <- checkButtonNewWithLabel "Render via ImageMagick"
+  renderPdfToggle <- checkButtonNewWithLabel ("Render via ImageMagick" :: String)
   set renderPdfToggle [
     toggleButtonActive := False
     ]
   boxPackStart hbuttonBox renderPdfToggle PackNatural 0
 
-  renderTextToggle <- checkButtonNewWithLabel "Render extracted text"
+  renderTextToggle <- checkButtonNewWithLabel ("Render extracted text" :: String)
   set renderTextToggle [
     toggleButtonActive := True
     ]
   boxPackStart hbuttonBox renderTextToggle PackNatural 0
 
-  renderGlyphsToggle <- checkButtonNewWithLabel "Render glyphs"
+  renderGlyphsToggle <- checkButtonNewWithLabel ("Render glyphs" :: String)
   set renderGlyphsToggle [
     toggleButtonActive := False
     ]
