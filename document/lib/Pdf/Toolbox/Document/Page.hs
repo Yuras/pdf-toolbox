@@ -133,21 +133,24 @@ pageExtractText page = do
     prGlyphDecoder = glyphDecoder
     }
 
--- | Convert glyphs to text, trying to add spaces
+-- | Convert glyphs to text, trying to add spaces and newlines
 --
 -- It takes list of spans. Each span is a list of glyphs that are outputed in one shot.
 -- So we don't need to add space inside span, only between them.
 glyphsToText :: [[Glyph]] -> Text
-glyphsToText = TextL.toStrict . TextB.toLazyText . snd . foldl step ((0, False), mempty)
+glyphsToText = TextL.toStrict . TextB.toLazyText . snd . foldl step ((Vector 0 0, False), mempty)
   where
   step acc [] = acc
-  step ((lx2, wasSpace), res) sp =
-    let Vector x1 _ = glyphTopLeft (head sp)
+  step ((Vector lx2 ly2, wasSpace), res) sp =
+    let Vector x1 y1 = glyphTopLeft (head sp)
         Vector x2 _ = glyphBottomRight (last sp)
+        Vector _ y2 = glyphTopLeft (last sp)
         space =
-          if wasSpace || abs (lx2 - x1) < 1.8
-            then mempty
-            else TextB.singleton ' '
+          if abs (ly2 - y1) < 1.8
+            then  if wasSpace || abs (lx2 - x1) < 1.8
+                    then mempty
+                    else TextB.singleton ' '
+            else TextB.singleton '\n'
         txt = TextB.fromLazyText $ TextL.fromChunks $ mapMaybe glyphText sp
         endWithSpace = glyphText (last sp) == Just " "
-    in ((x2, endWithSpace), mconcat [res, space, txt])
+    in ((Vector x2 y2, endWithSpace), mconcat [res, space, txt])
