@@ -10,56 +10,55 @@ module Pdf.Toolbox.Core.Stream.Filter.FlateDecode
 where
 
 import Data.Word
-import qualified Data.ByteString as BS
-import Codec.Zlib
-import Control.Error
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as ByteString
 import Control.Exception
+import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 
-import Pdf.Toolbox.Core.IO
+import Pdf.Toolbox.Core.Exception
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Object.Util
 import Pdf.Toolbox.Core.Stream.Filter.Type
 
 -- | Vary basic implementation. Only PNG-UP prediction is implemented
 flateDecode :: StreamFilter
-flateDecode = StreamFilter {
-  filterName = "FlateDecode",
-  filterDecode = \params is -> decode params is >>= catchZlibExceptions
+flateDecode = StreamFilter
+  { filterName = "FlateDecode"
+  , filterDecode = decode
   }
 
-catchZlibExceptions :: IS -> IO IS
-catchZlibExceptions is =
-  Streams.makeInputStream $
-    Streams.read is
-    `catch` (\(e :: ZlibException) -> throwIO $ DecodeException $ toException e)
-
-decode :: Maybe Dict -> IS -> IO IS
+decode :: Maybe Dict -> InputStream ByteString -> IO (InputStream ByteString)
 decode Nothing is = Streams.decompress is
-decode (Just dict) is = do
-  predictor <- runEitherT $ lookupDict "Predictor" dict
-  case predictor of
-    Left _ -> Streams.decompress is
-    Right p -> do
-      p' <- runEitherT $ fromObject p >>= intValue
-      case p' of
-        Left e -> fail $ "Malformed predictor: " ++ show e
-        Right val -> Streams.decompress is >>= unpredict dict val
+decode (Just dict) is =
+  case lookupDict "Predictor" dict of
+    Nothing -> Streams.decompress is
+    Just (ONumber (NumInt val)) ->
+      Streams.decompress is >>= unpredict dict val
+    _ -> throw $ Corrupted "Predictor should be an integer" []
 
-unpredict :: Dict -> Int -> IS -> IO IS
+unpredict :: Dict
+          -> Int
+          -> InputStream ByteString
+          -> IO (InputStream ByteString)
 unpredict _ 1 is = return is
-unpredict dict 12 is = do
-  c <- runEitherT $ lookupDict "Columns" dict >>= fromObject >>= intValue
-  case c of
-    Left e -> fail $ "flateDecode: malformed Columns value: " ++ show e
-    Right cols -> unpredict12 (cols + 1) is
-unpredict _ p _ = fail $ "Unsupported predictor: " ++ show p
+unpredict dict 12 is = message "unpredict" $
+  case lookupDict "Columns" dict of
+    Nothing -> throw $ Corrupted "Column is missing" []
+    Just (ONumber (NumInt cols)) -> unpredict12 (cols + 1) is
+    _ -> throw $ Corrupted "Column should be an integer" []
+unpredict _ p _ = throw $ Unexpected ("Unsupported predictor: " ++ show p) []
 
 -- | PGN-UP prediction
 --
 -- TODO: Hacky solution, rewrite it
-unpredict12 :: Int -> IS -> IO IS
-unpredict12 cols is = Streams.toList is >>= Streams.fromList . return . BS.pack . step (replicate cols 0) [] . concatMap BS.unpack
+unpredict12 :: Int -> InputStream ByteString -> IO (InputStream ByteString)
+unpredict12 cols is
+  = Streams.toList is
+  >>= Streams.fromList . return
+                       . ByteString.pack
+                       . step (replicate cols 0) []
+                       . concatMap ByteString.unpack
   where
   step :: [Word8] -> [Word8] -> [Word8] -> [Word8]
   step _ _ [] = []

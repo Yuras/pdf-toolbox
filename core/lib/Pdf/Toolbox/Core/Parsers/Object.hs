@@ -38,11 +38,6 @@ import Control.Applicative
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Parsers.Util
 
--- for doctest
--- $setup
--- >>> :set -XOverloadedStrings
--- >>> import Data.Attoparsec.ByteString.Char8
-
 -- |
 -- >>> parseOnly parseDict "<</Key1(some string)/Key2 123>>"
 -- Right (Dict [(Name "Key1",OStr (Str "some string")),(Name "Key2",ONumber (NumInt 123))])
@@ -237,6 +232,3 @@ parseIndirectObject = do
       return (ref, ODict d)
       ]
     _ -> return (ref, obj)
-
--- |
--- More tests
