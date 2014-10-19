@@ -5,94 +5,109 @@
 module Pdf.Toolbox.Document.Page
 (
   Page,
-  pageParentNode,
-  pageContents,
-  pageMediaBox,
-  pageFontDicts,
-  pageExtractText
+  parentNode,
+  contents,
+  mediaBox,
+  fontDicts,
+  --pageExtractText,
 )
 where
 
-import Data.Monoid
 import Data.Functor
-import qualified Data.Traversable as Traversable
-import Data.Text (Text)
-import qualified Data.Text.Lazy as TextL
-import qualified Data.Text.Lazy.Builder as TextB
-import qualified Data.Map as Map
 import Control.Monad
+import Control.Exception
 
 import Pdf.Toolbox.Core
-import Pdf.Toolbox.Content
+import Pdf.Toolbox.Core.Util
 
+import Pdf.Toolbox.Document.Pdf
 import Pdf.Toolbox.Document.Types
-import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.PageNode
 import Pdf.Toolbox.Document.FontDict
 import Pdf.Toolbox.Document.Internal.Types
 import Pdf.Toolbox.Document.Internal.Util
 
 -- | Page's parent node
-pageParentNode :: MonadPdf m => Page -> PdfE m PageNode
-pageParentNode (Page _ dict) = do
-  ref <- lookupDict "Parent" dict >>= fromObject
-  node <- loadPageNode ref
+parentNode :: Page -> IO PageNode
+parentNode (Page pdf _ dict) = do
+  ref <- sure $ (lookupDict "Parent" dict >>= refValue)
+      `notice` "Parent should be a reference"
+  node <- loadPageNode pdf ref
   case node of
     PageTreeNode n -> return n
-    PageTreeLeaf _ -> left $ UnexpectedError "page parent should be a note, but leaf should"
+    PageTreeLeaf _ -> throw $ Corrupted
+      "page parent should be a note, but leaf found" []
 
 -- | List of references to page's content streams
-pageContents :: MonadPdf m => Page -> PdfE m [Ref]
-pageContents page@(Page _ dict) = annotateError ("contents for page: " ++ show page) $ do
-  case lookupDict' "Contents" dict of
+contents :: Page -> IO [Ref]
+contents (Page pdf pageRef dict) =
+  message ("contents for page: " ++ show pageRef) $ do
+  case lookupDict "Contents" dict of
     Nothing -> return []
     Just (ORef ref) -> do
       -- it could be reference to the only content stream,
       -- or to an array of content streams
-      o <- lookupObject ref
+      o <- lookupObject pdf ref >>= deref pdf
       case o of
         OStream _ -> return [ref]
-        OArray (Array objs) -> mapM fromObject objs
-        _ -> left $ UnexpectedError $ "Unexpected value in page content ref: " ++ show o
-    Just (OArray (Array objs)) -> mapM fromObject objs
-    _ -> left $ UnexpectedError "Unexpected value in page contents"
+        OArray (Array objs) -> forM objs $ \obj ->
+          sure $ refValue obj `notice` "Content should be a reference"
+        _ -> throw $ Corrupted
+          ("Unexpected value in page content ref: " ++ show o) []
+    Just (OArray (Array objs)) -> forM objs $ \obj ->
+      sure $ refValue obj `notice` "Content should be a reference"
+    _ -> throw $ Corrupted "Unexpected value in page contents" []
 
 -- | Media box, inheritable
-pageMediaBox :: MonadPdf m => Page -> PdfE m (Rectangle Double)
-pageMediaBox page = mediaBox (PageTreeLeaf page)
+mediaBox :: Page -> IO (Rectangle Double)
+mediaBox page = mediaBoxRec (PageTreeLeaf page)
 
-mediaBox :: MonadPdf m => PageTree -> PdfE m (Rectangle Double)
-mediaBox tree = do
-  let dict = case tree of
-               PageTreeNode (PageNode _ d) -> d
-               PageTreeLeaf (Page _ d) -> d
-  case lookupDict' "MediaBox" dict of
-    Just box -> fromObject box >>= rectangleFromArray
+mediaBoxRec :: PageTree -> IO (Rectangle Double)
+mediaBoxRec tree = do
+  let (pdf, dict) =
+        case tree of
+          PageTreeNode (PageNode p _ d) -> (p, d)
+          PageTreeLeaf (Page p _ d) -> (p, d)
+  case lookupDict "MediaBox" dict of
+    Just box -> do
+      box' <- deref pdf box
+      arr <- sure $ arrayValue box'
+          `notice` "MediaBox should be an array"
+      sure $ rectangleFromArray arr
     Nothing -> do
-      parent <- case tree of
-                  PageTreeNode node -> do
-                    parent <- pageNodeParent node
-                    case parent of
-                      Nothing -> left $ UnexpectedError $ "Media box not found"
-                      Just p -> return $ PageTreeNode p
-                  PageTreeLeaf page -> PageTreeNode `liftM` pageParentNode page
-      mediaBox parent
+      parent <-
+        case tree of
+          PageTreeNode node -> do
+            parent <- pageNodeParent node
+            case parent of
+              Nothing -> throw $ Corrupted "Media box not found" []
+              Just p -> return (PageTreeNode p)
+          PageTreeLeaf page -> PageTreeNode <$> parentNode page
+      mediaBoxRec parent
 
 -- | Font dictionaries for the page
-pageFontDicts :: MonadPdf m => Page -> PdfE m [(Name, FontDict)]
-pageFontDicts (Page _ dict) =
-  case lookupDict' "Resources" dict of
+fontDicts :: Page -> IO [(Name, FontDict)]
+fontDicts (Page pdf _ dict) =
+  case lookupDict "Resources" dict of
     Nothing -> return []
     Just res -> do
-      resDict <- deref res >>= fromObject
-      case lookupDict' "Font" resDict of
+      res' <- deref pdf res
+      resDict <- sure $ dictValue res'
+          `notice` "Resources should be a dictionary"
+      case lookupDict "Font" resDict of
         Nothing -> return []
         Just fonts -> do
-          Dict fontsDict <- deref fonts >>= fromObject
+          fonts' <- deref pdf fonts
+          Dict fontsDict <- sure $ dictValue fonts'
+              `notice` "Font should be a dictionary"
           forM fontsDict $ \(name, font) -> do
-            fontDict <- deref font >>= fromObject
+            font' <- deref pdf font
+            fontDict <- sure $ dictValue font'
+                `notice` "Each font should be a dictionary"
             ensureType "Font" fontDict
-            return (name, FontDict fontDict)
+            return (name, FontDict pdf fontDict)
+
+{-
 
 -- | Extract text from the page
 --
@@ -154,3 +169,4 @@ glyphsToText = TextL.toStrict . TextB.toLazyText . snd . foldl step ((Vector 0 0
         txt = TextB.fromLazyText $ TextL.fromChunks $ mapMaybe glyphText sp
         endWithSpace = glyphText (last sp) == Just " "
     in ((Vector x2 y2, endWithSpace), mconcat [res, space, txt])
+-}

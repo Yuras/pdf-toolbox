@@ -16,7 +16,6 @@
 module Pdf.Toolbox.Document
 (
   module Pdf.Toolbox.Document.Types,
-  module Pdf.Toolbox.Document.Monad,
   module Pdf.Toolbox.Document.Pdf,
   module Pdf.Toolbox.Document.Document,
   module Pdf.Toolbox.Document.Catalog,
@@ -24,18 +23,15 @@ module Pdf.Toolbox.Document
   module Pdf.Toolbox.Document.Page,
   module Pdf.Toolbox.Document.Info,
   module Pdf.Toolbox.Document.FontDict,
-  module Pdf.Toolbox.Core.Error,
   module Pdf.Toolbox.Core.Object.Types,
   module Pdf.Toolbox.Core.Object.Util
 )
 where
 
-import Pdf.Toolbox.Core.Error
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Object.Util
 
 import Pdf.Toolbox.Document.Types
-import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.Pdf
 import Pdf.Toolbox.Document.Document
 import Pdf.Toolbox.Document.Info

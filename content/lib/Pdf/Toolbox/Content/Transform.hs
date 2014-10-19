@@ -36,7 +36,8 @@ scale sx sy = Transform sx 0 0 sy 0 0
 
 -- | Apply transformation to vector
 transform :: Num a => Transform a -> Vector a -> Vector a
-transform (Transform a b c d e f) (Vector x y) = Vector (a * x + c * y + e) (b * x + d * y + f)
+transform (Transform a b c d e f) (Vector x y) =
+  Vector (a * x + c * y + e) (b * x + d * y + f)
 
 -- | Translate
 translate :: Num a => a -> a -> Transform a -> Transform a
@@ -44,7 +45,8 @@ translate tx ty t = translation tx ty `multiply` t
 
 -- | Combine two transformations
 multiply :: Num a => Transform a -> Transform a -> Transform a
-multiply (Transform a1 b1 c1 d1 e1 f1) (Transform a2 b2 c2 d2 e2 f2) = Transform a b c d e f
+multiply (Transform a1 b1 c1 d1 e1 f1) (Transform a2 b2 c2 d2 e2 f2) =
+  Transform a b c d e f
   where
   a = a1 * a2 + b1 * c2
   b = a1 * b2 + b1 * d2

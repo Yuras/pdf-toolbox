@@ -5,20 +5,24 @@
 module Pdf.Toolbox.Document.Catalog
 (
   Catalog,
-  catalogPageNode
+  pageNode
 )
 where
 
 import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core.Util
 
-import Pdf.Toolbox.Document.Monad
+import Pdf.Toolbox.Document.Pdf
 import Pdf.Toolbox.Document.Internal.Types
 import Pdf.Toolbox.Document.Internal.Util
 
 -- | Get root node of page tree
-catalogPageNode :: MonadPdf m => Catalog -> PdfE m PageNode
-catalogPageNode (Catalog _ dict) = do
-  ref <- lookupDict "Pages" dict >>= fromObject
-  node <- lookupObject ref >>= fromObject
+pageNode :: Catalog -> IO PageNode
+pageNode (Catalog pdf _ dict) = do
+  ref <- sure $
+    (lookupDict "Pages" dict >>= refValue)
+    `notice` "Pages should be an indirect reference"
+  obj <- lookupObject pdf ref >>= deref pdf
+  node <- sure $ dictValue obj `notice` "Pages should be a dictionary"
   ensureType "Pages" node
-  return $ PageNode ref node
+  return (PageNode pdf ref node)

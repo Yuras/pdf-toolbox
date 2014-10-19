@@ -4,20 +4,23 @@
 
 module Pdf.Toolbox.Document.Info
 (
-  infoTitle
+  title
 )
 where
 
-import Control.Monad
+import Data.ByteString (ByteString)
 
 import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core.Util
 
-import Pdf.Toolbox.Document.Monad
+import Pdf.Toolbox.Document.Pdf
 import Pdf.Toolbox.Document.Internal.Types
 
 -- | Document title
-infoTitle :: MonadPdf m => Info -> PdfE m (Maybe Str)
-infoTitle (Info _ dict) =
-  case lookupDict' "Title" dict of
+title :: Info -> IO (Maybe ByteString)
+title (Info pdf _ dict) =
+  case lookupDict "Title" dict of
     Nothing -> return Nothing
-    Just o -> liftM Just $ deref o >>= fromObject
+    Just o -> do
+      o' <- deref pdf o
+      sure $ fmap Just (stringValue o') `notice` "Title should be a string"

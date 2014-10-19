@@ -5,41 +5,54 @@
 module Pdf.Toolbox.Document.Document
 (
   Document,
-  documentCatalog,
-  documentEncryption,
-  documentInfo
+  catalog,
+  info,
+  encryption
 )
 where
 
-import Pdf.Toolbox.Core
+import Control.Exception
 
-import Pdf.Toolbox.Document.Monad
+import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core.Util
+
+import Pdf.Toolbox.Document.Pdf
 import Pdf.Toolbox.Document.Internal.Types
-import Pdf.Toolbox.Document.Internal.Util
+
+dict :: Document -> Dict
+dict (Document _ d) = d
+
+pdf :: Document -> Pdf
+pdf (Document p _) = p
 
 -- | Get the document catalog
-documentCatalog :: MonadPdf m => Document -> PdfE m Catalog
-documentCatalog (Document _ dict) = do
-  ref <- lookupDict "Root" dict >>= fromObject
-  cat <- lookupObject ref >>= fromObject
-  ensureType "Catalog" cat
-  return $ Catalog ref cat
-
--- | Document encryption dictionary
-documentEncryption :: MonadPdf m => Document -> PdfE m (Maybe Dict)
-documentEncryption (Document _ dict) = do
-  case lookupDict' "Encrypt" dict of
-    Nothing -> return Nothing
-    Just o -> do
-      o' <- deref o >>= fromObject
-      return $ Just o'
+catalog :: Document -> IO Catalog
+catalog doc = do
+  ref <- sure $ (lookupDict "Root" (dict doc) >>= refValue)
+    `notice` "trailer: Root should be an indirect reference"
+  obj <- lookupObject (pdf doc) ref
+  d <- sure $ dictValue obj `notice` "catalog should be a dictionary"
+  return (Catalog (pdf doc) ref d)
 
 -- | Infornation dictionary for the document
-documentInfo :: MonadPdf m => Document -> PdfE m (Maybe Info)
-documentInfo (Document _ dict) =
-  case lookupDict' "Info" dict of
+info :: Document -> IO (Maybe Info)
+info doc = do
+  case lookupDict "Info" (dict doc) of
     Nothing -> return Nothing
-    Just r -> do
-      ref <- fromObject r
-      info <- lookupObject ref >>= fromObject
-      return $ Just $ Info ref info
+    Just (ORef ref) -> do
+      obj <- lookupObject (pdf doc) ref
+      d <- sure $ dictValue obj `notice` "info should be a dictionary"
+      return (Just (Info (pdf doc) ref d))
+    _ -> throw $ Corrupted "document Info should be an indirect reference" []
+
+-- | Document encryption dictionary
+encryption :: Document -> IO (Maybe Dict)
+encryption doc = do
+  case lookupDict "Encrypt" (dict doc) of
+    Nothing -> return Nothing
+    Just o -> do
+      o' <- deref (pdf doc) o
+      case o' of
+        ODict d -> return (Just d)
+        ONull -> return Nothing
+        _ -> throw (Corrupted "document Encrypt should be a dictionary" [])

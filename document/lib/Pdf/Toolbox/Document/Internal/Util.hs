@@ -10,15 +10,22 @@ module Pdf.Toolbox.Document.Internal.Util
 where
 
 import Control.Monad
+import Control.Exception
 
 import Pdf.Toolbox.Core
 
 -- | Check that the dictionary has the specified \"Type\" filed
-ensureType :: Monad m => Name -> Dict -> PdfE m ()
+ensureType :: Name -> Dict -> IO ()
 ensureType name dict = do
-  n <- dictionaryType dict
-  unless (n == name) $ left $ UnexpectedError $ "Expected type: " ++ show name ++ ", but found: " ++ show n
+  n <- sure $ dictionaryType dict
+  unless (n == name) $
+    throw $ Corrupted ("Expected type: " ++ show name ++
+                       ", but found: " ++ show n) []
 
 -- | Get dictionary type, name at key \"Type\"
-dictionaryType :: Monad m => Dict -> PdfE m Name
-dictionaryType dict = lookupDict "Type" dict >>= fromObject
+dictionaryType :: Dict -> Either String Name
+dictionaryType dict =
+  case lookupDict "Type" dict of
+    Just (OName n) -> Right n
+    Just _ -> Left "Type should be a name"
+    _ -> Left "Type is missing"

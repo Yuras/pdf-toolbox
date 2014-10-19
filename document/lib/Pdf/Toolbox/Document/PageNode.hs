@@ -10,47 +10,60 @@ module Pdf.Toolbox.Document.PageNode
   pageNodeParent,
   pageNodeKids,
   loadPageNode,
-  pageNodePageByNum
+  pageNodePageByNum,
 )
 where
 
-import Pdf.Toolbox.Core
+import Control.Monad
+import Control.Exception
 
-import Pdf.Toolbox.Document.Monad
+import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core.Util
+
+import Pdf.Toolbox.Document.Pdf
 import Pdf.Toolbox.Document.Internal.Types
 import Pdf.Toolbox.Document.Internal.Util
 
 -- | Total number of child leaf nodes, including deep children
-pageNodeNKids :: MonadPdf m => PageNode -> PdfE m Int
-pageNodeNKids (PageNode _ dict) =
-  lookupDict "Count" dict >>= fromObject >>= intValue
+pageNodeNKids :: PageNode -> IO Int
+pageNodeNKids (PageNode _ _ dict) = sure $
+  (lookupDict "Count" dict >>= intValue)
+  `notice` "Count should be an integer"
 
 -- | Parent page node
-pageNodeParent :: MonadPdf m => PageNode -> PdfE m (Maybe PageNode)
-pageNodeParent (PageNode _ dict) =
-  case lookupDict' "Parent" dict of
+pageNodeParent :: PageNode -> IO (Maybe PageNode)
+pageNodeParent (PageNode pdf _ dict) =
+  case lookupDict "Parent" dict of
     Nothing -> return Nothing
-    Just o -> do
-      ref <- fromObject o
-      node <- lookupObject ref >>= fromObject
+    Just o@(ORef ref) -> do
+      obj <- deref pdf o
+      node <- sure $ dictValue obj `notice` "Parent should be a dictionary"
       ensureType "Pages" node
-      return $ Just $ PageNode ref node
+      return $ Just (PageNode pdf ref node)
+    _ -> throw (Corrupted "Parent should be an indirect ref" [])
 
 -- | Referencies to all kids
-pageNodeKids :: MonadPdf m => PageNode -> PdfE m [Ref]
-pageNodeKids (PageNode _ dict) = do
-  Array kids <- lookupDict "Kids" dict >>= fromObject
-  mapM fromObject kids
+pageNodeKids :: PageNode -> IO [Ref]
+pageNodeKids (PageNode pdf _ dict) = do
+  obj <- sure (lookupDict "Kids" dict
+                `notice` "Page node should have Kids")
+        >>= deref pdf
+  Array kids <- sure $ arrayValue obj
+    `notice` "Kids should be an array"
+  forM kids $ \k -> sure $
+    refValue k `notice` "each kid should be a reference"
 
 -- | Load page tree node by reference
-loadPageNode :: MonadPdf m => Ref -> PdfE m PageTree
-loadPageNode ref = do
-  node <- lookupObject ref >>= fromObject
-  nodeType <- dictionaryType node
+loadPageNode :: Pdf -> Ref -> IO PageTree
+loadPageNode pdf ref = do
+  obj <- lookupObject pdf ref >>= deref pdf
+  node <- sure $ dictValue obj `notice` "page should be a dictionary"
+  nodeType <- sure $ dictionaryType node
   case nodeType of
-    "Pages" -> return $ PageTreeNode $ PageNode ref node
-    "Page" -> return $ PageTreeLeaf $ Page ref node
-    _ -> left $ UnexpectedError $ "Unexpected page tree node type: " ++ show nodeType
+    "Pages" -> return $ PageTreeNode (PageNode pdf ref node)
+    "Page" -> return $ PageTreeLeaf (Page pdf ref node)
+    _ -> throw $ Corrupted ("Unexpected page tree node type: "
+                              ++ show nodeType) []
 
 -- | Find page by it's number
 --
@@ -58,13 +71,14 @@ loadPageNode ref = do
 -- because it performs traversal through the page tree each time.
 -- Use 'pageNodeNKids', 'pageNodeKids' and 'loadPageNode' for
 -- efficient traversal.
-pageNodePageByNum :: MonadPdf m => PageNode -> Int -> PdfE m Page
-pageNodePageByNum node num = annotateError ("page #" ++ show num ++ " for node: " ++ show node) $ do
+pageNodePageByNum :: PageNode -> Int -> IO Page
+pageNodePageByNum node@(PageNode pdf nodeRef _) num =
+  message ("page #" ++ show num ++ " for node: " ++ show nodeRef) $ do
   pageNodeKids node >>= loop num
   where
-  loop _ [] = left $ UnexpectedError "Page not found"
+  loop _ [] = throw $ Corrupted "Page not found" []
   loop i (x:xs) = do
-    kid <- loadPageNode x
+    kid <- loadPageNode pdf x
     case kid  of
       PageTreeNode n -> do
         nkids <- pageNodeNKids n

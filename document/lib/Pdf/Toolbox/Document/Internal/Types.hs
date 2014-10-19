@@ -4,46 +4,47 @@
 
 module Pdf.Toolbox.Document.Internal.Types
 (
+  Pdf(..),
   Document(..),
   Catalog(..),
-  PageTree(..),
+  Info(..),
   PageNode(..),
   Page(..),
-  Info(..),
-  FontDict(..)
+  PageTree(..),
+  FontDict(..),
 )
 where
 
+import Data.IORef
+
 import Pdf.Toolbox.Core
+
+import Pdf.Toolbox.Document.File
+import Pdf.Toolbox.Document.Encryption (Decryptor)
+
+data Pdf = Pdf File (IORef (Maybe Decryptor))
 
 -- | PDF document
 --
 -- It is a trailer under the hood
-data Document = Document XRef Dict
-  deriving Show
+data Document = Document Pdf Dict
 
 -- | Document catalog
-data Catalog = Catalog Ref Dict
-  deriving Show
+data Catalog = Catalog Pdf Ref Dict
+
+-- | Information dictionary
+data Info = Info Pdf Ref Dict
+
+-- | Page tree node, contains pages or other nodes
+data PageNode = PageNode Pdf Ref Dict
+
+-- | Pdf document page
+data Page = Page Pdf Ref Dict
 
 -- | Page tree
 data PageTree =
   PageTreeNode PageNode |
   PageTreeLeaf Page
-  deriving Show
-
--- | Page tree node, contains pages or other nodes
-data PageNode = PageNode Ref Dict
-  deriving Show
-
--- | Pdf document page
-data Page = Page Ref Dict
-  deriving Show
-
--- | Information dictionary
-data Info = Info Ref Dict
-  deriving Show
 
 -- | Font dictionary
-data FontDict = FontDict Dict
-  deriving Show
+data FontDict = FontDict Pdf Dict

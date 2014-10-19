@@ -1,249 +1,118 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
--- | Basic implementation of pdf monad
 
 module Pdf.Toolbox.Document.Pdf
 (
   Pdf,
-  Pdf',
-  runPdf,
-  runPdfWithHandle,
+  withFile,
+  withHandle,
   document,
-  flushObjectCache,
-  withoutObjectCache,
-  knownFilters,
+  lookupObject,
+  streamContent,
+  deref,
   isEncrypted,
   setUserPassword,
-  defaultUserPassword,
-  decrypt,
-  MonadIO(..)
 )
 where
 
 import Data.Monoid
 import Data.Int
+import Data.IORef
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
-import Data.Map (Map)
-import qualified Data.Map as Map
+import qualified Data.ByteString as ByteString
 import Control.Applicative
-import Control.Monad
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.State
-import System.IO
-import qualified System.IO.Streams as Streams
+import Control.Exception
+import System.IO (Handle)
+import System.IO.Streams (InputStream)
 
 import Pdf.Toolbox.Core
 
-import Pdf.Toolbox.Document.Monad
-import Pdf.Toolbox.Document.Encryption
+import Pdf.Toolbox.Document.File (File)
+import qualified Pdf.Toolbox.Document.File as File
 import Pdf.Toolbox.Document.Internal.Types
+import Pdf.Toolbox.Document.Encryption
 
-data PdfState = PdfState {
-  stRIS :: RIS,
-  stFilters :: [StreamFilter],
-  stLastXRef :: Maybe XRef,
-  stAddToObjectCache :: Bool,
-  stObjectCache :: Map Ref (Object Int64),
-  stXRefStreamCache :: Map Int64 [ByteString],
-  stDecryptor :: Maybe Decryptor
-  }
+-- | Make Pdf with interface to pdf file
+withFile :: File -> IO Pdf
+withFile f = Pdf f <$> newIORef Nothing
 
--- | Basic implementation of pdf monad
-newtype Pdf' m a = Pdf' (StateT PdfState m a)
-  deriving (Monad, Functor, Applicative, MonadIO, MonadTrans)
+-- | Make Pdf with seekable handle
+withHandle :: Handle -> IO Pdf
+withHandle h = do
+  buf <- handleToBuffer h
+  File.withBuffer knownFilters buf >>= withFile
 
--- | Convenient type alias
-type Pdf m = PdfE (Pdf' m)
-
-instance MonadIO m => MonadPdf (Pdf' m) where
-  lookupObject ref = annotateError ("lookupObject: " ++ show ref) $ do
-    cached <- getFromCache ref
-    case cached of
-      Just o -> return o
-      Nothing -> do
-        xref <- getLastXRef
-        entry <- lookupEntryRec ref xref
-        o <- readObjectForEntry ref entry
-        addObjectToCache ref o
-        return o
-  streamContent ref s = do
-    decryptor <- do
-      dec <- getDecryptor
-      case dec of
-        Nothing -> return return
-        Just d -> return $ d ref
-    takeStreamContent decryptor s
-  getDecryptor = lift $ Pdf' $ gets stDecryptor
-  getRIS = lift $ Pdf' $ gets stRIS
-  getStreamFilters = lift $ Pdf' $ gets stFilters
-
-readObjectForEntry :: MonadIO m => Ref -> XRefEntry -> Pdf m (Object Int64)
-readObjectForEntry ref (XRefTableEntry entry)
-  | teIsFree entry = return ONull
-  | otherwise = do
-    ris <- getRIS
-    readObjectAtOffset ris (teOffset entry) (teGen entry) >>= decrypt ref
-readObjectForEntry ref (XRefStreamEntry entry) =
-  case entry of
-    StreamEntryFree _ _ -> return ONull
-    StreamEntryUsed off gen -> do
-      ris <- getRIS
-      readObjectAtOffset ris off gen >>= decrypt ref
-    StreamEntryCompressed index num -> do
-      objStream <- lookupObject (Ref index 0) >>= toStream
-      Stream dict is <- streamContent (Ref index 0) objStream
-      first <- lookupDict "First" dict >>= fromObject >>= intValue
-      mapObject (error "readObjectForEntry: impossible") `liftM`
-        readCompressedObject is (fromIntegral first) num
-
-getXRefStream :: MonadIO m => Stream Int64 -> Pdf m (Stream IS)
-getXRefStream s@(Stream dict off) = do
-  cache <- lift $ Pdf' $ gets stXRefStreamCache
-  content <-
-    case Map.lookup off cache of
-      Just content -> return content
-      Nothing -> do
-        Stream _ is <- takeStreamContent return s
-        content <- liftIO $ Streams.toList is
-        lift $ Pdf' $ modify $ \st -> st {stXRefStreamCache = Map.insert off content $ stXRefStreamCache st}
-        return content
-  is <- liftIO $ Streams.fromList content
-  return $ Stream dict is
-
-lookupEntryRec :: MonadIO m => Ref -> XRef -> Pdf m XRefEntry
-lookupEntryRec ref = annotateError ("Can't find xref entry for ref: " ++ show ref) . loop
-  where
-  loop xref = do
-    res <- lookupXRefEntry ref xref
-    case res of
-      Just e -> return e
-      Nothing -> do
-        ris <- getRIS
-        prev <- prevXRef ris xref
-        case prev of
-          Just xref' -> loop xref'
-          Nothing -> left $ UnexpectedError "There are no more xrefs"
-
-lookupXRefEntry :: MonadIO m => Ref -> XRef -> Pdf m (Maybe XRefEntry)
-lookupXRefEntry ref (XRefTable off) = do
-  ris <- getRIS
-  seek ris off
-  _ <- inputStream ris >>= isTable
-  fmap XRefTableEntry `liftM` lookupTableEntry ris ref
-lookupXRefEntry ref (XRefStream _ s) = do
-  decoded <- getXRefStream s
-  fmap XRefStreamEntry `liftM` lookupStreamEntry decoded ref
-
-takeStreamContent :: MonadIO m => (IS -> IO IS) -> Stream Int64 -> Pdf m (Stream IS)
-takeStreamContent decryptor s@(Stream dict _) = annotateError ("reading stream content: " ++ show s) $ do
-  len <- do
-    obj <- lookupDict "Length" dict
-    case obj of
-      ONumber _ -> fromObject obj >>= intValue
-      ORef ref -> lookupObject ref >>= fromObject >>= intValue
-      _ -> left $ UnexpectedError $ "Unexpected length object in stream: " ++ show obj
-  ris <- getRIS
-  filters <- lift $ Pdf' $ gets stFilters
-  decodedStreamContent ris filters decryptor len s
-
-getLastXRef :: MonadIO m => Pdf m XRef
-getLastXRef = do
-  cached <- lift $ Pdf' $ gets stLastXRef
-  case cached of
-    Just xref -> return xref
-    Nothing -> do
-      xref <- getRIS >>= lastXRef
-      lift $ Pdf' $ modify $ \st -> st {stLastXRef = Just xref}
-      return xref
-
-getFromCache :: Monad m => Ref -> Pdf m (Maybe (Object Int64))
-getFromCache ref = do
-  cache <- lift $ Pdf' $ gets stObjectCache
-  return $ Map.lookup ref cache
-
-addObjectToCache :: Monad m => Ref -> Object Int64 -> Pdf m ()
-addObjectToCache ref o = do
-  add <- lift $ Pdf' $ gets stAddToObjectCache
-  when add $
-    lift $ Pdf' $ modify $ \st ->
-      st {stObjectCache = Map.insert ref o $ stObjectCache st}
-
--- | Perform action without adding objects to cache.
--- Note: the existent cache is not flushed, and is used
--- within the action
-withoutObjectCache :: Monad m => Pdf m () -> Pdf m ()
-withoutObjectCache action = do
-  old <- lift $ Pdf' $ do
-    val <- gets stAddToObjectCache
-    modify $ \st -> st {stAddToObjectCache = False}
-    return val
-  action
-  lift $ Pdf' $ modify $ \st -> st {stAddToObjectCache = old}
-
--- | Remove all objects from cache
-flushObjectCache :: Monad m => Pdf m ()
-flushObjectCache = lift $ Pdf' $ modify $ \st -> st {stObjectCache = Map.empty}
-
--- | Execute PDF action with 'RIS'
-runPdf :: MonadIO m => RIS -> [StreamFilter] -> Pdf m a -> m (Either PdfError a)
-runPdf ris filters action = runPdf' ris filters $ runEitherT action
-
--- | Execute PDF action with 'Handle'
-runPdfWithHandle :: MonadIO m => Handle -> [StreamFilter] -> Pdf m a -> m (Either PdfError a)
-runPdfWithHandle handle filters action = do
-  ris <- liftIO $ fromHandle handle
-  runPdf ris filters action
-
-runPdf' :: MonadIO m => RIS -> [StreamFilter] -> Pdf' m a -> m a
-runPdf' ris filters (Pdf' action) = evalStateT action $ PdfState {
-  stRIS = ris,
-  stFilters = filters,
-  stLastXRef = Nothing,
-  stObjectCache = Map.empty,
-  stXRefStreamCache = Map.empty,
-  stDecryptor = Nothing,
-  stAddToObjectCache = True
-  }
+file :: Pdf -> File
+file (Pdf f _) = f
 
 -- | Get PDF document
-document :: MonadIO m => Pdf m Document
-document = do
-  ris <- getRIS
-  xref <- lastXRef ris
-  tr <- trailer ris xref
-  return $ Document xref tr
+document :: Pdf -> IO Document
+document pdf = Document pdf <$> File.trailer (file pdf)
+
+-- | Find object by it's reference
+lookupObject :: Pdf -> Ref -> IO (Object Int64)
+lookupObject pdf ref =
+  File.object (file pdf) ref
+  >>= decrypt pdf ref
+
+-- | Get stream content, decoded and decrypted
+streamContent :: Pdf
+              -> Ref
+              -> Stream Int64
+              -> IO (Stream (InputStream ByteString))
+streamContent pdf _ref s@(Stream dict _) =
+  Stream dict <$> File.stream (file pdf) s
+
+-- | Recursively load indirect object
+deref :: Pdf -> Object a -> IO (Object ())
+deref pdf (ORef ref) = do
+  o <- lookupObject pdf ref
+  deref pdf o
+deref _ (ONumber n) = return (ONumber n)
+deref _ (OName n) = return (OName n)
+deref _ (OStr str) = return (OStr str)
+deref _ (OBoolean b) = return (OBoolean b)
+deref _ (ODict d) = return (ODict d)
+deref _ (OArray a) = return (OArray a)
+deref _ (OStream (Stream dict _)) = return (OStream (Stream dict ()))
+deref _ ONull = return ONull
 
 -- | Whether the PDF document it encrypted
-isEncrypted :: MonadIO m => Pdf m Bool
-isEncrypted = annotateError "isEncrypted" $ do
-  ris <- getRIS
-  tr <- lastXRef ris >>= trailer ris
-  case lookupDict' "Encrypt" tr of
+isEncrypted :: Pdf -> IO Bool
+isEncrypted pdf = message "isEncrypted" $ do
+  tr <- File.trailer (file pdf)
+  case lookupDict "Encrypt" tr of
     Nothing -> return False
     Just _ -> return True
 
 -- | Set the password to be user for decryption
 --
 -- Returns False when the password is wrong
-setUserPassword :: MonadIO m => ByteString -> Pdf m Bool
-setUserPassword pass = annotateError "setUserPassword" $ do
-  ris <- getRIS
-  tr <- lastXRef ris >>= trailer ris
-  enc <- case lookupDict' "Encrypt" tr of
-    Nothing -> left $ UnexpectedError "The document is not encrypted"
-    Just enc -> deref enc >>= fromObject
-  decryptor <- mkStandardDecryptor tr enc $ BS.take 32 $ pass `mappend` defaultUserPassword
-  lift $ Pdf' $ modify $ \s -> s {stDecryptor = decryptor}
-  case decryptor of
-    Nothing -> return False
-    _ -> return True
+setUserPassword :: Pdf -> ByteString -> IO Bool
+setUserPassword pdf pass = message "setUserPassword" $ do
+  tr <- File.trailer (file pdf)
+  enc <-
+    case lookupDict "Encrypt" tr of
+      Nothing -> throw (Unexpected "document is not encrypted" [])
+      Just o -> do
+        o' <- deref pdf o
+        case o' of
+          ODict d -> return d
+          ONull -> throw (Corrupted "encryption encryption dict is null" [])
+          _ -> throw (Corrupted "document Encrypt should be a dictionary" [])
+  let either_res = mkStandardDecryptor tr enc
+        (ByteString.take 32 $ pass `mappend` defaultUserPassword)
+  case either_res of
+    Left err -> throw $ Corrupted err []
+    Right Nothing -> return False
+    Right (Just decr) -> do
+      let Pdf _ ref = pdf
+      writeIORef ref (Just decr)
+      return True
 
 -- | Decrypt PDF object using user password is set
-decrypt :: MonadIO m => Ref -> Object a -> Pdf m (Object a)
-decrypt ref o = do
-  decryptor <- getDecryptor
-  case decryptor of
+decrypt :: Pdf -> Ref -> Object a -> IO (Object a)
+decrypt (Pdf _ decr_ref) ref o = do
+  maybe_decr <- readIORef decr_ref
+  case maybe_decr of
     Nothing -> return o
-    Just decr -> liftIO $ decryptObject (decr ref) o
+    Just decr -> decryptObject (decr ref) o

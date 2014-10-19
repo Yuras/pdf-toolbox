@@ -17,6 +17,7 @@ module Pdf.Toolbox.Content.FontInfo
 where
 
 import Data.List
+import Data.Maybe
 import Data.Word
 import Data.Monoid
 import Data.Map (Map)
@@ -29,6 +30,7 @@ import qualified Data.Text.Encoding as Text
 import Control.Monad
 
 import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core.Util
 
 import Pdf.Toolbox.Content.UnicodeCMap
 import Pdf.Toolbox.Content.Transform
@@ -48,7 +50,8 @@ data FontInfo
 data FISimple = FISimple {
   fiSimpleUnicodeCMap :: Maybe UnicodeCMap,
   fiSimpleEncoding :: Maybe SimpleFontEncoding,
-  fiSimpleWidths :: Maybe (Int, Int, [Double]),  -- ^ FirstChar, LastChar, list of widths
+  fiSimpleWidths :: Maybe (Int, Int, [Double]),
+  -- ^ FirstChar, LastChar, list of widths
   fiSimpleFontMatrix :: Transform Double
   }
   deriving (Show)
@@ -89,8 +92,10 @@ instance Monoid CIDFontWidths where
     cidFontWidthsRanges = mempty
     }
   w1 `mappend` w2 = CIDFontWidths {
-    cidFontWidthsChars = cidFontWidthsChars w1 `mappend` cidFontWidthsChars w2,
-    cidFontWidthsRanges = cidFontWidthsRanges w1 `mappend` cidFontWidthsRanges w2
+    cidFontWidthsChars = cidFontWidthsChars w1
+        `mappend` cidFontWidthsChars w2,
+    cidFontWidthsRanges = cidFontWidthsRanges w1
+        `mappend` cidFontWidthsRanges w2
     }
 
 simpleFontEncodingDecode :: SimpleFontEncoding -> Word8 -> Maybe Text
@@ -109,27 +114,30 @@ simpleFontEncodingDecode enc code =
             Just c -> Just $ Text.pack [c]
 
 -- | Make `CIDFontWidths` from value of \"W\" key in descendant font
-makeCIDFontWidths :: Monad m => Array -> PdfE m CIDFontWidths
+makeCIDFontWidths :: Array -> Either String CIDFontWidths
 makeCIDFontWidths (Array vals) = go mempty vals
+  `notice` "Can't parse CIDFont width"
   where
   go res [] = return res
-  go res (ONumber x1 : ONumber x2 : ONumber x3 : xs) = do
+  go res (x1 : x2 : x3 : xs) = do
     n1 <- intValue x1
     n2 <- intValue x2
     n3 <- realValue x3
     go res {cidFontWidthsRanges = (n1, n2, n3) : cidFontWidthsRanges res} xs
-  go res (ONumber x: OArray (Array arr): xs) = do
+  go res (x : OArray (Array arr): xs) = do
     n <- intValue x
-    ws <- forM arr $ \w -> fromObject w >>= realValue
-    go res {cidFontWidthsChars = Map.fromList (zip [n ..] ws) `mappend` cidFontWidthsChars res} xs
-  go _ _ = left $ UnexpectedError "Can't parse CIDFont width"
+    ws <- forM arr realValue
+    go res {cidFontWidthsChars = Map.fromList (zip [n ..] ws)
+        `mappend` cidFontWidthsChars res} xs
+  go _ _ = Nothing
 
 -- | Get glyph width by glyph code
 cidFontGetWidth :: CIDFontWidths -> Int -> Maybe Double
 cidFontGetWidth w code =
   case Map.lookup code (cidFontWidthsChars w) of
     Just width -> Just width
-    Nothing -> case find (\(start, end, _) -> code >= start && code <= end) (cidFontWidthsRanges w) of
+    Nothing -> case find (\(start, end, _) -> code >= start && code <= end)
+                         (cidFontWidthsRanges w) of
                  Just (_, _, width) -> Just width
                  _ -> Nothing
 
@@ -170,8 +178,10 @@ fontInfoDecodeGlyphs (FontInfoSimple fi) = \(Str bs) ->
           case fiSimpleWidths fi of
             Nothing -> 0
             Just (firstChar, lastChar, widths) ->
-              if code >= firstChar && code <= lastChar && (code - firstChar) < length widths
-                 then let Vector w _ = transform (fiSimpleFontMatrix fi) $ Vector (widths !! (code - firstChar)) 0
+              if code >= firstChar && code <= lastChar
+                  && (code - firstChar) < length widths
+                 then let Vector w _ = transform (fiSimpleFontMatrix fi) $
+                            Vector (widths !! (code - firstChar)) 0
                       in w
                  else 0
     in (Glyph {
@@ -186,14 +196,16 @@ fontInfoDecodeGlyphs (FontInfoComposite fi) = \str ->
       let Str bs = str
       in tryDecode2byte $ BS.unpack bs
     Just toUnicode ->
-      let getWidth = fromMaybe (fiCompositeDefaultWidth fi) . cidFontGetWidth (fiCompositeWidths fi)
+      let getWidth = fromMaybe (fiCompositeDefaultWidth fi)
+                   . cidFontGetWidth (fiCompositeWidths fi)
       in cmapDecodeString getWidth toUnicode str
   where
   -- Most of the time composite fonts have 2-byte encoding,
   -- so lets try that for now.
   tryDecode2byte (b1:b2:rest) =
     let code = fromIntegral b1 * 255 + fromIntegral b2
-        width = (/ 1000) $ fromMaybe (fiCompositeDefaultWidth fi) $ cidFontGetWidth (fiCompositeWidths fi) code
+        width = (/ 1000) $ fromMaybe (fiCompositeDefaultWidth fi)
+                         $ cidFontGetWidth (fiCompositeWidths fi) code
         txt =
           case Text.decodeUtf8' (BS.pack [b1, b2]) of
             Right t -> Just t

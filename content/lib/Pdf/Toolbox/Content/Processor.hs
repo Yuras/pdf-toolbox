@@ -21,6 +21,7 @@ import Data.Text (Text)
 import Control.Monad
 
 import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core.Util
 
 import Pdf.Toolbox.Content.Ops
 import Pdf.Toolbox.Content.Transform
@@ -85,7 +86,8 @@ data Processor = Processor {
   prState :: GraphicsState,
   prStateStack :: [GraphicsState],
   prGlyphDecoder :: GlyphDecoder,
-  prGlyphs :: [[Glyph]]         -- ^ Each element is a list of glyphs, drawn in one shot
+  prGlyphs :: [[Glyph]]
+  -- ^ Each element is a list of glyphs, drawn in one shot
   }
 
 -- | Create processor in initial state
@@ -98,16 +100,18 @@ mkProcessor = Processor {
   }
 
 -- | Process one operation
-processOp :: Monad m => Operator -> Processor -> PdfE m Processor
+processOp :: Operator -> Processor -> Either String Processor
 
-processOp (Op_q, []) p = return p {prStateStack = prState p : prStateStack p}
-processOp (Op_q, args) _ = left $ UnexpectedError $ "Op_q: wrong number of arguments: " ++ show args
+processOp (Op_q, []) p = Right p {prStateStack = prState p : prStateStack p}
+processOp (Op_q, args) _ = Left ("Op_q: wrong number of arguments: "
+                                ++ show args)
 
 processOp (Op_Q, []) p =
   case prStateStack p of
-    [] -> left $ UnexpectedError "Op_Q: state is empty"
-    (x:xs) -> return p {prState = x, prStateStack = xs}
-processOp (Op_Q, args) _ = left $ UnexpectedError $ "Op_Q: wrong number of arguments: " ++ show args
+    [] -> Left "Op_Q: state is empty"
+    (x:xs) -> Right p {prState = x, prStateStack = xs}
+processOp (Op_Q, args) _ = Left ("Op_Q: wrong number of arguments: "
+                                ++ show args)
 
 processOp (Op_BT, []) p = do
   ensureInTextObject False p
@@ -117,7 +121,8 @@ processOp (Op_BT, []) p = do
     gsTextMatrix = identity,
     gsTextLineMatrix = identity
     }}
-processOp (Op_BT, args) _ = left $ UnexpectedError $ "Op_BT: wrong number of arguments: " ++ show args
+processOp (Op_BT, args) _ = Left ("Op_BT: wrong number of arguments: "
+                                  ++ show args)
 
 processOp (Op_ET, []) p = do
   ensureInTextObject True p
@@ -125,121 +130,141 @@ processOp (Op_ET, []) p = do
   return p {prState = gstate {
     gsInText = False
     }}
-processOp (Op_ET, args) _ = left $ UnexpectedError $ "Op_ET: wrong number of arguments: " ++ show args
+processOp (Op_ET, args) _ = Left ("Op_ET: wrong number of arguments: "
+                                  ++ show args)
 
 processOp (Op_Td, [txo, tyo]) p = do
   ensureInTextObject True p
-  tx <- fromObject txo >>= realValue
-  ty <- fromObject tyo >>= realValue
+  tx <- realValue txo `notice` "Td: x should be a real value"
+  ty <- realValue tyo `notice` "Td: y should be a real value"
   let gstate = prState p
       tm = translate tx ty $ gsTextLineMatrix gstate
-  return p {prState = gstate {
+  Right p {prState = gstate {
     gsTextMatrix = tm,
     gsTextLineMatrix = tm
     }}
-processOp (Op_Td, args) _ = left $ UnexpectedError $ "Op_Td: wrong number of arguments: " ++ show args
+processOp (Op_Td, args) _ = Left ("Op_Td: wrong number of arguments: "
+                                  ++ show args)
 
 processOp (Op_TD, [txo, tyo]) p = do
-  l <- fromObject tyo >>= realValue
+  l <- realValue tyo `notice` "TD: y should be a real value"
   p' <- processOp (Op_TL, [ONumber $ NumReal $ negate l]) p
   processOp (Op_Td, [txo, tyo]) p'
-processOp (Op_TD, args) _ = left $ UnexpectedError $ "Op_TD: wrong number of arguments: " ++ show args
+processOp (Op_TD, args) _ = Left ("Op_TD: wrong number of arguments: "
+                                  ++ show args)
 
 processOp (Op_Tm, [a', b', c', d', e', f']) p = do
   ensureInTextObject True p
-  a <- fromObject a' >>= realValue
-  b <- fromObject b' >>= realValue
-  c <- fromObject c' >>= realValue
-  d <- fromObject d' >>= realValue
-  e <- fromObject e' >>= realValue
-  f <- fromObject f' >>= realValue
+  a <- realValue a' `notice` "Tm: a should be a real value"
+  b <- realValue b' `notice` "Tm: b should be a real value"
+  c <- realValue c' `notice` "Tm: c should be a real value"
+  d <- realValue d' `notice` "Tm: d should be a real value"
+  e <- realValue e' `notice` "Tm: e should be a real value"
+  f <- realValue f' `notice` "Tm: f should be a real value"
   let gstate = prState p
       tm = Transform a b c d e f
   return p {prState = gstate {
     gsTextMatrix = tm,
     gsTextLineMatrix = tm
     }}
-processOp (Op_Tm, args) _ = left $ UnexpectedError $ "Op_Tm: wrong number of arguments: " ++ show args
+processOp (Op_Tm, args) _ = Left ("Op_Tm: wrong number of arguments: "
+                                  ++ show args)
 
 processOp (Op_T_star, []) p = do
   ensureInTextObject True p
   let gstate = prState p
       l = gsTextLeading gstate
   processOp (Op_TD, map (ONumber . NumReal) [0, negate l]) p
-processOp (Op_T_star, args) _ = left $ UnexpectedError $ "Op_T_star: wrong number of arguments: " ++ show args
+processOp (Op_T_star, args) _ = Left ("Op_T_star: wrong number of arguments: "
+                                      ++ show args)
 
 processOp (Op_TL, [lo]) p = do
-  l <- fromObject lo >>= realValue
+  l <- realValue lo `notice` "TL: l should be a real value"
   let gstate = prState p
   return p {prState = gstate {
     gsTextLeading = l
     }}
-processOp (Op_TL, args) _ = left $ UnexpectedError $ "Op_TL: wrong number of arguments: " ++ show args
+processOp (Op_TL, args) _ = Left ("Op_TL: wrong number of arguments: "
+                                  ++ show args)
 
 processOp (Op_cm, [a', b', c', d', e', f']) p = do
-  a <- fromObject a' >>= realValue
-  b <- fromObject b' >>= realValue
-  c <- fromObject c' >>= realValue
-  d <- fromObject d' >>= realValue
-  e <- fromObject e' >>= realValue
-  f <- fromObject f' >>= realValue
+  a <- realValue a' `notice` "cm: a should be a real value"
+  b <- realValue b' `notice` "cm: b should be a real value"
+  c <- realValue c' `notice` "cm: c should be a real value"
+  d <- realValue d' `notice` "cm: d should be a real value"
+  e <- realValue e' `notice` "cm: e should be a real value"
+  f <- realValue f' `notice` "cm: f should be a real value"
   let gstate = prState p
       ctm = Transform a b c d e f `multiply` gsCurrentTransformMatrix gstate
   return p {prState = gstate {
     gsCurrentTransformMatrix = ctm
     }}
-processOp (Op_cm, args) _ = left $ UnexpectedError $ "Op_cm: wrong number of arguments: " ++ show args
+processOp (Op_cm, args) _ = Left ("Op_cm: wrong number of arguments: "
+                                  ++ show args)
 
 processOp (Op_Tf, [fontO, szO]) p = do
-  font <- fromObject fontO
-  sz <- fromObject szO >>= realValue
+  font <- nameValue fontO `notice` "Tf: font should be a name"
+  sz <- realValue szO `notice` "Tf: size should be a real value"
   let gstate = prState p
   return p {prState = gstate {
     gsFont = Just font,
     gsFontSize = Just sz
     }}
-processOp (Op_Tf, args) _ = left $ UnexpectedError $ "Op_Tf: wrong number of agruments: " ++ show args
+processOp (Op_Tf, args) _ = Left ("Op_Tf: wrong number of agruments: "
+                                  ++ show args)
 
 processOp (Op_Tj, [OStr str]) p = do
   let gstate = prState p
   fontName <-
     case gsFont gstate of
-      Nothing -> left $ UnexpectedError "Op_Tj: font not set"
+      Nothing -> Left "Op_Tj: font not set"
       Just fn -> return fn
   fontSize <-
     case gsFontSize gstate of
-      Nothing -> left $ UnexpectedError "Op_Tj: font size not set"
+      Nothing -> Left "Op_Tj: font size not set"
       Just fs -> return fs
-  let (tm, glyphs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate)
-                       (gsTextMatrix gstate) (gsTextCharSpacing gstate) (gsTextWordSpacing gstate) $
-                       prGlyphDecoder p fontName str
+  let (tm, glyphs) = positionGlyghs
+                       fontSize
+                       (gsCurrentTransformMatrix gstate)
+                       (gsTextMatrix gstate)
+                       (gsTextCharSpacing gstate)
+                       (gsTextWordSpacing gstate)
+                       (prGlyphDecoder p fontName str)
   return p {
     prGlyphs = prGlyphs p ++ [glyphs],
     prState = gstate {
       gsTextMatrix = tm
       }
     }
-processOp (Op_Tj, args) _ = left $ UnexpectedError $ "Op_Tj: wrong number of agruments:" ++ show args
+processOp (Op_Tj, args) _ = Left ("Op_Tj: wrong number of agruments:"
+                                  ++ show args)
 
 processOp (Op_TJ, [OArray (Array array)]) p = do
   let gstate = prState p
   fontName <-
     case gsFont gstate of
-      Nothing -> left $ UnexpectedError "Op_Tj: font not set"
+      Nothing -> Left "Op_Tj: font not set"
       Just fn -> return fn
   fontSize <-
     case gsFontSize gstate of
-      Nothing -> left $ UnexpectedError "Op_Tj: font size not set"
+      Nothing -> Left "Op_Tj: font size not set"
       Just fs -> return fs
   let (textMatrix, glyphs) = loop (gsTextMatrix gstate) [] array
         where
         loop tm res [] = (tm, reverse res)
-        loop tm res (OStr str : rest) = let (tm', gs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate)
-                                                          tm (gsTextCharSpacing gstate) (gsTextWordSpacing gstate)
-                                                          (prGlyphDecoder p fontName str)
-                                        in loop tm' (gs : res) rest
-        loop tm res (ONumber (NumInt i): rest) = loop (translate (fromIntegral (-i) * fontSize / 1000) 0 tm) res rest
-        loop tm res (ONumber (NumReal d): rest) = loop (translate (-d * fontSize / 1000) 0 tm) res rest
+        loop tm res (OStr str : rest) =
+          let (tm', gs) = positionGlyghs fontSize
+                                         (gsCurrentTransformMatrix gstate)
+                                         tm
+                                         (gsTextCharSpacing gstate)
+                                         (gsTextWordSpacing gstate)
+                                         (prGlyphDecoder p fontName str)
+          in loop tm' (gs : res) rest
+        loop tm res (ONumber (NumInt i): rest) =
+          loop (translate (fromIntegral (-i) * fontSize / 1000) 0 tm)
+                res rest
+        loop tm res (ONumber (NumReal d): rest) =
+          loop (translate (-d * fontSize / 1000) 0 tm) res rest
         loop tm res (_:rest) = loop tm res rest
   return p {
     prGlyphs = prGlyphs p ++ glyphs,
@@ -247,37 +272,48 @@ processOp (Op_TJ, [OArray (Array array)]) p = do
       gsTextMatrix = textMatrix
       }
     }
-processOp (Op_TJ, args) _ = left $ UnexpectedError $ "Op_TJ: wrong number of agruments:" ++ show args
+processOp (Op_TJ, args) _ = Left ("Op_TJ: wrong number of agruments:"
+                                  ++ show args)
 
 processOp (Op_Tc, [o]) p = do
-  spacing <- fromObject o >>= realValue
+  spacing <- realValue o `notice` "Tc: spacing should be a real value"
   let gstate = prState p
   return p {
     prState = gstate {
       gsTextCharSpacing = spacing
       }
     }
-processOp (Op_Tc, args) _ = left $ UnexpectedError $ "Op_Tc: wrong number of agruments:" ++ show args
+processOp (Op_Tc, args) _ = Left ("Op_Tc: wrong number of agruments:"
+                                  ++ show args)
 
 processOp (Op_Tw, [o]) p = do
-  spacing <- fromObject o >>= realValue
+  spacing <- realValue o `notice` "Tw: spacing should be a real value"
   let gstate = prState p
   return p {
     prState = gstate {
       gsTextWordSpacing = spacing
       }
     }
-processOp (Op_Tw, args) _ = left $ UnexpectedError $ "Op_Tw: wrong number of agruments:" ++ show args
+processOp (Op_Tw, args) _ = Left ("Op_Tw: wrong number of agruments:"
+                                  ++ show args)
 
 processOp _ p = return p
 
-ensureInTextObject :: Monad m => Bool -> Processor -> PdfE m ()
+ensureInTextObject :: Bool -> Processor -> Either String ()
 ensureInTextObject inText p =
-  unless (inText == gsInText (prState p)) $ left $
-    UnexpectedError $ "ensureInTextObject: expected: " ++ show inText ++ ", found: " ++ show (gsInText $ prState p)
+  unless (inText == gsInText (prState p)) $
+    Left $ "ensureInTextObject: expected: " ++ show inText ++ ", found: "
+          ++ show (gsInText $ prState p)
 
-positionGlyghs :: Double -> Transform Double -> Transform Double -> Double -> Double -> [(Glyph, Double)] -> (Transform Double, [Glyph])
-positionGlyghs fontSize ctm textMatrix charSpacing wordSpacing = go textMatrix []
+positionGlyghs :: Double
+               -> Transform Double
+               -> Transform Double
+               -> Double
+               -> Double
+               -> [(Glyph, Double)]
+               -> (Transform Double, [Glyph])
+positionGlyghs fontSize ctm textMatrix charSpacing wordSpacing
+  = go textMatrix []
   where
   go tm res [] = (tm, reverse res)
   go tm res ((g, width):gs) =

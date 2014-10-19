@@ -67,7 +67,9 @@ unicodeCMapNextGlyph cmap = go 1
   inRange glyph (start, end) = glyph >= start && glyph <= end
 
 toCode :: ByteString -> Int
-toCode bs = fst $ BS.foldr (\b (sm, i) -> (sm + fromIntegral b * i, i * 255)) (0, 1) bs
+toCode bs = fst $ BS.foldr (\b (sm, i) ->
+                    (sm + fromIntegral b * i, i * 255)) (0, 1) bs
+
 -- | Convert glyph to text
 --
 -- Note: one glyph can represent more then one char, e.g. for ligatures
@@ -77,7 +79,8 @@ unicodeCMapDecodeGlyph cmap glyph =
     Just txt -> Just txt
     Nothing ->
       case filter inRange (unicodeCMapRanges cmap) of
-        [(start, _, char)] -> Just (Text.singleton $ toEnum $ (fromEnum char) + (glyph - start))
+        [(start, _, char)] -> Just (Text.singleton $ toEnum
+                                    $ (fromEnum char) + (glyph - start))
         _ -> Nothing
   where
   inRange (start, end, _) = glyph >= start && glyph <= end
@@ -145,6 +148,7 @@ codeRangesParser = do
     _ <- P.char '>'
     return (i, j)
 
+-- XXX: wtf?!
 fromHex :: Monad m => ByteString -> m ByteString
 fromHex hex = do
   let (str, rest) = Base16.decode $ bsToLower hex
@@ -152,7 +156,11 @@ fromHex hex = do
     fail $ "Can't decode hex" ++ show rest
   return str
   where
-  bsToLower = BS.map $ fromIntegral . fromEnum . toLower . toEnum . fromIntegral
+  bsToLower = BS.map $ fromIntegral
+                     . fromEnum
+                     . toLower
+                     . toEnum
+                     . fromIntegral
 
 skipTillParser :: Parser a -> Parser a
 skipTillParser p = P.choice [

@@ -1,5 +1,5 @@
 name:                pdf-toolbox-content
-version:             0.0.3.1
+version:             0.1.0.0
 synopsis:            A collection of tools for processing PDF files
 license:             BSD3
 license-file:        LICENSE
@@ -32,11 +32,12 @@ library
                        Pdf.Toolbox.Content.TexGlyphList
                        Pdf.Toolbox.Content.Encoding.WinAnsi
                        Pdf.Toolbox.Content.Encoding.MacRoman
-  build-depends:       base >= 4.6 && < 4.8,
+  other-modules:       Prelude
+  build-depends:       base >= 4.5 && < 4.8,
                        containers,
                        attoparsec >= 0.10,
                        bytestring,
                        base16-bytestring,
                        text,
                        io-streams,
-                       pdf-toolbox-core >=0.0.2.0 && <0.0.4
+                       pdf-toolbox-core ==0.1.0.*

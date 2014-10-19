@@ -87,7 +87,7 @@ decodeStream filters (Stream dict istream) =
 buildFilterList :: Dict -> IO [(Name, Maybe Dict)]
 buildFilterList dict = do
   let f = fromMaybe ONull $ lookupDict "Filter" dict
-      p = fromMaybe ONull $ lookupDict "DecodeParams" dict
+      p = fromMaybe ONull $ lookupDict "DecodeParms" dict
   case (f, p) of
     (ONull, _) -> return []
     (OName fd, ONull) -> return [(fd, Nothing)]
