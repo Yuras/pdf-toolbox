@@ -60,8 +60,10 @@ test-suite test
   main-is:             test.hs
   other-modules:       Test.XRef
                        Test.Stream
+                       Test.Parser
   build-depends:       base >= 4.5 && < 4.8,
                        pdf-toolbox-core,
                        bytestring == 0.10.*,
+                       attoparsec >= 0.10,
                        io-streams,
                        hspec
