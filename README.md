@@ -1,6 +1,8 @@
 pdf-toolbox
 ===========
 
+[![Build Status](https://travis-ci.org/Yuras/pdf-toolbox.svg?branch=master)](https://travis-ci.org/Yuras/pdf-toolbox)
+
 A collection of tools for processing PDF files
 
 Features
