@@ -13,7 +13,7 @@ import qualified System.IO.Streams as Streams
 import System.Directory (getTemporaryDirectory, removeFile)
 
 import Pdf.Toolbox.Core
-import qualified Pdf.Toolbox.Document as Pdf
+import Pdf.Toolbox.Document
 
 import Test.Hspec
 
@@ -22,12 +22,13 @@ main = hspec $ do
   describe "simple.pdf" $ do
     it "should have title" $
       withSimpleFile $ \h -> do
-      pdf <- Pdf.withHandle h
-      maybe_info <- Pdf.document pdf >>= Pdf.info
+      pdf <- pdfWithHandle h
+      doc <- document pdf
+      maybe_info <- documentInfo doc
       title <-
         case maybe_info of
           Nothing -> return Nothing
-          Just info -> Pdf.title info
+          Just info -> infoTitle info
       title `shouldBe` Just "simple PDF file"
 
 -- | Generate simple PDF file for tests
@@ -41,7 +42,7 @@ withSimpleFile action = do
   out <- Streams.handleToOutputStream h
   runPdfWriter out $ do
     writePdfHeader
-    deleteObject (Pdf.Ref 0 1) 65535
+    deleteObject (Ref 0 1) 65535
     forM_ objects $ \(ref, obj) ->
       writeObject ref obj
     writeXRefTable 0 tr

@@ -3,8 +3,8 @@
 module Pdf.Toolbox.Document.Pdf
 (
   Pdf,
-  withFile,
-  withHandle,
+  pdfWithFile,
+  pdfWithHandle,
   document,
   lookupObject,
   streamContent,
@@ -32,14 +32,14 @@ import Pdf.Toolbox.Document.Internal.Types
 import Pdf.Toolbox.Document.Encryption
 
 -- | Make Pdf with interface to pdf file
-withFile :: File -> IO Pdf
-withFile f = Pdf f <$> newIORef Nothing
+pdfWithFile :: File -> IO Pdf
+pdfWithFile f = Pdf f <$> newIORef Nothing
 
 -- | Make Pdf with seekable handle
-withHandle :: Handle -> IO Pdf
-withHandle h = do
+pdfWithHandle :: Handle -> IO Pdf
+pdfWithHandle h = do
   buf <- handleToBuffer h
-  File.withBuffer knownFilters buf >>= withFile
+  File.withBuffer knownFilters buf >>= pdfWithFile
 
 file :: Pdf -> File
 file (Pdf f _) = f

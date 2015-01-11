@@ -5,10 +5,10 @@
 module Pdf.Toolbox.Document.Page
 (
   Page,
-  parentNode,
-  contents,
-  mediaBox,
-  fontDicts,
+  pageParentNode,
+  pageContents,
+  pageMediaBox,
+  pageFontDicts,
   --pageExtractText,
 )
 where
@@ -28,8 +28,8 @@ import Pdf.Toolbox.Document.Internal.Types
 import Pdf.Toolbox.Document.Internal.Util
 
 -- | Page's parent node
-parentNode :: Page -> IO PageNode
-parentNode (Page pdf _ dict) = do
+pageParentNode :: Page -> IO PageNode
+pageParentNode (Page pdf _ dict) = do
   ref <- sure $ (lookupDict "Parent" dict >>= refValue)
       `notice` "Parent should be a reference"
   node <- loadPageNode pdf ref
@@ -39,8 +39,8 @@ parentNode (Page pdf _ dict) = do
       "page parent should be a note, but leaf found" []
 
 -- | List of references to page's content streams
-contents :: Page -> IO [Ref]
-contents (Page pdf pageRef dict) =
+pageContents :: Page -> IO [Ref]
+pageContents (Page pdf pageRef dict) =
   message ("contents for page: " ++ show pageRef) $ do
   case lookupDict "Contents" dict of
     Nothing -> return []
@@ -59,8 +59,8 @@ contents (Page pdf pageRef dict) =
     _ -> throw $ Corrupted "Unexpected value in page contents" []
 
 -- | Media box, inheritable
-mediaBox :: Page -> IO (Rectangle Double)
-mediaBox page = mediaBoxRec (PageTreeLeaf page)
+pageMediaBox :: Page -> IO (Rectangle Double)
+pageMediaBox page = mediaBoxRec (PageTreeLeaf page)
 
 mediaBoxRec :: PageTree -> IO (Rectangle Double)
 mediaBoxRec tree = do
@@ -82,12 +82,12 @@ mediaBoxRec tree = do
             case parent of
               Nothing -> throw $ Corrupted "Media box not found" []
               Just p -> return (PageTreeNode p)
-          PageTreeLeaf page -> PageTreeNode <$> parentNode page
+          PageTreeLeaf page -> PageTreeNode <$> pageParentNode page
       mediaBoxRec parent
 
 -- | Font dictionaries for the page
-fontDicts :: Page -> IO [(Name, FontDict)]
-fontDicts (Page pdf _ dict) =
+pageFontDicts :: Page -> IO [(Name, FontDict)]
+pageFontDicts (Page pdf _ dict) =
   case lookupDict "Resources" dict of
     Nothing -> return []
     Just res -> do

@@ -42,12 +42,12 @@ Inspect high level structure:
 
 	main =
 	  withBinaryFile "input.pdf" ReadMode $ \handle ->
-	    runPdfWithHandle handle knownFilters $ do
-	      pdf <- document
-	      catalog <- documentCatalog pdf
-	      rootNode <- catalogPageNode catalog
-	      count <- pageNodeNKids rootNode
-	      liftIO $ print count
-	      -- the first page of the document
-	      page <- pageNodePageByNum rootNode 0
-	      liftIO $ print page
+            pdf <- pdfWithHandle handle
+	    doc <- document pdf
+	    catalog <- documentCatalog doc
+	    rootNode <- catalogPageNode catalog
+	    count <- pageNodeNKids rootNode
+	    liftIO $ print count
+	    -- the first page of the document
+	    page <- pageNodePageByNum rootNode 0
+	    ...

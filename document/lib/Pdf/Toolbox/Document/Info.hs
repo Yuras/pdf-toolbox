@@ -4,7 +4,7 @@
 
 module Pdf.Toolbox.Document.Info
 (
-  title
+  infoTitle
 )
 where
 
@@ -17,8 +17,8 @@ import Pdf.Toolbox.Document.Pdf
 import Pdf.Toolbox.Document.Internal.Types
 
 -- | Document title
-title :: Info -> IO (Maybe ByteString)
-title (Info pdf _ dict) =
+infoTitle :: Info -> IO (Maybe ByteString)
+infoTitle (Info pdf _ dict) =
   case lookupDict "Title" dict of
     Nothing -> return Nothing
     Just o -> do

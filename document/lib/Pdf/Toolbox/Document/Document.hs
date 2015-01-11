@@ -5,9 +5,9 @@
 module Pdf.Toolbox.Document.Document
 (
   Document,
-  catalog,
-  info,
-  encryption
+  documentCatalog,
+  documentInfo,
+  documentEncryption
 )
 where
 
@@ -26,8 +26,8 @@ pdf :: Document -> Pdf
 pdf (Document p _) = p
 
 -- | Get the document catalog
-catalog :: Document -> IO Catalog
-catalog doc = do
+documentCatalog :: Document -> IO Catalog
+documentCatalog doc = do
   ref <- sure $ (lookupDict "Root" (dict doc) >>= refValue)
     `notice` "trailer: Root should be an indirect reference"
   obj <- lookupObject (pdf doc) ref
@@ -35,8 +35,8 @@ catalog doc = do
   return (Catalog (pdf doc) ref d)
 
 -- | Infornation dictionary for the document
-info :: Document -> IO (Maybe Info)
-info doc = do
+documentInfo :: Document -> IO (Maybe Info)
+documentInfo doc = do
   case lookupDict "Info" (dict doc) of
     Nothing -> return Nothing
     Just (ORef ref) -> do
@@ -46,8 +46,8 @@ info doc = do
     _ -> throw $ Corrupted "document Info should be an indirect reference" []
 
 -- | Document encryption dictionary
-encryption :: Document -> IO (Maybe Dict)
-encryption doc = do
+documentEncryption :: Document -> IO (Maybe Dict)
+documentEncryption doc = do
   case lookupDict "Encrypt" (dict doc) of
     Nothing -> return Nothing
     Just o -> do

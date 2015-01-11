@@ -4,13 +4,15 @@
 -- Basic example how to get number of pages in document
 --
 -- @
+--  import Pdf.Toolbox.Document
+--
 --  withBinaryFile \"input.pdf\" ReadMode $ \handle ->
---    'runPdfWithHandle' handle 'knownFilters' $ do
---      pdf <- 'document'
---      catalog <- 'documentCatalog' pdf
---      rootNode <- 'catalogPageNode' catalog
---      cout <- 'pageNodeNKids' rootNode
---      liftIO $ print count
+--    pdf <- 'pdfWithHandle' handle
+--    doc <- 'document' pdf
+--    catalog <- 'documentCatalog' doc
+--    rootNode <- 'catalogPageNode' catalog
+--    count <- 'pageNodeNKids' rootNode
+--    print count
 -- @
 
 module Pdf.Toolbox.Document

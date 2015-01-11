@@ -5,7 +5,7 @@
 module Pdf.Toolbox.Document.Catalog
 (
   Catalog,
-  pageNode
+  catalogPageNode
 )
 where
 
@@ -17,8 +17,8 @@ import Pdf.Toolbox.Document.Internal.Types
 import Pdf.Toolbox.Document.Internal.Util
 
 -- | Get root node of page tree
-pageNode :: Catalog -> IO PageNode
-pageNode (Catalog pdf _ dict) = do
+catalogPageNode :: Catalog -> IO PageNode
+catalogPageNode (Catalog pdf _ dict) = do
   ref <- sure $
     (lookupDict "Pages" dict >>= refValue)
     `notice` "Pages should be an indirect reference"
