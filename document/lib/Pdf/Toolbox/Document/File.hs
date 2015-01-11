@@ -56,8 +56,10 @@ withBuffer filters buf = do
 
 findObject :: File_ -> Ref -> IO (Object Int64)
 findObject file ref =
-  lookupEntryRec file ref
-  >>= readObjectForEntry file
+  (lookupEntryRec file ref
+  >>= readObjectForEntry file)
+    -- unknown type should be interpreted as reference to null object
+    `catch` \(UnknownXRefStreamEntryType _) -> return ONull
 
 streamContent :: File_ -> Stream Int64 -> IO (InputStream ByteString)
 streamContent file s@(Stream dict _) = do

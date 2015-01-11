@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 -- | Cross reference
 
@@ -14,10 +15,12 @@ module Pdf.Toolbox.Core.XRef
   trailer,
   lookupTableEntry,
   lookupStreamEntry,
-  isTable
+  isTable,
+  UnknownXRefStreamEntryType(..),
 )
 where
 
+import Data.Typeable
 import Data.Int
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
@@ -170,7 +173,8 @@ lookupTableEntry _ XRefStream{} _ =
 
 -- | Read xref entry for the indirect object from xref stream
 --
--- See pdf1.7 spec: 7.5.8 Cross-Reference Streams
+-- See pdf1.7 spec: 7.5.8 Cross-Reference Streams.
+-- May throw 'UnknownXRefStreamEntryType'
 lookupStreamEntry
   :: Stream (InputStream ByteString)  -- ^ decoded xref stream content
   -> Ref                              -- ^ indirect object
@@ -240,5 +244,10 @@ lookupStreamEntry (Stream dict is) (Ref objNumber _) =
         1 -> return $ Just $ StreamEntryUsed v2 (fromIntegral v3)
         2 -> return $ Just $ StreamEntryCompressed (fromIntegral v2)
                                                    (fromIntegral v3)
-        _ -> throw $ Corrupted ("Unexpected xref stream entry type: "
-                                ++ show v1) []
+        _ -> throw $ UnknownXRefStreamEntryType (fromIntegral v1)
+
+-- | Unknown entry type should be interpreted as reference to null object
+data UnknownXRefStreamEntryType = UnknownXRefStreamEntryType Int
+  deriving (Show, Typeable)
+
+instance Exception UnknownXRefStreamEntryType
