@@ -45,3 +45,15 @@ library
                        cryptohash,
                        pdf-toolbox-core ==0.1.0.*,
                        pdf-toolbox-content ==0.1.0.*
+
+test-suite test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             test.hs
+  build-depends:       base >= 4.5 && < 4.8,
+                       bytestring == 0.10.*,
+                       directory,
+                       io-streams,
+                       hspec,
+                       pdf-toolbox-core,
+                       pdf-toolbox-document
