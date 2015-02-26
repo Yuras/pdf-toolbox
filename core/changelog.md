@@ -1,3 +1,8 @@
+unreleased
+
+* interpret unknown xref stream entry type as reference to null object
+* support 1- and 2-digit escapes sequence in literal string
+* rework API
 
 0.0.3.0
 

@@ -1,3 +1,7 @@
+unreleased
+
+* rework API
+* interpret unknown xref stream entry type as reference to null object
 
 0.0.4.0
 
