@@ -5,6 +5,7 @@
 module Pdf.Toolbox.Document.Encryption
 (
   Decryptor,
+  DecryptorScope(..),
   defaultUserPassword,
   mkStandardDecryptor,
   decryptObject
@@ -27,32 +28,38 @@ import qualified Crypto.Hash.MD5 as MD5
 import Pdf.Toolbox.Core
 import Pdf.Toolbox.Core.Util
 
+-- | Encryption handler may specify different encryption keys for strings
+-- and streams
+data DecryptorScope
+  = DecryptString
+  | DecryptStream
+
 -- | Decrypt input stream
-type Decryptor = Ref -> InputStream ByteString -> IO (InputStream ByteString)
+type Decryptor
+  =  Ref
+  -> DecryptorScope
+  -> InputStream ByteString
+  -> IO (InputStream ByteString)
 
 -- | Decrypt object with the decryptor
-decryptObject :: (InputStream ByteString -> IO (InputStream ByteString))
-              -> Object a
-              -> IO (Object a)
-decryptObject decryptor (OStr str) = OStr <$> decryptStr decryptor str
-decryptObject decryptor (ODict dict) = ODict <$> decryptDict decryptor dict
-decryptObject _ o = return o
+decryptObject :: Decryptor -> Ref -> Object a -> IO (Object a)
+decryptObject decryptor ref (OStr str)
+  = OStr <$> decryptStr decryptor ref str
+decryptObject decryptor ref (ODict dict)
+  = ODict <$> decryptDict decryptor ref dict
+decryptObject _ _ o = return o
 
-decryptStr :: (InputStream ByteString -> IO (InputStream ByteString))
-           -> Str
-           -> IO Str
-decryptStr decryptor (Str str) = do
+decryptStr :: Decryptor -> Ref -> Str -> IO Str
+decryptStr decryptor ref (Str str) = do
   is <- Streams.fromList [str]
-  res <- decryptor is >>= Streams.toList
+  res <- decryptor ref DecryptString is >>= Streams.toList
   return $ Str $ BS.concat res
 
-decryptDict :: (InputStream ByteString -> IO (InputStream ByteString))
-            -> Dict
-            -> IO Dict
-decryptDict decryptor (Dict vals) = Dict <$> forM vals decr
+decryptDict :: Decryptor -> Ref -> Dict -> IO Dict
+decryptDict decryptor ref (Dict vals) = Dict <$> forM vals decr
   where
   decr (key, val) = do
-    res <- decryptObject decryptor val
+    res <- decryptObject decryptor ref val
     return (key, res)
 
 -- | The default user password
@@ -141,7 +148,7 @@ mkStandardDecryptor tr enc pass = do
                                             $ BS.map (`xor` i) ekey) input
             in BS.take 16 uVal == BS.take 16 uVal'
 
-  let decryptor = \(Ref index gen) is -> do
+  let decryptor = \(Ref index gen) _ is -> do
         let key = BS.take (16 `min` n + 5) $ MD5.hash $ BS.concat [
               ekey,
               BS.pack $ take 3 $ BSL.unpack $ toLazyByteString

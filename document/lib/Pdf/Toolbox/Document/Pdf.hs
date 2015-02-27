@@ -59,8 +59,14 @@ streamContent :: Pdf
               -> Ref
               -> Stream Int64
               -> IO (Stream (InputStream ByteString))
-streamContent pdf _ref s@(Stream dict _) =
-  Stream dict <$> File.stream (file pdf) s
+streamContent pdf ref s@(Stream dict _) = do
+  is <- File.stream (file pdf) s
+  maybe_decryptor <- readIORef decrRef
+  case maybe_decryptor of
+    Nothing -> return (Stream dict is)
+    Just decryptor -> Stream dict <$> decryptor ref DecryptStream is
+  where
+  Pdf _ decrRef = pdf
 
 -- | Recursively load indirect object
 deref :: Pdf -> Object a -> IO (Object ())
@@ -115,4 +121,4 @@ decrypt (Pdf _ decr_ref) ref o = do
   maybe_decr <- readIORef decr_ref
   case maybe_decr of
     Nothing -> return o
-    Just decr -> decryptObject (decr ref) o
+    Just decr -> decryptObject decr ref o
