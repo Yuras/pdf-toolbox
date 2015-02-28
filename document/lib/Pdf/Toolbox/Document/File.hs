@@ -14,6 +14,7 @@ where
 
 import Data.Int
 import Data.Typeable
+import Data.IORef
 import Data.ByteString (ByteString)
 import Control.Applicative
 import Control.Monad
@@ -24,42 +25,49 @@ import Pdf.Toolbox.Core hiding (trailer)
 import qualified Pdf.Toolbox.Core as Core
 import Pdf.Toolbox.Core.Util
 
+import Pdf.Toolbox.Document.Encryption
+
 -- | PDF file
 --
 -- It doesn't perform decryption or decoding
 data File = File
-  { object :: Ref -> IO (Object Int64)
+  { object :: Ref -> IO (Object Int64, Bool)
   , stream :: Stream Int64 -> IO (InputStream ByteString)
   , trailer :: IO Dict
+  , setDecryptor :: Decryptor -> IO ()
   }
 
 data File_ = File_
   { _lastXRef :: XRef
   , _buffer :: Buffer
   , _filters :: [StreamFilter]
+  , _decrRef :: IORef (Maybe Decryptor)
   }
 
 -- | PDF file from buffer
 withBuffer :: [StreamFilter] -> Buffer -> IO File
 withBuffer filters buf = do
   xref <- lastXRef buf
+  decrRef <- newIORef Nothing
   let file = File_
         { _lastXRef = xref
         , _buffer = buf
         , _filters = filters
+        , _decrRef = decrRef
         }
   return File
     { object = findObject file
     , stream = streamContent file
     , trailer = Core.trailer buf xref
+    , setDecryptor = writeIORef decrRef . Just
     }
 
-findObject :: File_ -> Ref -> IO (Object Int64)
+findObject :: File_ -> Ref -> IO (Object Int64, Bool)
 findObject file ref =
   (lookupEntryRec file ref
   >>= readObjectForEntry file)
     -- unknown type should be interpreted as reference to null object
-    `catch` \(UnknownXRefStreamEntryType _) -> return ONull
+    `catch` \(UnknownXRefStreamEntryType _) -> return (ONull, False)
 
 streamContent :: File_ -> Stream Int64 -> IO (InputStream ByteString)
 streamContent file s@(Stream dict _) = do
@@ -68,33 +76,39 @@ streamContent file s@(Stream dict _) = do
     case obj of
       ONumber _ -> sure $ intValue obj `notice` "Length should be an integer"
       ORef ref -> do
-        o <- findObject file ref
+        (o, _) <- findObject file ref
         sure $ intValue o `notice` "Length should be an integer"
       _ -> throw $ Corrupted "Length should be an integer" []
   rawStreamContent (_buffer file) len s
 
-readObjectForEntry :: File_-> XRefEntry -> IO (Object Int64)
+readObjectForEntry :: File_-> XRefEntry -> IO (Object Int64, Bool)
 readObjectForEntry file (XRefTableEntry entry)
-  | teIsFree entry = return ONull
+  | teIsFree entry = return (ONull, False)
   | otherwise = do
     (Ref _ gen, obj) <- readObjectAtOffset (_buffer file) (teOffset entry)
     unless (gen == teGen entry) $
       throw (Corrupted "readObjectForEntry" ["object generation missmatch"])
-    return obj
+    return (obj, False)
 readObjectForEntry file (XRefStreamEntry entry) =
   case entry of
-    StreamEntryFree{} -> return ONull
-    StreamEntryUsed off _ ->
-      snd <$> readObjectAtOffset (_buffer file) off
+    StreamEntryFree{} -> return (ONull, False)
+    StreamEntryUsed off _ -> do
+      obj <- readObjectAtOffset (_buffer file) off
+      return (snd obj, False)
     StreamEntryCompressed index num -> do
       objStream@(Stream dict _) <- do
-        o <- findObject file (Ref index 0)
+        (o, _) <- findObject file (Ref index 0)
         sure $ streamValue o `notice` "Compressed entry should be in stream"
       first <- sure $ (lookupDict "First" dict >>= intValue)
           `notice` "First should be an integer"
       raw <- streamContent file objStream
-      decoded <- decodeStream (_filters file) (Stream dict raw)
-      conv <$> readCompressedObject decoded (fromIntegral first) num
+      decrypted <-
+        readIORef (_decrRef file)
+        >>= maybe (return raw)
+          (\decr -> decr (Ref index 0) DecryptStream raw)
+      decoded <- decodeStream (_filters file) (Stream dict decrypted)
+      obj <- readCompressedObject decoded (fromIntegral first) num
+      return (conv obj, True)
   where
   conv (OStr v) = OStr v
   conv (OName v) = OName v

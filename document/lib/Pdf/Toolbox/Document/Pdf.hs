@@ -54,11 +54,15 @@ document pdf = Document pdf <$> File.trailer (file pdf)
 
 -- | Find object by it's reference
 lookupObject :: Pdf -> Ref -> IO (Object Int64)
-lookupObject pdf ref =
-  File.object (file pdf) ref
-  >>= decrypt pdf ref
+lookupObject pdf ref = do
+  (obj, decrypted) <- File.object (file pdf) ref
+  if decrypted
+    then return obj
+    else decrypt pdf ref obj
 
 -- | Get stream content, decoded and decrypted
+--
+-- Note: length of the content may differ from the raw one
 streamContent :: Pdf
               -> Ref
               -> Stream Int64
@@ -77,6 +81,10 @@ rawStreamContent pdf s@(Stream dict _) =
   Stream dict <$> File.stream (file pdf) s
 
 -- | Decrypt stream content
+--
+-- Note: length may change when decrypting. E.g. AESV2 encryption handler
+-- stored initializing vector in the first 16 bytes of the stream, and we
+-- strip them here.
 decryptStream
   :: Pdf
   -> Ref
@@ -145,6 +153,7 @@ setUserPassword pdf pass = message "setUserPassword" $ do
     Right (Just decr) -> do
       let Pdf _ ref = pdf
       writeIORef ref (Just decr)
+      File.setDecryptor (file pdf) decr
       return True
 
 -- | Decrypt PDF object using user password is set
