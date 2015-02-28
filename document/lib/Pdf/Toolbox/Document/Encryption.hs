@@ -47,6 +47,8 @@ decryptObject decryptor ref (OStr str)
   = OStr <$> decryptStr decryptor ref str
 decryptObject decryptor ref (ODict dict)
   = ODict <$> decryptDict decryptor ref dict
+decryptObject decryptor ref (OArray arr)
+  = OArray <$> decryptArray decryptor ref arr
 decryptObject _ _ o = return o
 
 decryptStr :: Decryptor -> Ref -> Str -> IO Str
@@ -61,6 +63,11 @@ decryptDict decryptor ref (Dict vals) = Dict <$> forM vals decr
   decr (key, val) = do
     res <- decryptObject decryptor ref val
     return (key, res)
+
+decryptArray :: Decryptor -> Ref -> Array -> IO Array
+decryptArray decryptor ref (Array vals) = Array <$> forM vals decr
+  where
+  decr = decryptObject decryptor ref
 
 -- | The default user password
 defaultUserPassword :: ByteString
