@@ -8,6 +8,9 @@ module Pdf.Toolbox.Document.Pdf
   document,
   lookupObject,
   streamContent,
+  rawStreamContent,
+  decryptStream,
+  decodeStream,
   deref,
   isEncrypted,
   setUserPassword,
@@ -24,7 +27,8 @@ import Control.Exception
 import System.IO (Handle)
 import System.IO.Streams (InputStream)
 
-import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core hiding (rawStreamContent, decodeStream)
+import qualified Pdf.Toolbox.Core as Core
 
 import Pdf.Toolbox.Document.File (File)
 import qualified Pdf.Toolbox.Document.File as File
@@ -59,14 +63,42 @@ streamContent :: Pdf
               -> Ref
               -> Stream Int64
               -> IO (Stream (InputStream ByteString))
-streamContent pdf ref s@(Stream dict _) = do
-  is <- File.stream (file pdf) s
+streamContent pdf ref s =
+  rawStreamContent pdf s
+  >>= decryptStream pdf ref
+  >>= decodeStream pdf
+
+-- | Get stream content without decrypting or decoding it
+rawStreamContent
+  :: Pdf
+  -> Stream Int64
+  -> IO (Stream (InputStream ByteString))
+rawStreamContent pdf s@(Stream dict _) =
+  Stream dict <$> File.stream (file pdf) s
+
+-- | Decrypt stream content
+decryptStream
+  :: Pdf
+  -> Ref
+  -> Stream (InputStream ByteString)
+  -> IO (Stream (InputStream ByteString))
+decryptStream pdf ref (Stream dict is) = do
   maybe_decryptor <- readIORef decrRef
   case maybe_decryptor of
     Nothing -> return (Stream dict is)
     Just decryptor -> Stream dict <$> decryptor ref DecryptStream is
   where
   Pdf _ decrRef = pdf
+
+-- | Decode stream content
+--
+-- It should be already decrypted
+decodeStream
+  :: Pdf
+  -> Stream (InputStream ByteString)
+  -> IO (Stream (InputStream ByteString))
+decodeStream _pdf s@(Stream dict _) =
+  Stream dict <$> Core.decodeStream knownFilters s
 
 -- | Recursively load indirect object
 deref :: Pdf -> Object a -> IO (Object ())
