@@ -5,6 +5,7 @@ module Pdf.Toolbox.Core.Object.Util
 (
   lookupDict,
   intValue,
+  boolValue,
   realValue,
   nameValue,
   stringValue,
@@ -29,6 +30,11 @@ lookupDict key (Dict d) = lookup key d
 intValue :: Object a -> Maybe Int
 intValue (ONumber (NumInt i)) = Just i
 intValue _ = Nothing
+
+-- | Try to convert object to 'Bool'
+boolValue :: Object a -> Maybe Bool
+boolValue (OBoolean (Boolean b)) = Just b
+boolValue _ = Nothing
 
 -- | Try to convert object to 'Double'
 --
