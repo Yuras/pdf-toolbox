@@ -9,7 +9,6 @@ where
 import qualified Data.ByteString as ByteString
 import Control.Monad
 import qualified System.IO.Streams as Streams
-import qualified System.IO.Streams.Attoparsec as Streams
 
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.XRef
@@ -47,10 +46,10 @@ spec = do
       readXRef buf 5
       ) `shouldReturn` XRefStream 5 (Stream (Dict []) 25)
 
-    it "should throw ParseException if xref not found" $ (do
+    it "should throw exception if xref not found" $ (do
       buf <- bytesToBuffer "hello\n"
       readXRef buf 0
-      ) `shouldThrow` \(Streams.ParseException _) -> True
+      ) `shouldThrow` anyException
 
 
   describe "lastXRef" $ do
