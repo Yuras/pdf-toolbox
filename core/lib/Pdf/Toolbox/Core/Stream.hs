@@ -38,6 +38,7 @@ readStream :: InputStream ByteString -> Int64 -> IO (Stream Int64)
 readStream is off = do
   (is', counter) <- Streams.countInput is
   (_, obj) <- Streams.parseFromStream parseIndirectObject is'
+    `catch` \(Streams.ParseException msg) -> throwIO (Corrupted msg [])
   case obj of
     OStream (Stream dict _) -> Stream dict . (+off) . fromIntegral <$> counter
     _ -> throw $ Streams.ParseException ("stream expected, but got: "

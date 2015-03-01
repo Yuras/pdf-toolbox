@@ -37,10 +37,11 @@ notice (Just a) = const (Right a)
 readObjectAtOffset :: Buffer
                    -> Int64   -- ^ object offset
                    -> IO (Ref, Object Int64)
-readObjectAtOffset buf off = do
+readObjectAtOffset buf off = message "readObjectAtOffset" $ do
   bufferSeek buf off
   (ref, o) <- Streams.parseFromStream parseIndirectObject
     (bufferToInputStream buf)
+      `catch` \(Streams.ParseException msg) -> throw (Corrupted msg [])
   o' <-
     case o of
       ONumber val -> return $ ONumber val
@@ -69,7 +70,7 @@ readCompressedObject is first num = do
   (is', counter) <- Streams.countInput is
   off <- do
     res <- Streams.parseFromStream (replicateM (num + 1) headerP) is'
-      `catch` \(Streams.ParseException msg) -> throw $ Corrupted
+      `catch` \(Streams.ParseException msg) -> throwIO $ Corrupted
         "Object stream" [msg]
     when (null res) $
       error "readCompressedObject: imposible"
@@ -78,7 +79,7 @@ readCompressedObject is first num = do
   pos <- counter
   dropExactly (fromIntegral $ first + off - pos) is
   Streams.parseFromStream parseObject is
-    `catch` \(Streams.ParseException msg) -> throw $ Corrupted
+    `catch` \(Streams.ParseException msg) -> throwIO $ Corrupted
       "Object in object stream" [msg]
   where
   headerP :: Parser (Int, Int64)

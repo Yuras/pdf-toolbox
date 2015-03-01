@@ -122,8 +122,11 @@ trailer buf (XRefTable off) = do
 trailer _ (XRefStream _ (Stream dict _)) = return dict
 
 skipTable :: InputStream ByteString -> IO ()
-skipTable is =
-  subsectionHeader is >>= go . snd
+skipTable is = message "skipTable" $
+  (subsectionHeader is
+    `catch` \(Streams.ParseException msg) ->
+      throw (Corrupted msg []))
+    >>= go . snd
   where
   go count = nextSubsectionHeader is count >>= maybe (return ()) (go . snd)
 
@@ -131,7 +134,7 @@ subsectionHeader :: InputStream ByteString -> IO (Int, Int)
 subsectionHeader = Streams.parseFromStream parseSubsectionHeader
 
 nextSubsectionHeader :: InputStream ByteString -> Int -> IO (Maybe (Int, Int))
-nextSubsectionHeader is count = do
+nextSubsectionHeader is count = message "nextSubsectionHeader" $ do
   skipSubsection is count
   fmap Just (subsectionHeader is)
     `catch` \(Streams.ParseException _) -> return Nothing
@@ -161,6 +164,8 @@ lookupTableEntry buf (XRefTable tableOff) (Ref index gen)
           >>= bufferSeek buf . (+ (fromIntegral $ index - start) * 20)
         (off, gen', free) <-
           Streams.parseFromStream parseTableEntry (bufferToInputStream buf)
+            `catch` \(Streams.ParseException msg) ->
+              throw (Corrupted "parseTableEntry failed" [msg])
         unless (gen == gen') $
           throw $ Corrupted "Generation mismatch" []
         return $ Just $ TableEntry off gen free
