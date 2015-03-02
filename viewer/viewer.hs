@@ -21,7 +21,7 @@ import System.FilePath
 import System.Random (randomIO)
 import System.Process
 import System.Exit
-import Graphics.UI.Gtk hiding (Rectangle, FontMap)
+import Graphics.UI.Gtk hiding (Rectangle, FontMap, rectangle)
 import Graphics.Rendering.Cairo hiding (transform, Glyph)
 
 import Pdf.Toolbox.Document
