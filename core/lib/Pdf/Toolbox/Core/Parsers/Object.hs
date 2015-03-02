@@ -23,6 +23,7 @@ module Pdf.Toolbox.Core.Parsers.Object
 )
 where
 
+import Data.List
 import Data.Char
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
@@ -34,6 +35,7 @@ import qualified Data.Scientific as Scientific
 #endif
 
 import Control.Applicative
+import Control.Monad
 
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Parsers.Util
@@ -123,11 +125,28 @@ parseStr = do
                  't' -> takeStr lvl ('\t' : res)
                  '\r' -> takeStr lvl res
                  _ -> do
-                   ch1 <- P.anyChar
-                   ch2 <- P.anyChar
-                   takeStr lvl (toEnum (charToInt ch' * 64 + charToInt ch1 * 8 + charToInt ch2) : res)
+                   ds <- take3Digits [ch']
+                   let i = toEnum
+                         . foldl'
+                             (\acc (a, b) -> acc + a * charToInt b)
+                             0
+                         . zip [1, 8, 64]
+                         $ ds
+                   takeStr lvl (i : res)
       _ -> takeStr lvl (ch : res)
   charToInt ch = fromEnum ch - 48
+  take3Digits ds
+    | length ds >= 3
+    = return ds
+    | otherwise
+    = do
+      d <- P.peekChar'
+      if isDigit d
+        then do
+          void P.anyChar
+          take3Digits (d : ds)
+        else
+          return (ds ++ repeat '0')
 
 -- |
 -- >>> parseOnly parseHexStr "<68656C6C6F>"
