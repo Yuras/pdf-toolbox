@@ -1,3 +1,6 @@
+unreleased
+
+* support 1- and 2-digit escapes sequence in literal string
 
 0.0.3.0
 
