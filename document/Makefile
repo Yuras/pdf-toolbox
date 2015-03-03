@@ -8,5 +8,5 @@ clean:
 	cabal clean
 
 build:
-	cabal build -j
+	cabal build -j --only
 	cabal haddock --hyperlink-sources

@@ -25,6 +25,7 @@ import Graphics.UI.Gtk hiding (Rectangle, FontMap, rectangle)
 import Graphics.Rendering.Cairo hiding (transform, Glyph)
 
 import Pdf.Toolbox.Document
+import Pdf.Toolbox.Document.Encryption
 import Pdf.Toolbox.Content
 
 data ViewerState = ViewerState {
@@ -249,8 +250,8 @@ startRender mvar page = do
     decryptor <- do
       dec <- getDecryptor
       case dec of
-        Nothing -> return (const return)
-        Just d -> return d
+        Nothing -> return $ \_ is -> return is
+        Just d -> return $ \ref is -> d ref DecryptStream is
     is <- parseContentStream ris knownFilters decryptor streams
 
     let loop p = do

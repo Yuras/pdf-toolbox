@@ -42,6 +42,8 @@ library
                        bytestring,
                        io-streams,
                        cipher-rc4,
+                       cipher-aes,
                        cryptohash,
+                       crypto-api,
                        pdf-toolbox-core >=0.0.2 && <0.0.4,
                        pdf-toolbox-content ==0.0.3.*

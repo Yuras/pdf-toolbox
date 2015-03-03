@@ -73,7 +73,7 @@ instance MonadIO m => MonadPdf (Pdf' m) where
       dec <- getDecryptor
       case dec of
         Nothing -> return return
-        Just d -> return $ d ref
+        Just d -> return $ d ref DecryptStream
     takeStreamContent decryptor s
   getDecryptor = lift $ Pdf' $ gets stDecryptor
   getRIS = lift $ Pdf' $ gets stRIS
@@ -246,4 +246,4 @@ decrypt ref o = do
   decryptor <- getDecryptor
   case decryptor of
     Nothing -> return o
-    Just decr -> liftIO $ decryptObject (decr ref) o
+    Just decr -> liftIO $ decryptObject (decr ref DecryptString) o

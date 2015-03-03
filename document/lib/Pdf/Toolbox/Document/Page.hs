@@ -29,6 +29,7 @@ import Pdf.Toolbox.Document.Types
 import Pdf.Toolbox.Document.Monad
 import Pdf.Toolbox.Document.PageNode
 import Pdf.Toolbox.Document.FontDict
+import Pdf.Toolbox.Document.Encryption
 import Pdf.Toolbox.Document.Internal.Types
 import Pdf.Toolbox.Document.Internal.Util
 
@@ -117,11 +118,15 @@ pageExtractText page = do
     return (s, ref, len)
 
   -- parse content streams
-  decryptor <- fromMaybe (const return) <$> getDecryptor
+  maybe_decr <- getDecryptor
+  let decr =
+        case maybe_decr of
+          Nothing -> \_ is -> return is
+          Just decryptor -> \ref is -> decryptor ref DecryptStream is
 
   ris <- getRIS
   filters <- getStreamFilters
-  is <- parseContentStream ris filters decryptor streams
+  is <- parseContentStream ris filters decr streams
 
   -- use content stream processor to extract text
   let loop p = do
