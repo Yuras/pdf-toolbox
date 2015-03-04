@@ -22,6 +22,7 @@ source-repository head
 
 library
   hs-source-dirs:      lib
+                       compat
   exposed-modules:     Pdf.Toolbox.Document
                        Pdf.Toolbox.Document.Types
                        Pdf.Toolbox.Document.File

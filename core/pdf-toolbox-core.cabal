@@ -30,6 +30,7 @@ source-repository head
 
 library
   hs-source-dirs:      lib
+                       compat
   exposed-modules:     Pdf.Toolbox.Core
                        Pdf.Toolbox.Core.IO.Buffer
                        Pdf.Toolbox.Core.Exception

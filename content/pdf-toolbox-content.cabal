@@ -20,6 +20,7 @@ source-repository head
 
 library
   hs-source-dirs:      lib
+                       compat
   exposed-modules:
                        Pdf.Toolbox.Content
                        Pdf.Toolbox.Content.Parser

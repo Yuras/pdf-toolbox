@@ -13,10 +13,10 @@ clean:
 	$(CABAL) clean
 
 build:
-	$(CABAL) build
+	$(CABAL) build --only
 
 test:
-	$(CABAL) test
+	$(CABAL) test --only
 
 haddock:
 	$(CABAL) haddock --hyperlink-sources
