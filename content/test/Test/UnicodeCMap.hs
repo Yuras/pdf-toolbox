@@ -8,6 +8,7 @@ where
 
 import Pdf.Toolbox.Content.UnicodeCMap
 
+import Data.Monoid
 import Data.Either
 import qualified Data.Map as Map
 import qualified Data.ByteString as ByteString
@@ -16,6 +17,7 @@ import Test.Hspec
 spec :: Spec
 spec = describe "UnicodeCMap" $ do
   parseUnicodeCMapSpec
+  unicodeCMapDecodeGlyphSpec
 
 parseUnicodeCMapSpec :: Spec
 parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
@@ -60,3 +62,42 @@ parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
         res = parseUnicodeCMap input
     fmap unicodeCMapRanges res `shouldBe`
       Right [(0,94,' ')]
+
+unicodeCMapDecodeGlyphSpec :: Spec
+unicodeCMapDecodeGlyphSpec = describe "unicodeCMapDecodeGlyph" $ do
+  it "should take glyph from char map if possible" $ do
+    let cmap = UnicodeCMap [] charMap []
+        charMap = Map.fromList [(42, "hello")]
+
+    let res = unicodeCMapDecodeGlyph cmap 42
+    res `shouldBe` Just "hello"
+
+  it "should be able to decode the first glyph from a range" $ do
+    let cmap = UnicodeCMap [] mempty [(10, 15, '1')]
+
+    let res = unicodeCMapDecodeGlyph cmap 10
+    res `shouldBe` Just "1"
+
+  it "should be able to decode the last glyph from a range" $ do
+    let cmap = UnicodeCMap [] mempty [(10, 15, '1')]
+
+    let res = unicodeCMapDecodeGlyph cmap 15
+    res `shouldBe` Just "6"
+
+  it "should be able to decode a glyph from a middle of a range" $ do
+    let cmap = UnicodeCMap [] mempty [(10, 15, '1')]
+
+    let res = unicodeCMapDecodeGlyph cmap 11
+    res `shouldBe` Just "2"
+
+  it "should not decode a glyph before a range" $ do
+    let cmap = UnicodeCMap [] mempty [(10, 15, '1')]
+
+    let res = unicodeCMapDecodeGlyph cmap 9
+    res `shouldBe` Nothing
+
+  it "should not decode a glyph after a range" $ do
+    let cmap = UnicodeCMap [] mempty [(10, 15, '1')]
+
+    let res = unicodeCMapDecodeGlyph cmap 16
+    res `shouldBe` Nothing
