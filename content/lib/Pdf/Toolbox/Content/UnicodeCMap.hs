@@ -95,13 +95,9 @@ charsParser = do
 
   chars <- replicateM n $ do
     P.skipSpace
-    _ <- P.char '<'
-    i <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
+    i <- parseHex
     P.skipSpace
-    _ <- P.char '<'
-    j <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
+    j <- parseHex
     return (toCode i, Text.decodeUtf16BE j)
 
   return $ Map.fromList chars
@@ -111,22 +107,16 @@ rangesParser = do
   n <- P.option 0 $ skipTillParser $ do
     n <- P.decimal
     P.skipSpace
-    _ <- P.string "beginbfrange"
+    void $ P.string "beginbfrange"
     return n
 
   replicateM n $ do
     P.skipSpace
-    _ <- P.char '<'
-    i <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
+    i <- parseHex
     P.skipSpace
-    _ <- P.char '<'
-    j <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
+    j <- parseHex
     P.skipSpace
-    _ <- P.char '<'
-    k <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
+    k <- parseHex
     return (toCode i, toCode j, Text.head $ Text.decodeUtf16BE k)
 
 codeRangesParser :: Parser [(ByteString, ByteString)]
@@ -134,19 +124,22 @@ codeRangesParser = do
   n <- skipTillParser $ do
     n <- P.decimal
     P.skipSpace
-    _ <- P.string "begincodespacerange"
+    void $ P.string "begincodespacerange"
     return n
 
   replicateM n $ do
     P.skipSpace
-    _ <- P.char '<'
-    i <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
+    i <- parseHex
     P.skipSpace
-    _ <- P.char '<'
-    j <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
+    j <- parseHex
     return (i, j)
+
+parseHex :: Parser ByteString
+parseHex = do
+  void $ P.char '<'
+  res <- P.takeTill (== '>') >>= fromHex
+  void $ P.char '>'
+  return res
 
 -- XXX: wtf?!
 fromHex :: Monad m => ByteString -> m ByteString
