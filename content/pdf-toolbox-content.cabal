@@ -34,6 +34,7 @@ library
                        Pdf.Toolbox.Content.Encoding.WinAnsi
                        Pdf.Toolbox.Content.Encoding.MacRoman
   other-modules:       Prelude
+                       Data.Either
   build-depends:       base >= 4.5 && < 4.8,
                        containers,
                        attoparsec >= 0.10,
@@ -42,3 +43,15 @@ library
                        text,
                        io-streams,
                        pdf-toolbox-core ==0.1.0.*
+
+test-suite test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+                       compat
+  main-is:             test.hs
+  other-modules:       Test.UnicodeCMap
+  build-depends:       base >= 4.5 && < 4.8,
+                       containers,
+                       bytestring,
+                       pdf-toolbox-content,
+                       hspec

@@ -11,6 +11,8 @@ module Pdf.Toolbox.Content.UnicodeCMap
 )
 where
 
+import Data.Monoid
+import Data.Functor
 import Data.Char
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -39,9 +41,9 @@ data UnicodeCMap = UnicodeCMap {
 parseUnicodeCMap :: ByteString -> Either String UnicodeCMap
 parseUnicodeCMap cmap =
   case (codeRanges, chars, ranges) of
-    (Right cr, Right cs, Right rs) -> Right $ UnicodeCMap {
+    (Right cr, Right cs, Right (rs, crs)) -> Right $ UnicodeCMap {
       unicodeCMapCodeRanges = cr,
-      unicodeCMapChars = cs,
+      unicodeCMapChars = cs <> crs,
       unicodeCMapRanges = rs
       }
     (Left err, _, _) -> Left $ "CMap code ranges: " ++ err
@@ -95,58 +97,75 @@ charsParser = do
 
   chars <- replicateM n $ do
     P.skipSpace
-    _ <- P.char '<'
-    i <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
+    i <- parseHex
     P.skipSpace
-    _ <- P.char '<'
-    j <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
+    j <- parseHex
     return (toCode i, Text.decodeUtf16BE j)
 
   return $ Map.fromList chars
 
-rangesParser :: Parser [(Int, Int, Char)]
+-- | It returns regular ranges and char map
+--
+-- Array ranges are converted to char map
+rangesParser :: Parser ([(Int, Int, Char)], Map Int Text)
 rangesParser = do
-  n <- P.option 0 $ skipTillParser $ do
+  n <- P.option (0 :: Int) $ skipTillParser $ do
     n <- P.decimal
     P.skipSpace
-    _ <- P.string "beginbfrange"
+    void $ P.string "beginbfrange"
     return n
 
-  replicateM n $ do
-    P.skipSpace
-    _ <- P.char '<'
-    i <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
-    P.skipSpace
-    _ <- P.char '<'
-    j <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
-    P.skipSpace
-    _ <- P.char '<'
-    k <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
-    return (toCode i, toCode j, Text.head $ Text.decodeUtf16BE k)
+  let go 0 rs cs = return (rs, cs)
+      go count rs cs = do
+        P.skipSpace
+        i <- toCode <$> parseHex
+        P.skipSpace
+        j <- toCode <$> parseHex
+        P.skipSpace
+        k <- P.eitherP parseHex parseHexArray
+        case k of
+          Left h -> do
+            c <- case Text.uncons $ Text.decodeUtf16BE h of
+                   Nothing -> fail "Can't decode range"
+                   Just (v, _) -> return v
+            go (pred count) ((i, j, c) : rs) cs
+          Right hs -> do
+            let cs' = zip [i..j] . map Text.decodeUtf16BE $ hs
+            go (pred count) rs (cs <> Map.fromList cs')
+
+  go n mempty mempty
 
 codeRangesParser :: Parser [(ByteString, ByteString)]
 codeRangesParser = do
   n <- skipTillParser $ do
     n <- P.decimal
     P.skipSpace
-    _ <- P.string "begincodespacerange"
+    void $ P.string "begincodespacerange"
     return n
 
   replicateM n $ do
     P.skipSpace
-    _ <- P.char '<'
-    i <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
+    i <- parseHex
     P.skipSpace
-    _ <- P.char '<'
-    j <- P.takeTill (== '>') >>= fromHex
-    _ <- P.char '>'
+    j <- parseHex
     return (i, j)
+
+parseHex :: Parser ByteString
+parseHex = do
+  void $ P.char '<'
+  res <- P.takeTill (== '>') >>= fromHex
+  void $ P.char '>'
+  return res
+
+parseHexArray :: Parser [ByteString]
+parseHexArray = do
+  void $ P.char '['
+  res <- P.many' $ do
+    P.skipSpace
+    parseHex
+  P.skipSpace
+  void $ P.char ']'
+  return res
 
 -- XXX: wtf?!
 fromHex :: Monad m => ByteString -> m ByteString
