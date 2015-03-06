@@ -63,6 +63,17 @@ parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
     fmap unicodeCMapRanges res `shouldBe`
       Right [(0,94,' ')]
 
+  it "should parse array ranges into char map" $ do
+    let input = ByteString.concat
+          [ "0 begincodespacerange\n"
+          , "0 beginbfchar\n"
+          , "1 beginbfrange\n"
+          , "<005F> <0061> [<00660066> <00660069> <00660066006C>]\n"
+          ]
+        res = parseUnicodeCMap input
+    fmap unicodeCMapChars res `shouldBe`
+      Right (Map.fromList [(95,"ff"),(96,"fi"),(97,"ffl")])
+
 unicodeCMapDecodeGlyphSpec :: Spec
 unicodeCMapDecodeGlyphSpec = describe "unicodeCMapDecodeGlyph" $ do
   it "should take glyph from char map if possible" $ do
