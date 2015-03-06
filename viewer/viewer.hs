@@ -262,7 +262,6 @@ startRender mvar page = do
                 forM_ glyphs $ \glyph ->
                   liftIO $ writeChan chan (Just glyph)
               --liftIO $ print $ prGlyphs p
-            Just (Op_apostrophe, args) -> error $ "Op_apostrophe (please report): " ++ show args
             Just (Op_quote, args) -> error $ "Op_quote (please report): " ++ show args
             Just op -> processOp op p >>= loop
     loop $ mkProcessor {
