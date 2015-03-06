@@ -297,6 +297,12 @@ processOp (Op_Tw, [o]) p = do
 processOp (Op_Tw, args) _ = Left ("Op_Tw: wrong number of agruments:"
                                   ++ show args)
 
+processOp (Op_apostrophe, [o]) p = do
+  p' <- processOp (Op_T_star, []) p
+  processOp (Op_Tj, [o]) p'
+processOp (Op_apostrophe, args) _ =
+  Left ("Op_apostrophe: wrong number of agruments:" ++ show args)
+
 processOp _ p = return p
 
 ensureInTextObject :: Bool -> Processor -> Either String ()
