@@ -1,4 +1,4 @@
-unreleased
+0.0.3.2
 
 * support 1- and 2-digit escapes sequence in literal string
 

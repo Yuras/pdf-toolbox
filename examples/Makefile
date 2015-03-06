@@ -1,5 +1,5 @@
 
-BUILD_CMD = ghc --make -outputdir=.build -Wall -i../core/lib -i../document/lib -i../content/lib -O -rtsopts # -prof -auto-all
+BUILD_CMD = cabal exec ghc -- --make -outputdir=.build -Wall -optP-include -optP../core/dist/build/autogen/cabal_macros.h -i../core/lib -i../document/lib -i../content/lib -O -rtsopts # -prof -auto-all
 
 all: change-document-title create-simple-pdf-file unpack-and-decrypt-pdf-file merge-pdf-files
 

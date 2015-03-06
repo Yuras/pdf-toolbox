@@ -1,4 +1,4 @@
-unreleased
+0.0.5.0
 
 * support crypto handler version 4 (V2 and AESV2)
 

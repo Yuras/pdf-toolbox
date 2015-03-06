@@ -1,4 +1,4 @@
-unreleased
+0.0.3.2
 
 * support array ranges in unicode cmap (#15)
 * support Op\_apostrophe content operator (#16)
