@@ -1,3 +1,6 @@
+unreleased
+
+* support array ranges in unicode cmap (#15)
 
 0.0.3.1
 
