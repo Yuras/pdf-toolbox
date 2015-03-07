@@ -8,7 +8,6 @@ module Pdf.Toolbox.Core.Object.Types
 (
   Object(..),
   Number(..),
-  Boolean(..),
   Name(..),
   Dict(..),
   Array(..),
@@ -26,10 +25,6 @@ import Data.ByteString (ByteString)
 data Number =
   NumInt Int |
   NumReal Double
-  deriving (Eq, Show)
-
--- | \"true\" or \"false\"
-newtype Boolean = Boolean Bool
   deriving (Eq, Show)
 
 -- | Names usually are used as keys in dictionaries
@@ -68,7 +63,7 @@ data Ref = Ref Int Int
 -- It is parameterized by 'Stream' content
 data Object a =
   ONumber Number |
-  OBoolean Boolean |
+  OBoolean Bool |
   OName Name |
   ODict Dict |
   OArray Array |

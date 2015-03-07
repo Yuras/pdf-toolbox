@@ -14,7 +14,7 @@ module Pdf.Toolbox.Core.Parsers.Object
   parseHexStr,
   parseRef,
   parseNumber,
-  parseBoolean,
+  parseBool,
   -- * Other
   parseTillStreamData,
   parseIndirectObject,
@@ -177,13 +177,9 @@ parseName = do
 isRegularChar :: Char -> Bool
 isRegularChar = (`notElem` "[]()/<>{}% \n\r")
 
--- |
--- >>> parseOnly parseBoolean "true"
--- Right (Boolean True)
--- >>> parseOnly parseBoolean "false"
--- Right (Boolean False)
-parseBoolean :: Parser Boolean
-parseBoolean = Boolean <$> P.choice [
+-- | Parse bool value
+parseBool :: Parser Bool
+parseBool = P.choice [
   P.string "true" >> return True,
   P.string "false" >> return False
   ]
@@ -215,7 +211,7 @@ parseObject = do
   P.choice [
     const ONull <$> P.string "null",
     OName <$> parseName,
-    OBoolean <$> parseBoolean,
+    OBoolean <$> parseBool,
     ODict <$> parseDict,
     OArray <$> parseArray,
     OStr <$> parseStr,

@@ -33,7 +33,7 @@ intValue _ = Nothing
 
 -- | Try to convert object to 'Bool'
 boolValue :: Object a -> Maybe Bool
-boolValue (OBoolean (Boolean b)) = Just b
+boolValue (OBoolean b) = Just b
 boolValue _ = Nothing
 
 -- | Try to convert object to 'Double'

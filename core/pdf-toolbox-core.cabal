@@ -61,7 +61,9 @@ test-suite test
   main-is:             test.hs
   other-modules:       Test.XRef
                        Test.Stream
-                       Test.Parser
+                       Test.Parsers.Object
+                       Test.Object.Builder
+                       Test.Object.Util
   build-depends:       base,
                        pdf-toolbox-core,
                        bytestring,

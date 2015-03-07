@@ -7,7 +7,7 @@ module Pdf.Toolbox.Core.Object.Builder
   buildIndirectObject,
   buildObject,
   buildNumber,
-  buildBoolean,
+  buildBool,
   buildName,
   buildDict,
   buildArray,
@@ -46,7 +46,7 @@ buildIndirectObject (Ref i g) object =
 -- be inlined, but should always be an indirect object
 buildObject :: Object a -> Builder
 buildObject (ONumber n) = buildNumber n
-buildObject (OBoolean b) = buildBoolean b
+buildObject (OBoolean b) = buildBool b
 buildObject (OName n) = buildName n
 buildObject (ODict d) = buildDict d
 buildObject (OArray a) = buildArray a
@@ -66,9 +66,9 @@ buildNumber :: Number -> Builder
 buildNumber (NumInt i) = intDec i
 buildNumber (NumReal d) = string7 $ printf "%f" d
 
-buildBoolean :: Boolean -> Builder
-buildBoolean (Boolean True) = byteString "true"
-buildBoolean (Boolean False) = byteString "false"
+buildBool :: Bool -> Builder
+buildBool True = byteString "true"
+buildBool False = byteString "false"
 
 buildName :: Name -> Builder
 buildName (Name n) = char7 '/' `mappend` byteString n
