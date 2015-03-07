@@ -5,6 +5,14 @@ pdf-toolbox
 
 A collection of tools for processing PDF files
 
+Stable and HEAD
+---------------
+
+See "stable" branch for Hackage version. The current "master" branch is in a middle of API
+rewrite, see [here](http://blog.haskell-exists.com/yuras/posts/pdf-toolbox-release-future-api-changes-and-design-mistakes.html)
+for details.
+
+
 Features
 --------
 
