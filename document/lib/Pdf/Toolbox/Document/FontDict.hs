@@ -207,8 +207,7 @@ loadUnicodeCMap pdf fontDict =
   case lookupDict "ToUnicode" fontDict of
     Nothing -> return Nothing
     Just o -> do
-      o' <- deref pdf o
-      ref <- sure $refValue o'
+      ref <- sure $ refValue o
         `notice` "ToUnicode should be a reference"
       toUnicode <- lookupObject pdf ref
       case toUnicode of

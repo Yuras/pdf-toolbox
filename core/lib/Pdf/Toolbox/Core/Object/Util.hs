@@ -41,6 +41,7 @@ boolValue _ = Nothing
 -- Integral value automatically gets converted
 realValue :: Object a -> Maybe Double
 realValue (ONumber (NumReal d)) = Just d
+realValue (ONumber (NumInt i)) = Just (fromIntegral i)
 realValue _ = Nothing
 
 -- | Try to convert object to 'Name'

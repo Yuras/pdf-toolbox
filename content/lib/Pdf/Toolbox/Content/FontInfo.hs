@@ -116,10 +116,10 @@ simpleFontEncodingDecode enc code =
 -- | Make `CIDFontWidths` from value of \"W\" key in descendant font
 makeCIDFontWidths :: Array -> Either String CIDFontWidths
 makeCIDFontWidths (Array vals) = go mempty vals
-  `notice` "Can't parse CIDFont width"
+  `notice` ("Can't parse CIDFont width " ++ show vals)
   where
   go res [] = return res
-  go res (x1 : x2 : x3 : xs) = do
+  go res (x1@ONumber{} : x2@ONumber{} : x3@ONumber{} : xs) = do
     n1 <- intValue x1
     n2 <- intValue x2
     n3 <- realValue x3

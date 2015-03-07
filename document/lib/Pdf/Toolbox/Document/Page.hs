@@ -9,16 +9,29 @@ module Pdf.Toolbox.Document.Page
   pageContents,
   pageMediaBox,
   pageFontDicts,
-  --pageExtractText,
+  pageExtractText,
 )
 where
 
 import Data.Functor
+import Data.Monoid
+import Data.Maybe
+import qualified Data.Traversable as Traversable
+import Data.ByteString (ByteString)
+import Data.Text (Text)
+import qualified Data.Text.Lazy as Lazy.Text
+import qualified Data.Text.Lazy.Builder as Text.Builder
+import qualified Data.Map as Map
 import Control.Monad
+import Control.Monad.IO.Class
 import Control.Exception
+import System.IO.Streams (InputStream)
+import qualified System.IO.Streams as Streams
+import qualified System.IO.Streams.Attoparsec as Streams
 
 import Pdf.Toolbox.Core
 import Pdf.Toolbox.Core.Util
+import Pdf.Toolbox.Content
 
 import Pdf.Toolbox.Document.Pdf
 import Pdf.Toolbox.Document.Types
@@ -107,15 +120,12 @@ pageFontDicts (Page pdf _ dict) =
             ensureType "Font" fontDict
             return (name, FontDict pdf fontDict)
 
-{-
-
 -- | Extract text from the page
 --
 -- It tries to add spaces between chars if they don't present
 -- as actual characters in content stream.
-pageExtractText :: (MonadPdf m, MonadIO m) => Page -> PdfE m Text
+pageExtractText :: Page -> IO Text
 pageExtractText page = do
-  -- load fonts and create glyph decoder
   fontDicts <- Map.fromList <$> pageFontDicts page
   glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
     fontInfoDecodeGlyphs <$> fontDictLoadInfo fontDict
@@ -124,36 +134,47 @@ pageExtractText page = do
           Nothing -> []
           Just decode -> decode str
 
-  -- prepare content streams
-  contents <- pageContents page
-  streams <- forM contents $ \ref -> do
-    s@(Stream dict _) <- lookupObject ref >>= toStream
-    len <- lookupDict "Length" dict >>= deref >>= fromObject >>= intValue
-    return (s, ref, len)
-
-  -- parse content streams
-  decryptor <- fromMaybe (const return) <$> getDecryptor
-
-  ris <- getRIS
-  filters <- getStreamFilters
-  is <- parseContentStream ris filters decryptor streams
+  is <- do
+    contents <- pageContents page
+    let Page pdf _ _ = page
+    is <- combinedContent pdf contents
+    Streams.parserToInputStream parseContent is
 
   -- use content stream processor to extract text
   let loop p = do
         next <- readNextOperator is
         case next of
-          Just op -> processOp op p >>= loop
+          Just op ->
+            case processOp op p of
+              Left err -> throwIO (Unexpected err [])
+              Right  p' -> loop p'
           Nothing -> return $ glyphsToText (prGlyphs p)
   loop $ mkProcessor {
     prGlyphDecoder = glyphDecoder
     }
+
+combinedContent :: Pdf -> [Ref] -> IO (InputStream ByteString)
+combinedContent pdf refs = do
+  allStreams <- forM refs $ \ref -> do
+    o <- lookupObject pdf ref
+    case o of
+      OStream s -> return (ref, s)
+      _ -> throwIO (Corrupted "Page content is not a stream" [])
+
+  Streams.fromGenerator $ forM_ allStreams $ \(ref, stream) -> do
+    Stream _ is <- liftIO $ streamContent pdf ref stream
+    yield is
+  where
+  yield is =
+    liftIO (Streams.read is)
+    >>= maybe (return ()) (\c -> Streams.yield c >> yield is)
 
 -- | Convert glyphs to text, trying to add spaces and newlines
 --
 -- It takes list of spans. Each span is a list of glyphs that are outputed in one shot.
 -- So we don't need to add space inside span, only between them.
 glyphsToText :: [[Glyph]] -> Text
-glyphsToText = TextL.toStrict . TextB.toLazyText . snd . foldl step ((Vector 0 0, False), mempty)
+glyphsToText = Lazy.Text.toStrict . Text.Builder.toLazyText . snd . foldl step ((Vector 0 0, False), mempty)
   where
   step acc [] = acc
   step ((Vector lx2 ly2, wasSpace), res) sp =
@@ -164,9 +185,8 @@ glyphsToText = TextL.toStrict . TextB.toLazyText . snd . foldl step ((Vector 0 0
           if abs (ly2 - y1) < 1.8
             then  if wasSpace || abs (lx2 - x1) < 1.8
                     then mempty
-                    else TextB.singleton ' '
-            else TextB.singleton '\n'
-        txt = TextB.fromLazyText $ TextL.fromChunks $ mapMaybe glyphText sp
+                    else Text.Builder.singleton ' '
+            else Text.Builder.singleton '\n'
+        txt = Text.Builder.fromLazyText $ Lazy.Text.fromChunks $ mapMaybe glyphText sp
         endWithSpace = glyphText (last sp) == Just " "
     in ((Vector x2 y2, endWithSpace), mconcat [res, space, txt])
--}

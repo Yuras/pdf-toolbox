@@ -4,7 +4,8 @@
 module Pdf.Toolbox.Content.Parser
 (
   parseContentStream,
-  readNextOperator
+  readNextOperator,
+  parseContent,
 )
 where
 
@@ -85,12 +86,11 @@ combineStreams buf filters decryptor (x:xs)
       Just c -> return (Just c)
 
 parseContent :: Parser (Maybe Expr)
-parseContent
-  = (skipSpace >> Parser.endOfInput >> return Nothing)
-  <|> do
-    skipSpace
-    fmap Just $ fmap Obj parseObject <|>
-                fmap (Op . toOp) (Parser.takeWhile1 isRegularChar)
+parseContent = do
+  skipSpace
+  (Parser.endOfInput >> return Nothing) <|>
+    fmap Just (fmap Obj parseObject <|>
+               fmap (Op . toOp) (Parser.takeWhile1 isRegularChar))
 
 -- Treat comments as spaces
 skipSpace :: Parser ()

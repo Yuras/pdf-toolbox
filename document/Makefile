@@ -5,7 +5,7 @@ CABAL=cabal --require-sandbox --sandbox-config-file=$(SANDBOX)
 all: build
 
 debug:
-	$(CABAL) configure --disable-profiling --disable-shared \
+	$(CABAL) configure --disable-library-profiling --disable-shared \
 		--disable-optimization --enable-tests --enable-coverage \
 		--ghc-options="-Wall"
 
