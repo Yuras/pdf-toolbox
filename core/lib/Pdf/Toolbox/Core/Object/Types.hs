@@ -11,7 +11,6 @@ module Pdf.Toolbox.Core.Object.Types
   Name(..),
   Dict(..),
   Array(..),
-  Str(..),
   Stream(..),
   Ref(..)
 )
@@ -41,12 +40,6 @@ newtype Dict = Dict [(Name, Object ())]
 newtype Array = Array [Object ()]
   deriving (Eq, Show)
 
--- | Sequence of zero or more bytes
---
--- Represents both the literal and hexadecimal strings
-newtype Str = Str ByteString
-  deriving (Eq, Show)
-
 -- | Contains stream dictionary and a payload
 --
 -- The payload could be offset within pdf file, actual content,
@@ -67,7 +60,7 @@ data Object a =
   OName Name |
   ODict Dict |
   OArray Array |
-  OStr Str |
+  OStr ByteString |
   OStream (Stream a) |
   ORef Ref |
   ONull
@@ -75,6 +68,3 @@ data Object a =
 
 instance IsString Name where
   fromString = Name . fromString
-
-instance IsString Str where
-  fromString = Str . fromString

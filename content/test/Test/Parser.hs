@@ -24,7 +24,7 @@ parseContentSpec = describe "parseContent" $ do
   it "should parse an object" $ do
     let input = "(hello)"
         res = Parser.parseOnly parseContent input
-    res `shouldBe` Right (Just $ Obj $ OStr $ Str "hello")
+    res `shouldBe` Right (Just $ Obj $ OStr "hello")
 
   it "should parse an operator" $ do
     let input = "T*"

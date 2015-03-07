@@ -17,6 +17,7 @@ module Pdf.Toolbox.Content.Processor
 where
 
 import Data.Monoid
+import Data.ByteString (ByteString)
 import Data.Text (Text)
 import Control.Monad
 
@@ -38,7 +39,7 @@ import Pdf.Toolbox.Content.Transform
 --
 -- Note: the 'Processor' actually doesn't cares about glyph's
 -- bounding box, so you can return anything you want
-type GlyphDecoder = Name -> Str -> [(Glyph, Double)]
+type GlyphDecoder = Name -> ByteString -> [(Glyph, Double)]
 
 -- | Glyph
 data Glyph = Glyph {

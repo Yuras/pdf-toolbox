@@ -10,8 +10,8 @@ module Pdf.Toolbox.Core.Parsers.Object
   parseDict,
   parseArray,
   parseName,
-  parseStr,
-  parseHexStr,
+  parseString,
+  parseHexString,
   parseRef,
   parseNumber,
   parseBool,
@@ -24,6 +24,7 @@ where
 
 import Data.Char
 import Data.List
+import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import Data.Attoparsec.ByteString (Parser)
@@ -86,14 +87,12 @@ parseNumber = P.choice [
   number = toNum <$> P.scientific
   toNum = either NumReal NumInt . Scientific.floatingOrInteger
 
--- |
--- >>> parseOnly parseStr "(hello)"
--- Right (Str "hello")
-parseStr :: Parser Str
-parseStr = do
+-- | Parse literal string
+parseString :: Parser ByteString
+parseString = do
   _ <- P.char '('
   str <- takeStr 0 []
-  return $ Str $ BS8.pack str
+  return $ BS8.pack str
   where
   takeStr :: Int -> String -> Parser String
   takeStr lvl res = do
@@ -138,15 +137,13 @@ parseStr = do
         else
           return (ds ++ repeat '0')
 
--- |
--- >>> parseOnly parseHexStr "<68656C6C6F>"
--- Right (Str "hello")
-parseHexStr :: Parser Str
-parseHexStr = do
+-- | Parse hex string
+parseHexString :: Parser ByteString
+parseHexString = do
   _ <- P.char '<'
   str <- many takeHex
   _ <- P.char '>'
-  return $ Str $ BS.pack str
+  return $ BS.pack str
   where
   takeHex = do
     ch1 <- P.satisfy isHexDigit
@@ -214,8 +211,8 @@ parseObject = do
     OBoolean <$> parseBool,
     ODict <$> parseDict,
     OArray <$> parseArray,
-    OStr <$> parseStr,
-    OStr <$> parseHexStr,
+    OStr <$> parseString,
+    OStr <$> parseHexString,
     ORef <$> parseRef,
     ONumber <$> parseNumber
     ]

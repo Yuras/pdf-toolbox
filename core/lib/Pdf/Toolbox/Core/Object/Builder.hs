@@ -11,7 +11,7 @@ module Pdf.Toolbox.Core.Object.Builder
   buildName,
   buildDict,
   buildArray,
-  buildStr,
+  buildString,
   buildRef,
   buildStream
 )
@@ -19,10 +19,11 @@ where
 
 import Data.Monoid
 import Data.Char
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as BS8
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as Char8
 import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
+import qualified Data.ByteString.Base16 as Base16
 import Text.Printf
 
 import Pdf.Toolbox.Core.Object.Types
@@ -50,7 +51,7 @@ buildObject (OBoolean b) = buildBool b
 buildObject (OName n) = buildName n
 buildObject (ODict d) = buildDict d
 buildObject (OArray a) = buildArray a
-buildObject (OStr s) = buildStr s
+buildObject (OStr s) = buildString s
 buildObject (ORef r) = buildRef r
 buildObject (OStream _) = error "buildObject: please don't pass streams to me"
 buildObject ONull = byteString "null"
@@ -94,13 +95,23 @@ buildArray (Array xs) =
   intercalate (char7 ' ') (map buildObject xs) `mappend`
   char7 ']'
 
-buildStr :: Str -> Builder
-buildStr (Str s) =
-  if BS8.all isPrint s
-    then char7 '(' `mappend` (byteString . BS8.pack . concatMap escape . BS8.unpack $ s) `mappend` char7 ')'
-    else char7 '<' `mappend` (byteString . BS.pack . concatMap toHex . BS.unpack $ s) `mappend` char7 '>'
+-- | Build a string
+--
+-- It may produce literal or hex string based on the context.
+buildString :: ByteString -> Builder
+buildString s =
+  if Char8.all isPrint s
+    then mconcat
+      [ char7 '('
+      , byteString . Char8.pack . concatMap escape . Char8.unpack $ s
+      , char7 ')'
+      ]
+    else mconcat
+      [ char7 '<'
+      , byteString $ Base16.encode s
+      , char7 '>'
+      ]
   where
-  toHex w = map (\a -> if a < 10 then a + 48 else a + 55) [w `div` 16, w `mod` 16]
   escape '(' = "\\("
   escape ')' = "\\)"
   escape '\\' = "\\\\"

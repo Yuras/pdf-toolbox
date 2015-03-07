@@ -8,29 +8,43 @@ where
 
 import Data.Attoparsec.ByteString
 
-import Pdf.Toolbox.Core
 import Pdf.Toolbox.Core.Parsers.Object
 
 import Test.Hspec
 
 spec :: Spec
 spec = describe "Parsers.Object" $ do
-  parseStrSpec
+  parseStringSpec
+  parseHexStringSpec
   parseBoolSpec
 
-parseStrSpec :: Spec
-parseStrSpec = describe "parseStr" $ do
+parseStringSpec :: Spec
+parseStringSpec = describe "parseString" $ do
   it "should unescape 3-digit character" $ do
-    parseOnly parseStr "(hello\\040world)"
-      `shouldBe` Right (Str "hello world")
+    parseOnly parseString "(hello\\040world)"
+      `shouldBe` Right "hello world"
 
   it "should unescape 2-digit character" $ do
-    parseOnly parseStr "(hello\\40world)"
-      `shouldBe` Right (Str "hello world")
+    parseOnly parseString "(hello\\40world)"
+      `shouldBe` Right "hello world"
 
   it "should unescape 1-digit character" $ do
-    parseOnly parseStr "(hello\\0world)"
-      `shouldBe` Right (Str "hello\NULworld")
+    parseOnly parseString "(hello\\0world)"
+      `shouldBe` Right "hello\NULworld"
+
+  it "should accept nested parens" $ do
+    parseOnly parseString "(hello( )world)"
+      `shouldBe` Right "hello( )world"
+
+  it "should unescape special chars" $ do
+    parseOnly parseString "(\\(\\)\\\\\\n\\f\\r\\t\\b)"
+      `shouldBe` Right "()\\\n\f\r\t\b"
+
+parseHexStringSpec :: Spec
+parseHexStringSpec = describe "parseHexString" $ do
+  it "should parse hex string" $ do
+    parseOnly parseHexString "<00FFff>"
+      `shouldBe` Right "\NUL\255\255"
 
 parseBoolSpec :: Spec
 parseBoolSpec = describe "parseBool" $ do

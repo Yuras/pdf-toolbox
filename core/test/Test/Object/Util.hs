@@ -14,6 +14,7 @@ import Test.Hspec
 spec :: Spec
 spec = describe "Object.Util" $ do
   boolValueSpec
+  stringValueSpec
 
 boolValueSpec :: Spec
 boolValueSpec = describe "boolValue" $ do
@@ -21,4 +22,12 @@ boolValueSpec = describe "boolValue" $ do
     boolValue (OBoolean True) `shouldBe` Just True
 
   it "should return Nothing for other values" $ do
-    boolValue (OStr $ Str "hello") `shouldBe` Nothing
+    boolValue (OStr "hello") `shouldBe` Nothing
+
+stringValueSpec :: Spec
+stringValueSpec = describe "stringValue" $ do
+  it "should convert string value to ByteString" $ do
+    stringValue (OStr "hello") `shouldBe` Just "hello"
+
+  it "should return Nothing for other values" $ do
+    stringValue (OBoolean True) `shouldBe` Nothing

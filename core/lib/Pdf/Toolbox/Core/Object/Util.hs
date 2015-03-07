@@ -51,7 +51,7 @@ nameValue _ = Nothing
 
 -- | Try to convert object to 'ByteString'
 stringValue :: Object a -> Maybe ByteString
-stringValue (OStr (Str s)) = Just s
+stringValue (OStr s) = Just s
 stringValue _ = Nothing
 
 -- | Try to convert object to array

@@ -53,11 +53,11 @@ decryptObject decryptor ref (OArray arr)
   = OArray <$> decryptArray decryptor ref arr
 decryptObject _ _ o = return o
 
-decryptStr :: Decryptor -> Ref -> Str -> IO Str
-decryptStr decryptor ref (Str str) = do
+decryptStr :: Decryptor -> Ref -> ByteString -> IO ByteString
+decryptStr decryptor ref str = do
   is <- Streams.fromList [str]
   res <- decryptor ref DecryptString is >>= Streams.toList
-  return $ Str $ BS.concat res
+  return $ BS.concat res
 
 decryptDict :: Decryptor -> Ref -> Dict -> IO Dict
 decryptDict decryptor ref (Dict vals) = Dict <$> forM vals decr
