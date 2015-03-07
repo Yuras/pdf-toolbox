@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE CPP #-}
 
 -- | This module contains parsers for pdf objects
 
@@ -29,10 +28,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import Data.Attoparsec.ByteString (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
-
-#if MIN_VERSION_attoparsec(0, 12, 0)
 import qualified Data.Scientific as Scientific
-#endif
 
 import Control.Applicative
 import Control.Monad
@@ -87,14 +83,8 @@ parseNumber = P.choice [
         (P.char '.' >> P.takeWhile1 isDigit))
   ]
   where
-#if MIN_VERSION_attoparsec(0, 12, 0)
   number = toNum <$> P.scientific
   toNum = either NumReal NumInt . Scientific.floatingOrInteger
-#else
-  number = toNum <$> P.number
-  toNum (P.I i) = NumInt $ fromIntegral i
-  toNum (P.D d) = NumReal d
-#endif
 
 -- |
 -- >>> parseOnly parseStr "(hello)"

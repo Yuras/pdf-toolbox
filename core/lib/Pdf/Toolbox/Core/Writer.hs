@@ -1,6 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE CPP #-}
 
 -- | Write PDF files
 --
@@ -30,11 +29,6 @@ import qualified Data.Set as Set
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
-
-#if MIN_VERSION_bytestring(0, 10, 4)
-#else
-import Data.ByteString.Lazy.Builder.ASCII
-#endif
 
 import Data.Function
 import Data.Monoid

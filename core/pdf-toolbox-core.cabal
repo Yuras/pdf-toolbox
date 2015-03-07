@@ -48,9 +48,9 @@ library
                        Pdf.Toolbox.Core.Writer
   other-modules:       Prelude
   build-depends:       base >= 4.5 && < 4.8,
-                       bytestring == 0.10.*,
+                       bytestring >= 0.10.4 && < 0.11,
                        io-streams,
-                       attoparsec >= 0.10,
+                       attoparsec >= 0.12,
                        scientific,
                        transformers,
                        containers
@@ -62,9 +62,9 @@ test-suite test
   other-modules:       Test.XRef
                        Test.Stream
                        Test.Parser
-  build-depends:       base >= 4.5 && < 4.8,
+  build-depends:       base,
                        pdf-toolbox-core,
-                       bytestring == 0.10.*,
-                       attoparsec >= 0.10,
+                       bytestring,
+                       attoparsec,
                        io-streams,
                        hspec

@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE CPP #-}
 
 -- | Render 'Object' to bytestring
 
@@ -24,12 +23,6 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
-
-#if MIN_VERSION_bytestring(0, 10, 4)
-#else
-import Data.ByteString.Lazy.Builder.ASCII
-#endif
-
 import Text.Printf
 
 import Pdf.Toolbox.Core.Object.Types
