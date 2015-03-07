@@ -15,6 +15,7 @@ spec :: Spec
 spec = describe "Object.Builder" $ do
   buildBoolSpec
   buildStringSpec
+  buildNameSpec
 
 buildBoolSpec :: Spec
 buildBoolSpec = describe "buildBool" $ do
@@ -39,3 +40,9 @@ buildStringSpec = describe "buildString" $ do
   it "should escape special chars" $ do
     let res = buildString "()\\"
     Builder.toLazyByteString res `shouldBe` "(\\(\\)\\\\)"
+
+buildNameSpec :: Spec
+buildNameSpec = describe "buildName" $ do
+  it "should build a name" $ do
+    let res = buildName "hello"
+    Builder.toLazyByteString res `shouldBe` "/hello"

@@ -17,6 +17,7 @@ spec = describe "Parsers.Object" $ do
   parseStringSpec
   parseHexStringSpec
   parseBoolSpec
+  parseNameSpec
 
 parseStringSpec :: Spec
 parseStringSpec = describe "parseString" $ do
@@ -55,3 +56,9 @@ parseBoolSpec = describe "parseBool" $ do
   it "should parse 'false' as False" $ do
     parseOnly parseBool "false"
       `shouldBe` Right False
+
+parseNameSpec :: Spec
+parseNameSpec = describe "parseName" $ do
+  it "should parse a name" $ do
+    parseOnly parseName "/hello"
+      `shouldBe` Right "hello"

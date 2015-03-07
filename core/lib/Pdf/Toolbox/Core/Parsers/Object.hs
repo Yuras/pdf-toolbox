@@ -34,6 +34,7 @@ import qualified Data.Scientific as Scientific
 import Control.Applicative
 import Control.Monad
 
+import qualified Pdf.Toolbox.Core.Name as Name
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Parsers.Util
 
@@ -162,13 +163,14 @@ parseRef = do
   _ <- P.char 'R'
   return $ Ref obj gen
 
--- |
--- >>> parseOnly parseName "/Name"
--- Right (Name "Name")
+-- | Parse a name
 parseName :: Parser Name
 parseName = do
-  _ <- P.char '/'
-  Name <$> P.takeWhile1 isRegularChar
+  void $ P.char '/'
+  -- XXX: escaping
+  bs <- P.takeWhile1 isRegularChar
+  either fail return $
+    Name.make bs
 
 -- | Whether the character can appear in 'Name'
 isRegularChar :: Char -> Bool

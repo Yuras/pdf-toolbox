@@ -10,6 +10,7 @@ import qualified Test.Stream
 import qualified Test.Parsers.Object
 import qualified Test.Object.Builder
 import qualified Test.Object.Util
+import qualified Test.Name
 
 import Test.Hspec
 
@@ -20,3 +21,4 @@ main = hspec $ do
   Test.Parsers.Object.spec
   Test.Object.Builder.spec
   Test.Object.Util.spec
+  Test.Name.spec

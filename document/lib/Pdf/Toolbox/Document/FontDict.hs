@@ -21,6 +21,7 @@ import qualified System.IO.Streams as Streams
 
 import Pdf.Toolbox.Core
 import Pdf.Toolbox.Core.Util
+import qualified Pdf.Toolbox.Core.Name as Name
 import Pdf.Toolbox.Content
 
 import Pdf.Toolbox.Document.Pdf
@@ -41,7 +42,7 @@ fontDictSubtype (FontDict pdf dict) = do
   obj <- sure (lookupDict "Subtype" dict
               `notice` "Subtype should exist")
             >>= deref pdf
-  Name str <- sure $ nameValue obj `notice` "Subtype should be a name"
+  str <- sure $ nameValue obj `notice` "Subtype should be a name"
   case str of
     "Type0" -> return FontType0
     "Type1" -> return FontType1
@@ -198,7 +199,7 @@ loadEncodingDifferences pdf dict = do
         n' <- fromIntegral <$> (sure $ intValue o
           `notice` "Differences: elements should be integers")
         go res n' rest
-      (OName (Name bs)) -> go (((n, bs)) : res) (n + 1) rest
+      (OName name) -> go (((n, Name.toByteString name)) : res) (n + 1) rest
       _ -> throw $ Corrupted
         ("Differences array: unexpected object: " ++ show o) []
 

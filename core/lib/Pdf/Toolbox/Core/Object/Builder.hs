@@ -27,6 +27,7 @@ import qualified Data.ByteString.Base16 as Base16
 import Text.Printf
 
 import Pdf.Toolbox.Core.Object.Types
+import qualified Pdf.Toolbox.Core.Name as Name
 
 -- | Build indirect object
 buildIndirectObject :: Ref -> Object BSL.ByteString -> Builder
@@ -67,12 +68,15 @@ buildNumber :: Number -> Builder
 buildNumber (NumInt i) = intDec i
 buildNumber (NumReal d) = string7 $ printf "%f" d
 
+-- | Build a bool
 buildBool :: Bool -> Builder
 buildBool True = byteString "true"
 buildBool False = byteString "false"
 
+-- | Build a name
 buildName :: Name -> Builder
-buildName (Name n) = char7 '/' `mappend` byteString n
+-- XXX: escaping
+buildName n = char7 '/' `mappend` byteString (Name.toByteString n)
 
 intercalate :: Builder -> [Builder] -> Builder
 intercalate _ [] = mempty

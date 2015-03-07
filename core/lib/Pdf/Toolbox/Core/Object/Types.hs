@@ -8,7 +8,7 @@ module Pdf.Toolbox.Core.Object.Types
 (
   Object(..),
   Number(..),
-  Name(..),
+  Name,
   Dict(..),
   Array(..),
   Stream(..),
@@ -16,8 +16,8 @@ module Pdf.Toolbox.Core.Object.Types
 )
 where
 
-import Data.Monoid
-import Data.String
+import Pdf.Toolbox.Core.Name (Name)
+
 import Data.ByteString (ByteString)
 
 -- | Integer or real 
@@ -25,12 +25,6 @@ data Number =
   NumInt Int |
   NumReal Double
   deriving (Eq, Show)
-
--- | Names usually are used as keys in dictionaries
---
--- They starts with \'/\', but we strip it out, see 'Pdf.Toolbox.Core.Parsers.Object.parseName'
-newtype Name = Name ByteString
-  deriving (Eq, Show, Ord, Monoid)
 
 -- | Set of key/value pairs
 newtype Dict = Dict [(Name, Object ())]
@@ -65,6 +59,3 @@ data Object a =
   ORef Ref |
   ONull
   deriving (Eq, Show)
-
-instance IsString Name where
-  fromString = Name . fromString
