@@ -42,6 +42,7 @@ library
                        containers,
                        text,
                        bytestring,
+                       vector,
                        io-streams,
                        cipher-rc4,
                        cipher-aes,

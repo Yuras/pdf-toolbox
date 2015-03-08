@@ -14,6 +14,7 @@ module Pdf.Toolbox.Document.PageNode
 )
 where
 
+import qualified Data.Vector as Vector
 import Control.Monad
 import Control.Exception
 
@@ -48,9 +49,9 @@ pageNodeKids (PageNode pdf _ dict) = do
   obj <- sure (lookupDict "Kids" dict
                 `notice` "Page node should have Kids")
         >>= deref pdf
-  Array kids <- sure $ arrayValue obj
+  kids <- sure $ arrayValue obj
     `notice` "Kids should be an array"
-  forM kids $ \k -> sure $
+  forM (Vector.toList kids) $ \k -> sure $
     refValue k `notice` "each kid should be a reference"
 
 -- | Load page tree node by reference

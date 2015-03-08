@@ -31,7 +31,7 @@ import Data.Attoparsec.ByteString (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
 import Data.Scientific (Scientific)
 import qualified Data.Scientific as Scientific
-
+import qualified Data.Vector as Vector
 import Control.Applicative
 import Control.Monad
 
@@ -57,16 +57,14 @@ parseKey = do
   val <- parseObject
   return (key, val)
 
--- |
--- >>> parseOnly parseArray "[1 (string) /Name []]"
--- Right (Array [ONumber (NumInt 1),OStr (Str "string"),OName (Name "Name"),OArray (Array [])])
+-- | Parse an array
 parseArray :: Parser Array
 parseArray = do
   _ <- P.char '['
   array <- many parseObject
   P.skipSpace
   _ <- P.char ']'
-  return $ Array array
+  return $ Vector.fromList array
 
 -- | parse number
 parseNumber :: Parser Scientific

@@ -1,4 +1,5 @@
 {-# LANGUAGE  OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 
 -- | Stream related tools
 
@@ -16,6 +17,7 @@ where
 import Data.Int
 import Data.Maybe
 import Data.ByteString (ByteString)
+import qualified Data.Vector as Vector
 import Control.Applicative
 import Control.Monad
 import Control.Exception
@@ -93,19 +95,21 @@ buildFilterList dict = do
     (ONull, _) -> return []
     (OName fd, ONull) -> return [(fd, Nothing)]
     (OName fd, ODict pd) -> return [(fd, Just pd)]
-    (OName fd, OArray (Array [ODict pd])) -> return [(fd, Just pd)]
-    (OArray (Array fa), ONull) -> do
-      fa' <- forM fa $ \o ->
+    (OName fd, OArray arr)
+      | [ODict pd] <- Vector.toList arr
+      -> return [(fd, Just pd)]
+    (OArray fa, ONull) -> do
+      fa' <- forM (Vector.toList fa) $ \o ->
         case o of
           OName n -> return n
           _ -> throw $ Corrupted ("Filter should be a Name") []
       return $ zip fa' (repeat Nothing)
-    (OArray (Array fa), OArray (Array pa)) | length fa == length pa -> do
-      fa' <- forM fa $ \o ->
+    (OArray fa, OArray pa) | Vector.length fa == Vector.length pa -> do
+      fa' <- forM (Vector.toList fa) $ \o ->
         case o of
           OName n -> return n
           _ -> throw $ Corrupted ("Filter should be a Name") []
-      pa' <- forM pa $ \o ->
+      pa' <- forM (Vector.toList pa) $ \o ->
         case o of
           ODict d -> return d
           _ -> throw $ Corrupted ("DecodeParams should be a dictionary") []

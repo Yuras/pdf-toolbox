@@ -42,6 +42,7 @@ library
                        base16-bytestring,
                        text,
                        scientific,
+                       vector,
                        io-streams,
                        pdf-toolbox-core ==0.1.0.*
 

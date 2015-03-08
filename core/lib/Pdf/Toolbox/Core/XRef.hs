@@ -24,6 +24,7 @@ import Data.Typeable
 import Data.Int
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
+import qualified Data.Vector as Vector
 import Control.Applicative
 import Control.Monad
 import Control.Exception
@@ -193,7 +194,7 @@ lookupStreamEntry (Stream dict is) (Ref objNumber _) =
     i <-
       case lookupDict "Index" dict of
         Nothing           -> Right [ONumber 0, ONumber (fromIntegral sz)]
-        Just (OArray (Array arr)) -> Right arr
+        Just (OArray arr) -> Right (Vector.toList arr)
         _                 -> Left "Index should be an array"
 
     let convertIndex res [] = Right (reverse res)
@@ -208,7 +209,7 @@ lookupStreamEntry (Stream dict is) (Ref objNumber _) =
   width <- sure $ do
     ws <-
       case lookupDict "W" dict of
-        Just (OArray (Array ws)) -> Right ws
+        Just (OArray ws) -> Right (Vector.toList ws)
         _ -> Left "W should be an array"
     mapM intValue ws
       `notice` "W should contains integers"

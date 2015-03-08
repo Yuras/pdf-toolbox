@@ -6,10 +6,11 @@ module Test.Parsers.Object
 )
 where
 
-import Data.Attoparsec.ByteString
-
+import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Parsers.Object
 
+import Data.Attoparsec.ByteString
+import qualified Data.Vector as Vector
 import Test.Hspec
 
 spec :: Spec
@@ -19,6 +20,7 @@ spec = describe "Parsers.Object" $ do
   parseBoolSpec
   parseNameSpec
   parseNumberSpec
+  parseArraySpec
 
 parseStringSpec :: Spec
 parseStringSpec = describe "parseString" $ do
@@ -77,3 +79,9 @@ parseNumberSpec = describe "parseNumber" $ do
   it "should parse float without leading 0." $ do
     parseOnly parseNumber ".4"
       `shouldBe` Right 0.4
+
+parseArraySpec :: Spec
+parseArraySpec = describe "parseArray" $ do
+  it "should parse array" $ do
+    parseOnly parseArray "[42 true]"
+      `shouldBe` Right (Vector.fromList [ONumber 42, OBoolean True])

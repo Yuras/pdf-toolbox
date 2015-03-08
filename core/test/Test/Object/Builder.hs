@@ -6,9 +6,11 @@ module Test.Object.Builder
 )
 where
 
+import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Object.Builder
 
 import qualified Data.ByteString.Builder as Builder
+import qualified Data.Vector as Vector
 import Test.Hspec
 
 spec :: Spec
@@ -17,6 +19,7 @@ spec = describe "Object.Builder" $ do
   buildStringSpec
   buildNameSpec
   buildNumberSpec
+  buildArraySpec
 
 buildBoolSpec :: Spec
 buildBoolSpec = describe "buildBool" $ do
@@ -57,3 +60,13 @@ buildNumberSpec = describe "buildNumber" $ do
   it "should build float" $ do
     let res = buildNumber 42.4
     Builder.toLazyByteString res `shouldBe` "42.4"
+
+buildArraySpec :: Spec
+buildArraySpec = describe "buildArray" $ do
+  it "should build an array" $ do
+    let res = buildArray (Vector.fromList [ONumber 42, OBoolean False])
+    Builder.toLazyByteString res `shouldBe` "[42 false]"
+
+  it "should build empty array" $ do
+    let res = buildArray Vector.empty
+    Builder.toLazyByteString res `shouldBe` "[]"

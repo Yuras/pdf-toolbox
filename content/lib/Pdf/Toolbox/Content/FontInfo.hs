@@ -27,6 +27,7 @@ import qualified Data.ByteString as BS
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
+import qualified Data.Vector as Vector
 import Control.Monad
 
 import Pdf.Toolbox.Core
@@ -115,7 +116,7 @@ simpleFontEncodingDecode enc code =
 
 -- | Make `CIDFontWidths` from value of \"W\" key in descendant font
 makeCIDFontWidths :: Array -> Either String CIDFontWidths
-makeCIDFontWidths (Array vals) = go mempty vals
+makeCIDFontWidths vals = go mempty (Vector.toList vals)
   `notice` ("Can't parse CIDFont width " ++ show vals)
   where
   go res [] = return res
@@ -124,9 +125,9 @@ makeCIDFontWidths (Array vals) = go mempty vals
     n2 <- intValue x2
     n3 <- realValue x3
     go res {cidFontWidthsRanges = (n1, n2, n3) : cidFontWidthsRanges res} xs
-  go res (x : OArray (Array arr): xs) = do
+  go res (x : OArray arr : xs) = do
     n <- intValue x
-    ws <- forM arr realValue
+    ws <- forM (Vector.toList arr) realValue
     go res {cidFontWidthsChars = Map.fromList (zip [n ..] ws)
         `mappend` cidFontWidthsChars res} xs
   go _ _ = Nothing

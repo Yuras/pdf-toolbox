@@ -9,7 +9,7 @@ module Pdf.Toolbox.Core.Object.Types
   Object(..),
   Name,
   Dict(..),
-  Array(..),
+  Array,
   Stream(..),
   Ref(..)
 )
@@ -19,14 +19,14 @@ import Pdf.Toolbox.Core.Name (Name)
 
 import Data.ByteString (ByteString)
 import Data.Scientific (Scientific)
+import Data.Vector (Vector)
 
 -- | Set of key/value pairs
 newtype Dict = Dict [(Name, Object ())]
   deriving (Eq, Show)
 
 -- | An array
-newtype Array = Array [Object ()]
-  deriving (Eq, Show)
+type Array = Vector (Object ())
 
 -- | Contains stream dictionary and a payload
 --

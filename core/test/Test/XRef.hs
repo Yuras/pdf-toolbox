@@ -7,6 +7,7 @@ module Test.XRef
 where
 
 import qualified Data.ByteString as ByteString
+import qualified Data.Vector as Vector
 import Control.Monad
 import qualified System.IO.Streams as Streams
 
@@ -139,8 +140,8 @@ spec = do
           , 0,  0, 4,  0
           ]
         dict = Dict
-          [ ("Index", OArray $ Array $ map ONumber [3, 4])
-          , ("W", OArray $ Array $ map ONumber [1, 2, 1])
+          [ ("Index", OArray $ Vector.fromList $ map ONumber [3, 4])
+          , ("W", OArray $ Vector.fromList $ map ONumber [1, 2, 1])
           , ("Size", ONumber 4)
           ]
     it "should handle free objects" $ (do
@@ -165,8 +166,8 @@ spec = do
 
     it "should handle multiple sections" $ (do
       let dict' = Dict
-            [ ("Index", OArray $ Array $ map ONumber [3, 2, 10, 2])
-            , ("W", OArray $ Array $ map ONumber [1, 2, 1])
+            [ ("Index", OArray $ Vector.fromList $ map ONumber [3, 2, 10, 2])
+            , ("W", OArray $ Vector.fromList $ map ONumber [1, 2, 1])
             , ("Size", ONumber 4)
             ]
       is <- Streams.fromByteString bytes

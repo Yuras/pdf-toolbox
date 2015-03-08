@@ -15,6 +15,7 @@ import Data.Word
 import Data.Monoid
 import Data.Functor
 import Data.ByteString (ByteString)
+import qualified Data.Vector as Vector
 import Control.Monad
 import Control.Exception
 import qualified System.IO.Streams as Streams
@@ -62,10 +63,10 @@ fontDictLoadInfo fd@(FontDict pdf fontDict) = do
       obj <- sure (lookupDict "FontMatrix" fontDict
                     `notice` "FontMatrix should exist")
               >>= deref pdf
-      Array arr <- sure $ arrayValue obj
+      arr <- sure $ arrayValue obj
                     `notice` "FontMatrix should be an array"
       fontMatrix <-
-        case mapM realValue arr of
+        case mapM realValue (Vector.toList arr) of
           Just [a, b, c, d, e, f] -> do
             return $ Transform a b c d e f
           Nothing -> throw $ Corrupted "FontMatrics should contain numbers" []
@@ -85,8 +86,8 @@ loadFontInfoComposite pdf fontDict = do
                     >>= deref pdf
     descFontArr <- sure $ arrayValue descFontObj
         `notice` "DescendantFonts should be an array"
-    case descFontArr of
-      Array [o] -> do
+    case Vector.toList descFontArr of
+      [o] -> do
         o' <- deref pdf o
         sure $ dictValue o'
                 `notice` "DescendantFonts element should be a dictionary"
@@ -160,9 +161,9 @@ loadFontInfoSimple pdf fontDict = do
       Nothing -> return Nothing
       Just v -> do
         v' <- deref pdf v
-        Array array <- sure $ arrayValue v'
+        array <- sure $ arrayValue v'
             `notice` "Widths should be an array"
-        widths <- forM array $ \o ->
+        widths <- forM (Vector.toList array) $ \o ->
           sure (realValue o `notice` "Widths elements should be real")
         firstChar <- sure $ (lookupDict "FirstChar" fontDict >>= intValue)
                 `notice` "FirstChar should be an integer"
@@ -183,9 +184,9 @@ loadEncodingDifferences pdf dict = do
     Nothing -> return []
     Just v -> do
       v' <- deref pdf v
-      Array arr <- sure $ arrayValue v'
+      arr <- sure $ arrayValue v'
           `notice` "Differences should be an array"
-      case arr of
+      case Vector.toList arr of
         [] -> return []
         (o : rest) -> do
           n' <- fromIntegral <$> (sure $ intValue o

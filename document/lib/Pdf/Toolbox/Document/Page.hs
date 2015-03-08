@@ -22,6 +22,7 @@ import Data.Text (Text)
 import qualified Data.Text.Lazy as Lazy.Text
 import qualified Data.Text.Lazy.Builder as Text.Builder
 import qualified Data.Map as Map
+import qualified Data.Vector as Vector
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Exception
@@ -63,11 +64,11 @@ pageContents (Page pdf pageRef dict) =
       o <- lookupObject pdf ref >>= deref pdf
       case o of
         OStream _ -> return [ref]
-        OArray (Array objs) -> forM objs $ \obj ->
+        OArray objs -> forM (Vector.toList objs) $ \obj ->
           sure $ refValue obj `notice` "Content should be a reference"
         _ -> throw $ Corrupted
           ("Unexpected value in page content ref: " ++ show o) []
-    Just (OArray (Array objs)) -> forM objs $ \obj ->
+    Just (OArray objs) -> forM (Vector.toList objs) $ \obj ->
       sure $ refValue obj `notice` "Content should be a reference"
     _ -> throw $ Corrupted "Unexpected value in page contents" []
 

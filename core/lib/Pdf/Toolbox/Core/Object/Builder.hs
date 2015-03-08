@@ -26,6 +26,7 @@ import Data.ByteString.Lazy.Builder
 import qualified Data.ByteString.Base16 as Base16
 import Data.Scientific (Scientific)
 import qualified Data.Scientific as Scientific
+import qualified Data.Vector as Vector
 import Text.Printf
 
 import Pdf.Toolbox.Core.Object.Types
@@ -99,10 +100,11 @@ buildDict (Dict xs) =
   where
   build (key, val) = [buildName key, buildObject val]
 
+-- | Build an array
 buildArray :: Array -> Builder
-buildArray (Array xs) =
+buildArray xs =
   char7 '[' `mappend`
-  intercalate (char7 ' ') (map buildObject xs) `mappend`
+  intercalate (char7 ' ') (map buildObject $ Vector.toList xs) `mappend`
   char7 ']'
 
 -- | Build a string

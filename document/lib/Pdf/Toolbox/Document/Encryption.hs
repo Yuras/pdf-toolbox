@@ -18,6 +18,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
+import qualified Data.Vector as Vector
 import Control.Applicative
 import Control.Monad
 import System.IO.Streams (InputStream)
@@ -67,7 +68,7 @@ decryptDict decryptor ref (Dict vals) = Dict <$> forM vals decr
     return (key, res)
 
 decryptArray :: Decryptor -> Ref -> Array -> IO Array
-decryptArray decryptor ref (Array vals) = Array <$> forM vals decr
+decryptArray decryptor ref vals = Vector.forM vals decr
   where
   decr = decryptObject decryptor ref
 
@@ -182,9 +183,9 @@ mkKey tr enc pass n = do
           . word32LE . fromIntegral $ i
 
   idVal <- do
-    Array ids <- (lookupDict "ID" tr >>= arrayValue)
+    ids <- (lookupDict "ID" tr >>= arrayValue)
         `notice` "ID should be an array"
-    case ids of
+    case (Vector.toList ids) of
       [] -> Left "ID array is empty"
       (x:_) -> stringValue x
                   `notice` "The first element if ID should be a string"
@@ -217,9 +218,9 @@ verifyKey tr enc ekey = do
       `notice` "R should be an integer"
 
   idVal <- do
-    Array ids <- (lookupDict "ID" tr >>= arrayValue)
+    ids <- (lookupDict "ID" tr >>= arrayValue)
         `notice` "ID should be an array"
-    case ids of
+    case (Vector.toList ids) of
       [] -> Left "ID array is empty"
       (x:_) -> stringValue x
                   `notice` "The first element if ID should be a string"

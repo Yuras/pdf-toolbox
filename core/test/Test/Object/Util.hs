@@ -9,6 +9,7 @@ where
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Object.Util
 
+import qualified Data.Vector as Vector
 import Test.Hspec
 
 spec :: Spec
@@ -17,6 +18,7 @@ spec = describe "Object.Util" $ do
   stringValueSpec
   intValueSpec
   realValueSpec
+  arrayValueSpec
 
 boolValueSpec :: Spec
 boolValueSpec = describe "boolValue" $ do
@@ -55,3 +57,12 @@ realValueSpec = describe "realValue" $ do
 
   it "should not convert any other value" $ do
     realValue (OBoolean True) `shouldBe` Nothing
+
+arrayValueSpec :: Spec
+arrayValueSpec = describe "arrayValue" $ do
+  it "should convert array value to Array" $ do
+    let arr = Vector.fromList [OBoolean True]
+    arrayValue (OArray arr) `shouldBe` Just arr
+
+  it "should return Nothing for any other value" $ do
+    arrayValue (OBoolean True) `shouldBe` Nothing

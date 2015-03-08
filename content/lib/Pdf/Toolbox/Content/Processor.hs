@@ -20,6 +20,7 @@ import Data.Monoid
 import Data.ByteString (ByteString)
 import Data.Text (Text)
 import qualified Data.Scientific as Scientific
+import qualified Data.Vector as Vector
 import Control.Monad
 
 import Pdf.Toolbox.Core
@@ -241,7 +242,7 @@ processOp (Op_Tj, [OStr str]) p = do
 processOp (Op_Tj, args) _ = Left ("Op_Tj: wrong number of agruments:"
                                   ++ show args)
 
-processOp (Op_TJ, [OArray (Array array)]) p = do
+processOp (Op_TJ, [OArray array]) p = do
   let gstate = prState p
   fontName <-
     case gsFont gstate of
@@ -251,7 +252,8 @@ processOp (Op_TJ, [OArray (Array array)]) p = do
     case gsFontSize gstate of
       Nothing -> Left "Op_Tj: font size not set"
       Just fs -> return fs
-  let (textMatrix, glyphs) = loop (gsTextMatrix gstate) [] array
+  let (textMatrix, glyphs) = loop (gsTextMatrix gstate) []
+                                  (Vector.toList array)
         where
         loop tm res [] = (tm, reverse res)
         loop tm res (OStr str : rest) =
