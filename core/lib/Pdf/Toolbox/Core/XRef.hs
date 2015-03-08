@@ -149,7 +149,7 @@ lookupTableEntry :: Buffer
                  -> XRef  -- ^ should be xref table
                  -> Ref   -- ^ indirect object to look for
                  -> IO (Maybe TableEntry)
-lookupTableEntry buf (XRefTable tableOff) (Ref index gen)
+lookupTableEntry buf (XRefTable tableOff) (R index gen)
   = message "lookupTableEntry" $ do
   bufferSeek buf tableOff
   table <- isTable (bufferToInputStream buf)
@@ -186,7 +186,7 @@ lookupStreamEntry
   :: Stream (InputStream ByteString)  -- ^ decoded xref stream content
   -> Ref                              -- ^ indirect object
   -> IO (Maybe StreamEntry)
-lookupStreamEntry (Stream dict is) (Ref objNumber _) =
+lookupStreamEntry (Stream dict is) (R objNumber _) =
   message "lookupStreamEntry" $ do
 
   index <- sure $ do

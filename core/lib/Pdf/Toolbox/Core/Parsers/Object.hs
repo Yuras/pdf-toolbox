@@ -140,9 +140,7 @@ parseHexString = do
     ch2 <- P.satisfy isHexDigit
     return $ fromIntegral $ digitToInt ch1 * 16 + digitToInt ch2
 
--- |
--- >>> parseOnly parseRef "0 2 R"
--- Right (Ref 0 2)
+-- | Parse a reference
 parseRef :: Parser Ref
 parseRef = do
   obj <- P.decimal
@@ -150,7 +148,7 @@ parseRef = do
   gen <- P.decimal
   P.skipSpace
   _ <- P.char 'R'
-  return $ Ref obj gen
+  return $ R obj gen
 
 -- | Parse a name
 parseName :: Parser Name
@@ -223,7 +221,7 @@ parseIndirectObject = do
   _ <- P.string "obj"
   P.skipSpace
   obj <- parseObject
-  let ref = Ref index gen
+  let ref = R index gen
   case obj of
     ODict d -> P.choice [
       parseTillStreamData >> return (ref, OStream $ Stream d ()),

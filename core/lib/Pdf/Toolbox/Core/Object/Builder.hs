@@ -35,7 +35,7 @@ import qualified Pdf.Toolbox.Core.Name as Name
 
 -- | Build indirect object
 buildIndirectObject :: Ref -> Object BSL.ByteString -> Builder
-buildIndirectObject (Ref i g) object =
+buildIndirectObject (R i g) object =
   char7 '\n' `mappend`
   intDec i `mappend`
   char7 ' ' `mappend`
@@ -135,5 +135,11 @@ buildString s =
   escape '\b' = "\\b"
   escape ch = [ch]
 
+-- | Build a reference
 buildRef :: Ref -> Builder
-buildRef (Ref i j) = intDec i `mappend` char7 ' ' `mappend` intDec j `mappend` byteString " R"
+buildRef (R i j) = mconcat
+  [ intDec i
+  , char7 ' '
+  , intDec j
+  , byteString " R"
+  ]

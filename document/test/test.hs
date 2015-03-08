@@ -43,7 +43,7 @@ withSimpleFile action = do
   out <- Streams.handleToOutputStream h
   runPdfWriter out $ do
     writePdfHeader
-    deleteObject (Ref 0 1) 65535
+    deleteObject (R 0 1) 65535
     forM_ objects $ \(ref, obj) ->
       writeObject ref obj
     writeXRefTable 0 tr
@@ -59,4 +59,4 @@ withSimpleFile action = do
   objects =
     [ (infoRef, ODict info)
     ]
-  infoRef = Ref 1 0
+  infoRef = R 1 0

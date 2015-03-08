@@ -22,6 +22,7 @@ spec = describe "Object.Builder" $ do
   buildNumberSpec
   buildArraySpec
   buildDictSpec
+  buildRefSpec
 
 buildBoolSpec :: Spec
 buildBoolSpec = describe "buildBool" $ do
@@ -78,3 +79,9 @@ buildDictSpec = describe "buildDict" $ do
   it "should build a dictionary" $ do
     let res = buildDict (HashMap.fromList [("hello", OBoolean False)])
     Builder.toLazyByteString res `shouldBe` "<</hello false>>"
+
+buildRefSpec :: Spec
+buildRefSpec = describe "buildRef" $ do
+  it "should build a ref" $ do
+    let res = buildRef (R 42 24)
+    Builder.toLazyByteString res `shouldBe` "42 24 R"

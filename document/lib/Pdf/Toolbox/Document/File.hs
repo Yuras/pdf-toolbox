@@ -86,7 +86,7 @@ readObjectForEntry :: File_-> XRefEntry -> IO (Object Int64, Bool)
 readObjectForEntry file (XRefTableEntry entry)
   | teIsFree entry = return (ONull, False)
   | otherwise = do
-    (Ref _ gen, obj) <- readObjectAtOffset (_buffer file) (teOffset entry)
+    (R _ gen, obj) <- readObjectAtOffset (_buffer file) (teOffset entry)
     unless (gen == teGen entry) $
       throw (Corrupted "readObjectForEntry" ["object generation missmatch"])
     return (obj, False)
@@ -98,7 +98,7 @@ readObjectForEntry file (XRefStreamEntry entry) =
       return (snd obj, False)
     StreamEntryCompressed index num -> do
       objStream@(Stream dict _) <- do
-        (o, _) <- findObject file (Ref index 0)
+        (o, _) <- findObject file (R index 0)
         sure $ streamValue o `notice` "Compressed entry should be in stream"
       first <- sure $ (HashMap.lookup "First" dict >>= intValue)
           `notice` "First should be an integer"
@@ -106,7 +106,7 @@ readObjectForEntry file (XRefStreamEntry entry) =
       decrypted <-
         readIORef (_decrRef file)
         >>= maybe (return raw)
-          (\decr -> decr (Ref index 0) DecryptStream raw)
+          (\decr -> decr (R index 0) DecryptStream raw)
       decoded <- decodeStream (_filters file) (Stream dict decrypted)
       obj <- readCompressedObject decoded (fromIntegral first) num
       return (conv obj, True)

@@ -21,6 +21,8 @@ spec = describe "Object.Util" $ do
   realValueSpec
   arrayValueSpec
   dictValueSpec
+  nameValueSpec
+  refValueSpec
 
 boolValueSpec :: Spec
 boolValueSpec = describe "boolValue" $ do
@@ -77,3 +79,20 @@ dictValueSpec = describe "dictValue" $ do
 
   it "should return Nothing for any other value" $ do
     dictValue (OBoolean True) `shouldBe` Nothing
+
+nameValueSpec :: Spec
+nameValueSpec = describe "nameValue" $ do
+  it "should convert name value to Name" $ do
+    nameValue (OName "hello") `shouldBe` Just "hello"
+
+  it "should return Nothing for any other value" $ do
+    nameValue (OBoolean True) `shouldBe` Nothing
+
+refValueSpec :: Spec
+refValueSpec = describe "refValue" $ do
+  it "should convert ref value to Ref" $ do
+    let ref = R 42 24
+    refValue (ORef ref) `shouldBe` Just ref
+
+  it "should return Nothing for any other value" $ do
+    refValue (OBoolean True) `shouldBe` Nothing

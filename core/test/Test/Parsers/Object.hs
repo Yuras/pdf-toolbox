@@ -23,6 +23,7 @@ spec = describe "Parsers.Object" $ do
   parseNumberSpec
   parseArraySpec
   parseDictSpec
+  parseRefSpec
 
 parseStringSpec :: Spec
 parseStringSpec = describe "parseString" $ do
@@ -93,3 +94,9 @@ parseDictSpec = describe "parseDict" $ do
   it "should parse a dictionary" $ do
     parseOnly parseDict "<</hello true>>"
       `shouldBe` Right (HashMap.fromList [("hello", OBoolean True)])
+
+parseRefSpec :: Spec
+parseRefSpec = describe "parseRef" $ do
+  it "should parse a reference" $ do
+    parseOnly parseRef "42 24 R"
+      `shouldBe` Right (R 42 24)

@@ -20,7 +20,7 @@ import Pdf.Toolbox.Core.Exception
 import Test.Hspec
 
 spec :: Spec
-spec = do
+spec = describe "XRef" $ do
   describe "isTable" $ do
     it "should return True when the stream starts from \"xref\\n\" string" $
       (Streams.fromByteString "xref\n" >>= isTable)
@@ -121,7 +121,7 @@ spec = do
         \0000000033 00000 n\r\n\
         \0000000044 00000 n\r\n\
         \trailer"
-      lookupTableEntry buf (XRefTable 5) (Ref 4 0)
+      lookupTableEntry buf (XRefTable 5) (R 4 0)
       ) `shouldReturn` Just (TableEntry 44 0 False)
 
     it "should return Nothing when not found" $ (do
@@ -130,7 +130,7 @@ spec = do
         \0000000011 00000 n\r\n\
         \0000000022 00000 n\r\n\
         \trailer"
-      lookupTableEntry buf (XRefTable 5) (Ref 4 0)
+      lookupTableEntry buf (XRefTable 5) (R 4 0)
       ) `shouldReturn` Nothing
 
   describe "lookupStreamEntry" $ do
@@ -147,22 +147,22 @@ spec = do
           ]
     it "should handle free objects" $ (do
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (Stream dict is) (Ref 6 0)
+      lookupStreamEntry (Stream dict is) (R 6 0)
       ) `shouldReturn` Just (StreamEntryFree 4 0)
 
     it "should handle used objects" $ (do
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (Stream dict is) (Ref 4 0)
+      lookupStreamEntry (Stream dict is) (R 4 0)
       ) `shouldReturn` Just (StreamEntryUsed 2 3)
 
     it "should handle compressed objects" $ (do
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (Stream dict is) (Ref 5 0)
+      lookupStreamEntry (Stream dict is) (R 5 0)
       ) `shouldReturn` Just (StreamEntryCompressed 3 4)
 
     it "should return Nothing when object to found" $ (do
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (Stream dict is) (Ref 7 0)
+      lookupStreamEntry (Stream dict is) (R 7 0)
       ) `shouldReturn` Nothing
 
     it "should handle multiple sections" $ (do
@@ -172,5 +172,5 @@ spec = do
             , ("Size", ONumber 4)
             ]
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (Stream dict' is) (Ref 11 0)
+      lookupStreamEntry (Stream dict' is) (R 11 0)
       ) `shouldReturn` Just (StreamEntryFree 4 0)

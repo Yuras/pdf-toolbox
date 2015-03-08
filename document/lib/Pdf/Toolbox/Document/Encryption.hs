@@ -255,7 +255,7 @@ mkDecryptor
   -> Ref
   -> InputStream ByteString
   -> IO (InputStream ByteString)
-mkDecryptor alg ekey n (Ref index gen) is = do
+mkDecryptor alg ekey n (R index gen) is = do
   let key = BS.take (16 `min` n + 5) $ MD5.hash $ BS.concat
         [ ekey
         , BS.pack $ take 3 $ BSL.unpack $ toLazyByteString

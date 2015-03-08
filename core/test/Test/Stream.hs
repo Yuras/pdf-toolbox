@@ -15,7 +15,7 @@ import Pdf.Toolbox.Core.Stream
 import Test.Hspec
 
 spec :: Spec
-spec = do
+spec = describe "Stream" $ do
   describe "readStream" $ do
     it "should throw ParseException when indirect object is not a stream" $ (do
         is <- Streams.fromByteString "1 1 obj\r(hello)\nendobj"

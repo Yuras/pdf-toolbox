@@ -91,7 +91,7 @@ writePdfHeader = do
 
 -- | Write object
 writeObject :: MonadIO m => Ref -> Object BSL.ByteString -> PdfWriter m ()
-writeObject ref@(Ref index gen) obj = do
+writeObject ref@(R index gen) obj = do
   st <- PdfWriter get
   pos <- countWritten
   addElem $ Elem index gen pos False
@@ -100,7 +100,7 @@ writeObject ref@(Ref index gen) obj = do
 
 -- | Delete object
 deleteObject :: MonadIO m => Ref -> Int64 -> PdfWriter m ()
-deleteObject (Ref index gen) nextFree =
+deleteObject (R index gen) nextFree =
   addElem $ Elem index gen nextFree True
 
 -- | Write xref table. Should be the last call.
