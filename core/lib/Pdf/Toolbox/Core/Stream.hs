@@ -14,6 +14,15 @@ module Pdf.Toolbox.Core.Stream
 )
 where
 
+import Pdf.Toolbox.Core.Exception
+import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Name (Name)
+import Pdf.Toolbox.Core.Parsers.Object
+import Pdf.Toolbox.Core.Stream.Filter.Type
+import Pdf.Toolbox.Core.Stream.Filter.FlateDecode
+import Pdf.Toolbox.Core.IO.Buffer (Buffer)
+import qualified Pdf.Toolbox.Core.IO.Buffer as Buffer
+
 import Data.Int
 import Data.Maybe
 import Data.ByteString (ByteString)
@@ -25,14 +34,6 @@ import Control.Exception
 import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 import qualified System.IO.Streams.Attoparsec as Streams
-
-import Pdf.Toolbox.Core.IO.Buffer
-import Pdf.Toolbox.Core.Exception
-import Pdf.Toolbox.Core.Object.Types
-import Pdf.Toolbox.Core.Name (Name)
-import Pdf.Toolbox.Core.Parsers.Object
-import Pdf.Toolbox.Core.Stream.Filter.Type
-import Pdf.Toolbox.Core.Stream.Filter.FlateDecode
 
 -- | Read 'Stream' from stream
 --
@@ -66,8 +67,8 @@ rawStreamContent :: Buffer
                                   -- The payload is offset of stream data
                  -> IO (InputStream ByteString)
 rawStreamContent buf len (S _ off) = do
-  bufferSeek buf off
-  Streams.takeBytes (fromIntegral len) (bufferToInputStream buf)
+  Buffer.seek buf off
+  Streams.takeBytes (fromIntegral len) (Buffer.toInputStream buf)
 
 -- | Decode stream content
 --

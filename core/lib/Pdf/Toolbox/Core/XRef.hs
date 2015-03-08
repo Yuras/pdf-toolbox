@@ -20,6 +20,15 @@ module Pdf.Toolbox.Core.XRef
 )
 where
 
+import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Object.Util
+import Pdf.Toolbox.Core.Parsers.XRef
+import Pdf.Toolbox.Core.Stream
+import Pdf.Toolbox.Core.Exception
+import Pdf.Toolbox.Core.Util
+import Pdf.Toolbox.Core.IO.Buffer (Buffer)
+import qualified Pdf.Toolbox.Core.IO.Buffer as Buffer
+
 import Data.Typeable
 import Data.Int
 import Data.ByteString (ByteString)
@@ -32,14 +41,6 @@ import Control.Exception
 import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 import qualified System.IO.Streams.Attoparsec as Streams
-
-import Pdf.Toolbox.Core.Object.Types
-import Pdf.Toolbox.Core.Object.Util
-import Pdf.Toolbox.Core.Parsers.XRef
-import Pdf.Toolbox.Core.Stream
-import Pdf.Toolbox.Core.IO.Buffer
-import Pdf.Toolbox.Core.Exception
-import Pdf.Toolbox.Core.Util
 
 -- | Entry in cross reference table
 data TableEntry = TableEntry {
@@ -81,9 +82,9 @@ isTable is = (Streams.parseFromStream tableXRef is >> return True)
 -- | Find the last cross reference
 lastXRef :: Buffer -> IO XRef
 lastXRef buf = do
-  sz <- bufferSize buf
-  bufferSeek buf $ max 0 (sz - 1024)
-  (Streams.parseFromStream startXRef (bufferToInputStream buf)
+  sz <- Buffer.size buf
+  Buffer.seek buf $ max 0 (sz - 1024)
+  (Streams.parseFromStream startXRef (Buffer.toInputStream buf)
     >>= readXRef buf
     ) `catch` \(Streams.ParseException msg) ->
                   throw (Corrupted "lastXRef" [msg])
@@ -91,8 +92,8 @@ lastXRef buf = do
 -- | Read XRef at specified offset
 readXRef :: Buffer -> Int64 -> IO XRef
 readXRef buf off = do
-  bufferSeek buf off
-  let is = bufferToInputStream buf
+  Buffer.seek buf off
+  let is = Buffer.toInputStream buf
   table <- isTable is
   if table
     then return (XRefTable off)
@@ -112,8 +113,8 @@ prevXRef buf xref = message "prevXRef" $ do
 -- | Read trailer for the xref
 trailer :: Buffer -> XRef -> IO Dict
 trailer buf (XRefTable off) = do
-  bufferSeek buf off
-  let is = bufferToInputStream buf
+  Buffer.seek buf off
+  let is = Buffer.toInputStream buf
   table <- isTable is
   unless table $
     throw (Unexpected "trailer" ["table not found"])
@@ -142,7 +143,7 @@ nextSubsectionHeader is count = message "nextSubsectionHeader" $ do
     `catch` \(Streams.ParseException _) -> return Nothing
 
 skipSubsection :: InputStream ByteString -> Int -> IO ()
-skipSubsection is count = dropExactly (count * 20) is
+skipSubsection is count = Buffer.dropExactly (count * 20) is
 
 -- | Read xref entry for the indirect object from xref table
 lookupTableEntry :: Buffer
@@ -151,21 +152,21 @@ lookupTableEntry :: Buffer
                  -> IO (Maybe TableEntry)
 lookupTableEntry buf (XRefTable tableOff) (R index gen)
   = message "lookupTableEntry" $ do
-  bufferSeek buf tableOff
-  table <- isTable (bufferToInputStream buf)
+  Buffer.seek buf tableOff
+  table <- isTable (Buffer.toInputStream buf)
   unless table $
     throw $ Unexpected "Not a table" []
-  (subsectionHeader (bufferToInputStream buf) >>= go)
+  (subsectionHeader (Buffer.toInputStream buf) >>= go)
     `catch` \(Streams.ParseException err) -> throw (Corrupted err [])
   where
   go (start, count) = do
     if index >= start && index < start + count
       then do
         -- that is our section, lets seek to the row
-        bufferTell buf
-          >>= bufferSeek buf . (+ (fromIntegral $ index - start) * 20)
+        Buffer.tell buf
+          >>= Buffer.seek buf . (+ (fromIntegral $ index - start) * 20)
         (off, gen', free) <-
-          Streams.parseFromStream parseTableEntry (bufferToInputStream buf)
+          Streams.parseFromStream parseTableEntry (Buffer.toInputStream buf)
             `catch` \(Streams.ParseException msg) ->
               throw (Corrupted "parseTableEntry failed" [msg])
         unless (gen == gen') $
@@ -173,7 +174,7 @@ lookupTableEntry buf (XRefTable tableOff) (R index gen)
         return $ Just $ TableEntry off gen free
       else
         -- go to the next section if any
-        nextSubsectionHeader (bufferToInputStream buf) count
+        nextSubsectionHeader (Buffer.toInputStream buf) count
         >>= maybe (return Nothing) go
 lookupTableEntry _ XRefStream{} _ =
   throw $ Unexpected "lookupTableEntry" ["Only xref table allowed"]
@@ -230,7 +231,7 @@ lookupStreamEntry (S dict is) (R objNumber _) =
     case position of
       Nothing -> return Nothing
       Just p -> do
-        dropExactly p is
+        Buffer.dropExactly p is
         Just . ByteString.unpack <$> Streams.readExactly totalWidth is
 
   case values of

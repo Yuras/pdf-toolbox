@@ -30,6 +30,7 @@ import System.IO.Streams (InputStream)
 
 import Pdf.Toolbox.Core hiding (rawStreamContent, decodeStream)
 import qualified Pdf.Toolbox.Core as Core
+import qualified Pdf.Toolbox.Core.IO.Buffer as Buffer
 
 import Pdf.Toolbox.Document.File (File)
 import qualified Pdf.Toolbox.Document.File as File
@@ -43,7 +44,7 @@ pdfWithFile f = Pdf f <$> newIORef Nothing
 -- | Make Pdf with seekable handle
 pdfWithHandle :: Handle -> IO Pdf
 pdfWithHandle h = do
-  buf <- handleToBuffer h
+  buf <- Buffer.fromHandle h
   File.withBuffer knownFilters buf >>= pdfWithFile
 
 file :: Pdf -> File

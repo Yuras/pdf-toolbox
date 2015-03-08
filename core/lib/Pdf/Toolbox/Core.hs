@@ -3,7 +3,6 @@
 
 module Pdf.Toolbox.Core
 (
-  module Pdf.Toolbox.Core.IO.Buffer,
   module Pdf.Toolbox.Core.Exception,
   module Pdf.Toolbox.Core.Object.Types,
   module Pdf.Toolbox.Core.Object.Builder,
@@ -14,7 +13,6 @@ module Pdf.Toolbox.Core
 )
 where
 
-import Pdf.Toolbox.Core.IO.Buffer
 import Pdf.Toolbox.Core.Exception
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Object.Builder

@@ -25,6 +25,7 @@ import System.IO.Streams (InputStream)
 import Pdf.Toolbox.Core hiding (trailer)
 import qualified Pdf.Toolbox.Core as Core
 import Pdf.Toolbox.Core.Util
+import Pdf.Toolbox.Core.IO.Buffer (Buffer)
 
 import Pdf.Toolbox.Document.Encryption
 

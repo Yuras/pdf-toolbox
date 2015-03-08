@@ -9,6 +9,12 @@ module Pdf.Toolbox.Core.Util
 )
 where
 
+import Pdf.Toolbox.Core.IO.Buffer (Buffer)
+import qualified Pdf.Toolbox.Core.IO.Buffer as Buffer
+import Pdf.Toolbox.Core.Exception
+import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Parsers.Object
+
 import Data.Int
 import Data.ByteString (ByteString)
 import Data.Attoparsec.ByteString.Char8 (Parser)
@@ -19,11 +25,6 @@ import Control.Exception
 import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 import qualified System.IO.Streams.Attoparsec as Streams
-
-import Pdf.Toolbox.Core.IO.Buffer
-import Pdf.Toolbox.Core.Exception
-import Pdf.Toolbox.Core.Object.Types
-import Pdf.Toolbox.Core.Parsers.Object
 
 -- | Add a message to 'Maybe'
 notice :: Maybe a -> String -> Either String a
@@ -38,9 +39,9 @@ readObjectAtOffset :: Buffer
                    -> Int64   -- ^ object offset
                    -> IO (Ref, Object Int64)
 readObjectAtOffset buf off = message "readObjectAtOffset" $ do
-  bufferSeek buf off
+  Buffer.seek buf off
   (ref, o) <- Streams.parseFromStream parseIndirectObject
-    (bufferToInputStream buf)
+    (Buffer.toInputStream buf)
       `catch` \(Streams.ParseException msg) -> throw (Corrupted msg [])
   o' <-
     case o of
@@ -50,7 +51,7 @@ readObjectAtOffset buf off = message "readObjectAtOffset" $ do
       Dict val -> return $ Dict val
       Array val -> return $ Array val
       String val -> return $ String val
-      Stream (S dict _) -> (Stream . S dict) <$> bufferTell buf
+      Stream (S dict _) -> (Stream . S dict) <$> Buffer.tell buf
       Ref _ -> throw $ Corrupted "Indirect object can't be a Ref" []
       Null -> return Null
   return (ref, o')
@@ -77,7 +78,7 @@ readCompressedObject is first num = do
     case last res of
       (_, off) -> return off
   pos <- counter
-  dropExactly (fromIntegral $ first + off - pos) is
+  Buffer.dropExactly (fromIntegral $ first + off - pos) is
   Streams.parseFromStream parseObject is
     `catch` \(Streams.ParseException msg) -> throwIO $ Corrupted
       "Object in object stream" [msg]
