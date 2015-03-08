@@ -41,6 +41,7 @@ library
                        bytestring,
                        base16-bytestring,
                        text,
+                       scientific,
                        io-streams,
                        pdf-toolbox-core ==0.1.0.*
 

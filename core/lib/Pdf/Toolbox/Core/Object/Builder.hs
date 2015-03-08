@@ -24,6 +24,8 @@ import qualified Data.ByteString.Char8 as Char8
 import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
 import qualified Data.ByteString.Base16 as Base16
+import Data.Scientific (Scientific)
+import qualified Data.Scientific as Scientific
 import Text.Printf
 
 import Pdf.Toolbox.Core.Object.Types
@@ -64,9 +66,13 @@ buildStream (Stream dict content) =
   lazyByteString content `mappend`
   byteString "\nendstream"
 
-buildNumber :: Number -> Builder
-buildNumber (NumInt i) = intDec i
-buildNumber (NumReal d) = string7 $ printf "%f" d
+-- | Build a number
+buildNumber :: Scientific -> Builder
+buildNumber
+  = either bFloat intDec
+  . Scientific.floatingOrInteger
+  where
+  bFloat d = string7 $ printf "%f" (d :: Double)
 
 -- | Build a bool
 buildBool :: Bool -> Builder

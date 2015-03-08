@@ -19,6 +19,7 @@ where
 import Data.Monoid
 import Data.ByteString (ByteString)
 import Data.Text (Text)
+import qualified Data.Scientific as Scientific
 import Control.Monad
 
 import Pdf.Toolbox.Core
@@ -149,7 +150,7 @@ processOp (Op_Td, args) _ = Left ("Op_Td: wrong number of arguments: "
 
 processOp (Op_TD, [txo, tyo]) p = do
   l <- realValue tyo `notice` "TD: y should be a real value"
-  p' <- processOp (Op_TL, [ONumber $ NumReal $ negate l]) p
+  p' <- processOp (Op_TL, [ONumber $ Scientific.fromFloatDigits $ negate l]) p
   processOp (Op_Td, [txo, tyo]) p'
 processOp (Op_TD, args) _ = Left ("Op_TD: wrong number of arguments: "
                                   ++ show args)
@@ -175,7 +176,7 @@ processOp (Op_T_star, []) p = do
   ensureInTextObject True p
   let gstate = prState p
       l = gsTextLeading gstate
-  processOp (Op_TD, map (ONumber . NumReal) [0, negate l]) p
+  processOp (Op_TD, map (ONumber . Scientific.fromFloatDigits) [0, negate l]) p
 processOp (Op_T_star, args) _ = Left ("Op_T_star: wrong number of arguments: "
                                       ++ show args)
 
@@ -261,11 +262,9 @@ processOp (Op_TJ, [OArray (Array array)]) p = do
                                          (gsTextWordSpacing gstate)
                                          (prGlyphDecoder p fontName str)
           in loop tm' (gs : res) rest
-        loop tm res (ONumber (NumInt i): rest) =
-          loop (translate (fromIntegral (-i) * fontSize / 1000) 0 tm)
-                res rest
-        loop tm res (ONumber (NumReal d): rest) =
-          loop (translate (-d * fontSize / 1000) 0 tm) res rest
+        loop tm res (ONumber n : rest) =
+          let d = Scientific.toRealFloat n
+          in loop (translate (-d * fontSize / 1000) 0 tm) res rest
         loop tm res (_:rest) = loop tm res rest
   return p {
     prGlyphs = prGlyphs p ++ glyphs,

@@ -29,6 +29,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import Data.Attoparsec.ByteString (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
+import Data.Scientific (Scientific)
 import qualified Data.Scientific as Scientific
 
 import Control.Applicative
@@ -67,26 +68,17 @@ parseArray = do
   _ <- P.char ']'
   return $ Array array
 
--- |
--- >>> parseOnly parseNumber "123"
--- Right (NumInt 123)
--- >>> parseOnly parseNumber "12.3"
--- Right (NumReal 12.3)
--- >>> parseOnly parseNumber ".01"
--- Right (NumReal 1.0e-2)
-parseNumber :: Parser Number
+-- | parse number
+parseNumber :: Parser Scientific
 parseNumber = P.choice [
-  number,
-  NumReal <$>
+  P.scientific,
+  Scientific.fromFloatDigits <$>
     (P.signed
       $ read
       . ("0."++)
       . BS8.unpack <$>
-        (P.char '.' >> P.takeWhile1 isDigit))
+        (P.char '.' >> P.takeWhile1 isDigit) :: Parser Double)
   ]
-  where
-  number = toNum <$> P.scientific
-  toNum = either NumReal NumInt . Scientific.floatingOrInteger
 
 -- | Parse literal string
 parseString :: Parser ByteString

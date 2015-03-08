@@ -7,7 +7,6 @@
 module Pdf.Toolbox.Core.Object.Types
 (
   Object(..),
-  Number(..),
   Name,
   Dict(..),
   Array(..),
@@ -19,12 +18,7 @@ where
 import Pdf.Toolbox.Core.Name (Name)
 
 import Data.ByteString (ByteString)
-
--- | Integer or real 
-data Number =
-  NumInt Int |
-  NumReal Double
-  deriving (Eq, Show)
+import Data.Scientific (Scientific)
 
 -- | Set of key/value pairs
 newtype Dict = Dict [(Name, Object ())]
@@ -49,7 +43,7 @@ data Ref = Ref Int Int
 --
 -- It is parameterized by 'Stream' content
 data Object a =
-  ONumber Number |
+  ONumber Scientific |
   OBoolean Bool |
   OName Name |
   ODict Dict |

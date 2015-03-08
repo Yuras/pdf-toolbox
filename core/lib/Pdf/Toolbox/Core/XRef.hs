@@ -192,7 +192,7 @@ lookupStreamEntry (Stream dict is) (Ref objNumber _) =
       `notice` "Size should be an integer"
     i <-
       case lookupDict "Index" dict of
-        Nothing           -> Right [ONumber (NumInt 0), ONumber (NumInt sz)]
+        Nothing           -> Right [ONumber 0, ONumber (fromIntegral sz)]
         Just (OArray (Array arr)) -> Right arr
         _                 -> Left "Index should be an array"
 

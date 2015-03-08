@@ -18,6 +18,7 @@ spec = describe "Parsers.Object" $ do
   parseHexStringSpec
   parseBoolSpec
   parseNameSpec
+  parseNumberSpec
 
 parseStringSpec :: Spec
 parseStringSpec = describe "parseString" $ do
@@ -62,3 +63,17 @@ parseNameSpec = describe "parseName" $ do
   it "should parse a name" $ do
     parseOnly parseName "/hello"
       `shouldBe` Right "hello"
+
+parseNumberSpec :: Spec
+parseNumberSpec = describe "parseNumber" $ do
+  it "should parse int" $ do
+    parseOnly parseNumber "42"
+      `shouldBe` Right 42
+
+  it "should parse float" $ do
+    parseOnly parseNumber "42.4"
+      `shouldBe` Right 42.4
+
+  it "should parse float without leading 0." $ do
+    parseOnly parseNumber ".4"
+      `shouldBe` Right 0.4

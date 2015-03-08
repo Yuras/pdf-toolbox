@@ -92,7 +92,7 @@ spec = do
   describe "prevXRef" $ do
     it "should read xref located at offset from\
         \ Prev entry in current trailer" $ (do
-      let dict = Dict [("Prev", ONumber (NumInt 5))]
+      let dict = Dict [("Prev", ONumber 5)]
       buf <- bytesToBuffer "helloxref\n"
       prevXRef buf (XRefStream undefined (Stream dict undefined))
       ) `shouldReturn` Just (XRefTable 5)
@@ -139,9 +139,9 @@ spec = do
           , 0,  0, 4,  0
           ]
         dict = Dict
-          [ ("Index", OArray $ Array $ map (ONumber . NumInt) [3, 4])
-          , ("W", OArray $ Array $ map (ONumber . NumInt) [1, 2, 1])
-          , ("Size", ONumber (NumInt 4))
+          [ ("Index", OArray $ Array $ map ONumber [3, 4])
+          , ("W", OArray $ Array $ map ONumber [1, 2, 1])
+          , ("Size", ONumber 4)
           ]
     it "should handle free objects" $ (do
       is <- Streams.fromByteString bytes
@@ -165,9 +165,9 @@ spec = do
 
     it "should handle multiple sections" $ (do
       let dict' = Dict
-            [ ("Index", OArray $ Array $ map (ONumber . NumInt) [3, 2, 10, 2])
-            , ("W", OArray $ Array $ map (ONumber . NumInt) [1, 2, 1])
-            , ("Size", ONumber (NumInt 4))
+            [ ("Index", OArray $ Array $ map ONumber [3, 2, 10, 2])
+            , ("W", OArray $ Array $ map ONumber [1, 2, 1])
+            , ("Size", ONumber 4)
             ]
       is <- Streams.fromByteString bytes
       lookupStreamEntry (Stream dict' is) (Ref 11 0)

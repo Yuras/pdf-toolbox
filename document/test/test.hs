@@ -49,7 +49,7 @@ withSimpleFile action = do
   action h
   where
   tr = Dict
-    [ ("Size", ONumber $ NumInt $ length objects + 1)
+    [ ("Size", ONumber $ fromIntegral $ length objects + 1)
     , ("Info", ORef infoRef)
     ]
   info = Dict

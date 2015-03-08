@@ -17,6 +17,8 @@ module Pdf.Toolbox.Core.Object.Util
 where
 
 import Data.ByteString (ByteString)
+import Data.Scientific (Scientific)
+import qualified Data.Scientific as Scientific
 
 import Pdf.Toolbox.Core.Object.Types
 
@@ -28,8 +30,14 @@ lookupDict key (Dict d) = lookup key d
 --
 -- Floating value doesn't automatically get converted
 intValue :: Object a -> Maybe Int
-intValue (ONumber (NumInt i)) = Just i
+intValue (ONumber n)
+  = either (const Nothing) Just
+  . floatingOrInteger
+  $ n
 intValue _ = Nothing
+
+floatingOrInteger :: Scientific -> Either Double Int
+floatingOrInteger = Scientific.floatingOrInteger
 
 -- | Try to convert object to 'Bool'
 boolValue :: Object a -> Maybe Bool
@@ -40,8 +48,10 @@ boolValue _ = Nothing
 --
 -- Integral value automatically gets converted
 realValue :: Object a -> Maybe Double
-realValue (ONumber (NumReal d)) = Just d
-realValue (ONumber (NumInt i)) = Just (fromIntegral i)
+realValue (ONumber n)
+  = either Just (Just . fromIntegral)
+  . floatingOrInteger
+  $ n
 realValue _ = Nothing
 
 -- | Try to convert object to 'Name'

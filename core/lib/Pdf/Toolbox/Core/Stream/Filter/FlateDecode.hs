@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE PatternGuards #-}
 
 -- | Flate decode filter
 
@@ -33,7 +34,7 @@ decode Nothing is = Streams.decompress is
 decode (Just dict) is =
   case lookupDict "Predictor" dict of
     Nothing -> Streams.decompress is
-    Just (ONumber (NumInt val)) ->
+    Just o | Just val <- intValue o ->
       Streams.decompress is >>= unpredict dict val
     _ -> throw $ Corrupted "Predictor should be an integer" []
 
@@ -45,7 +46,9 @@ unpredict _ 1 is = return is
 unpredict dict 12 is = message "unpredict" $
   case lookupDict "Columns" dict of
     Nothing -> throw $ Corrupted "Column is missing" []
-    Just (ONumber (NumInt cols)) -> unpredict12 (cols + 1) is
+    Just o
+      | Just cols <- intValue o
+      -> unpredict12 (cols + 1) is
     _ -> throw $ Corrupted "Column should be an integer" []
 unpredict _ p _ = throw $ Unexpected ("Unsupported predictor: " ++ show p) []
 

@@ -16,6 +16,7 @@ spec = describe "Object.Builder" $ do
   buildBoolSpec
   buildStringSpec
   buildNameSpec
+  buildNumberSpec
 
 buildBoolSpec :: Spec
 buildBoolSpec = describe "buildBool" $ do
@@ -46,3 +47,13 @@ buildNameSpec = describe "buildName" $ do
   it "should build a name" $ do
     let res = buildName "hello"
     Builder.toLazyByteString res `shouldBe` "/hello"
+
+buildNumberSpec :: Spec
+buildNumberSpec = describe "buildNumber" $ do
+  it "should build int" $ do
+    let res = buildNumber 42
+    Builder.toLazyByteString res `shouldBe` "42"
+
+  it "should build float" $ do
+    let res = buildNumber 42.4
+    Builder.toLazyByteString res `shouldBe` "42.4"
