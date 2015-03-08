@@ -31,6 +31,7 @@ import qualified Data.HashMap.Strict as HashMap
 import Text.Printf
 
 import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Name (Name)
 import qualified Pdf.Toolbox.Core.Name as Name
 
 -- | Build indirect object
@@ -44,22 +45,22 @@ buildIndirectObject (R i g) object =
   build object `mappend`
   byteString "\nendobj\n"
   where
-  build (OStream s) = buildStream s
+  build (Stream s) = buildStream s
   build o = buildObject o
 
 -- | Render inline object (without \"obj/endobj\").
 -- It is 'error' to supply 'Stream', because it could not
 -- be inlined, but should always be an indirect object
 buildObject :: Object a -> Builder
-buildObject (ONumber n) = buildNumber n
-buildObject (OBoolean b) = buildBool b
-buildObject (OName n) = buildName n
-buildObject (ODict d) = buildDict d
-buildObject (OArray a) = buildArray a
-buildObject (OStr s) = buildString s
-buildObject (ORef r) = buildRef r
-buildObject (OStream _) = error "buildObject: please don't pass streams to me"
-buildObject ONull = byteString "null"
+buildObject (Number n) = buildNumber n
+buildObject (Boolean b) = buildBool b
+buildObject (Name n) = buildName n
+buildObject (Dict d) = buildDict d
+buildObject (Array a) = buildArray a
+buildObject (String s) = buildString s
+buildObject (Ref r) = buildRef r
+buildObject (Stream _) = error "buildObject: please don't pass streams to me"
+buildObject Null = byteString "null"
 
 -- | Build a stream
 --

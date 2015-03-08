@@ -29,6 +29,7 @@ import qualified System.IO.Streams.Attoparsec as Streams
 import Pdf.Toolbox.Core.IO.Buffer
 import Pdf.Toolbox.Core.Exception
 import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Name (Name)
 import Pdf.Toolbox.Core.Parsers.Object
 import Pdf.Toolbox.Core.Stream.Filter.Type
 import Pdf.Toolbox.Core.Stream.Filter.FlateDecode
@@ -42,7 +43,7 @@ readStream is off = do
   (_, obj) <- Streams.parseFromStream parseIndirectObject is'
     `catch` \(Streams.ParseException msg) -> throwIO (Corrupted msg [])
   case obj of
-    OStream (S dict _) -> S dict . (+off) . fromIntegral <$> counter
+    Stream (S dict _) -> S dict . (+off) . fromIntegral <$> counter
     _ -> throw $ Streams.ParseException ("stream expected, but got: "
                                           ++ show obj)
 
@@ -89,29 +90,29 @@ decodeStream filters (S dict istream) =
 
 buildFilterList :: Dict -> IO [(Name, Maybe Dict)]
 buildFilterList dict = do
-  let f = fromMaybe ONull $ HashMap.lookup "Filter" dict
-      p = fromMaybe ONull $ HashMap.lookup "DecodeParms" dict
+  let f = fromMaybe Null $ HashMap.lookup "Filter" dict
+      p = fromMaybe Null $ HashMap.lookup "DecodeParms" dict
   case (f, p) of
-    (ONull, _) -> return []
-    (OName fd, ONull) -> return [(fd, Nothing)]
-    (OName fd, ODict pd) -> return [(fd, Just pd)]
-    (OName fd, OArray arr)
-      | [ODict pd] <- Vector.toList arr
+    (Null, _) -> return []
+    (Name fd, Null) -> return [(fd, Nothing)]
+    (Name fd, Dict pd) -> return [(fd, Just pd)]
+    (Name fd, Array arr)
+      | [Dict pd] <- Vector.toList arr
       -> return [(fd, Just pd)]
-    (OArray fa, ONull) -> do
+    (Array fa, Null) -> do
       fa' <- forM (Vector.toList fa) $ \o ->
         case o of
-          OName n -> return n
+          Name n -> return n
           _ -> throw $ Corrupted ("Filter should be a Name") []
       return $ zip fa' (repeat Nothing)
-    (OArray fa, OArray pa) | Vector.length fa == Vector.length pa -> do
+    (Array fa, Array pa) | Vector.length fa == Vector.length pa -> do
       fa' <- forM (Vector.toList fa) $ \o ->
         case o of
-          OName n -> return n
+          Name n -> return n
           _ -> throw $ Corrupted ("Filter should be a Name") []
       pa' <- forM (Vector.toList pa) $ \o ->
         case o of
-          ODict d -> return d
+          Dict d -> return d
           _ -> throw $ Corrupted ("DecodeParams should be a dictionary") []
       return $ zip fa' (map Just pa')
     _ -> throw $ Corrupted ("Can't handle Filter and DecodeParams: ("

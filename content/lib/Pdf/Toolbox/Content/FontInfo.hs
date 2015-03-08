@@ -120,12 +120,12 @@ makeCIDFontWidths vals = go mempty (Vector.toList vals)
   `notice` ("Can't parse CIDFont width " ++ show vals)
   where
   go res [] = return res
-  go res (x1@ONumber{} : x2@ONumber{} : x3@ONumber{} : xs) = do
+  go res (x1@Number{} : x2@Number{} : x3@Number{} : xs) = do
     n1 <- intValue x1
     n2 <- intValue x2
     n3 <- realValue x3
     go res {cidFontWidthsRanges = (n1, n2, n3) : cidFontWidthsRanges res} xs
-  go res (x : OArray arr : xs) = do
+  go res (x : Array arr : xs) = do
     n <- intValue x
     ws <- forM (Vector.toList arr) realValue
     go res {cidFontWidthsChars = Map.fromList (zip [n ..] ws)

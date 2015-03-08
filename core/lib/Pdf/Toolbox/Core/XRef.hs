@@ -194,8 +194,8 @@ lookupStreamEntry (S dict is) (R objNumber _) =
       `notice` "Size should be an integer"
     i <-
       case HashMap.lookup "Index" dict of
-        Nothing           -> Right [ONumber 0, ONumber (fromIntegral sz)]
-        Just (OArray arr) -> Right (Vector.toList arr)
+        Nothing           -> Right [Number 0, Number (fromIntegral sz)]
+        Just (Array arr) -> Right (Vector.toList arr)
         _                 -> Left "Index should be an array"
 
     let convertIndex res [] = Right (reverse res)
@@ -210,7 +210,7 @@ lookupStreamEntry (S dict is) (R objNumber _) =
   width <- sure $ do
     ws <-
       case HashMap.lookup "W" dict of
-        Just (OArray ws) -> Right (Vector.toList ws)
+        Just (Array ws) -> Right (Vector.toList ws)
         _ -> Left "W should be an array"
     mapM intValue ws
       `notice` "W should contains integers"

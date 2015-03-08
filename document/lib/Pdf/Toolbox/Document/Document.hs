@@ -40,7 +40,7 @@ documentInfo :: Document -> IO (Maybe Info)
 documentInfo doc = do
   case HashMap.lookup "Info" (dict doc) of
     Nothing -> return Nothing
-    Just (ORef ref) -> do
+    Just (Ref ref) -> do
       obj <- lookupObject (pdf doc) ref
       d <- sure $ dictValue obj `notice` "info should be a dictionary"
       return (Just (Info (pdf doc) ref d))
@@ -54,6 +54,6 @@ documentEncryption doc = do
     Just o -> do
       o' <- deref (pdf doc) o
       case o' of
-        ODict d -> return (Just d)
-        ONull -> return Nothing
+        Dict d -> return (Just d)
+        Null -> return Nothing
         _ -> throw (Corrupted "document Encrypt should be a dictionary" [])

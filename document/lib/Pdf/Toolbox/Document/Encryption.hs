@@ -48,12 +48,12 @@ type Decryptor
 
 -- | Decrypt object with the decryptor
 decryptObject :: Decryptor -> Ref -> Object a -> IO (Object a)
-decryptObject decryptor ref (OStr str)
-  = OStr <$> decryptStr decryptor ref str
-decryptObject decryptor ref (ODict dict)
-  = ODict <$> decryptDict decryptor ref dict
-decryptObject decryptor ref (OArray arr)
-  = OArray <$> decryptArray decryptor ref arr
+decryptObject decryptor ref (String str)
+  = String <$> decryptStr decryptor ref str
+decryptObject decryptor ref (Dict dict)
+  = Dict <$> decryptDict decryptor ref dict
+decryptObject decryptor ref (Array arr)
+  = Array <$> decryptArray decryptor ref arr
 decryptObject _ _ o = return o
 
 decryptStr :: Decryptor -> Ref -> ByteString -> IO ByteString

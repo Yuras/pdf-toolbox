@@ -24,7 +24,7 @@ parseContentSpec = describe "parseContent" $ do
   it "should parse an object" $ do
     let input = "(hello)"
         res = Parser.parseOnly parseContent input
-    res `shouldBe` Right (Just $ Obj $ OStr "hello")
+    res `shouldBe` Right (Just $ Obj $ String "hello")
 
   it "should parse an operator" $ do
     let input = "T*"
@@ -56,8 +56,8 @@ readNextOperatorSpec = describe "readNextOperator" $ do
 
   it "should collect all objects until an operator" $ do
     let input = [Obj o1, Obj o2, Op op]
-        o1 = OStr "o1"
-        o2 = OStr "o2"
+        o1 = String "o1"
+        o2 = String "o2"
         op = Op_Tj
     is <- Streams.fromList input
     next <- readNextOperator is
@@ -65,8 +65,8 @@ readNextOperatorSpec = describe "readNextOperator" $ do
 
   it "should throw when there is no operator after arguments" $ do
     let input = [Obj o1, Obj o2]
-        o1 = OStr "o1"
-        o2 = OStr "o2"
+        o1 = String "o1"
+        o2 = String "o2"
     is <- Streams.fromList input
     readNextOperator is
       `shouldThrow` \Corrupted{} -> True

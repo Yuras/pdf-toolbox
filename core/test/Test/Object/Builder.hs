@@ -68,7 +68,7 @@ buildNumberSpec = describe "buildNumber" $ do
 buildArraySpec :: Spec
 buildArraySpec = describe "buildArray" $ do
   it "should build an array" $ do
-    let res = buildArray (Vector.fromList [ONumber 42, OBoolean False])
+    let res = buildArray (Vector.fromList [Number 42, Boolean False])
     Builder.toLazyByteString res `shouldBe` "[42 false]"
 
   it "should build empty array" $ do
@@ -78,7 +78,7 @@ buildArraySpec = describe "buildArray" $ do
 buildDictSpec :: Spec
 buildDictSpec = describe "buildDict" $ do
   it "should build a dictionary" $ do
-    let res = buildDict (HashMap.fromList [("hello", OBoolean False)])
+    let res = buildDict (HashMap.fromList [("hello", Boolean False)])
     Builder.toLazyByteString res `shouldBe` "<</hello false>>"
 
 buildRefSpec :: Spec
@@ -91,6 +91,6 @@ buildStreamSpec :: Spec
 buildStreamSpec = describe "buildStream" $ do
   it "should build a stream" $ do
     let res = buildStream (S dict "hello")
-        dict = HashMap.fromList [("a", OStr "b")]
+        dict = HashMap.fromList [("a", String "b")]
     Builder.toLazyByteString res
       `shouldBe` "<</a (b)>>stream\nhello\nendstream"

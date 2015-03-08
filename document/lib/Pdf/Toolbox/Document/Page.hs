@@ -33,6 +33,7 @@ import qualified System.IO.Streams.Attoparsec as Streams
 
 import Pdf.Toolbox.Core
 import Pdf.Toolbox.Core.Util
+import Pdf.Toolbox.Core.Name (Name)
 import Pdf.Toolbox.Content
 
 import Pdf.Toolbox.Document.Pdf
@@ -59,17 +60,17 @@ pageContents (Page pdf pageRef dict) =
   message ("contents for page: " ++ show pageRef) $ do
   case HashMap.lookup "Contents" dict of
     Nothing -> return []
-    Just (ORef ref) -> do
+    Just (Ref ref) -> do
       -- it could be reference to the only content stream,
       -- or to an array of content streams
       o <- lookupObject pdf ref >>= deref pdf
       case o of
-        OStream _ -> return [ref]
-        OArray objs -> forM (Vector.toList objs) $ \obj ->
+        Stream _ -> return [ref]
+        Array objs -> forM (Vector.toList objs) $ \obj ->
           sure $ refValue obj `notice` "Content should be a reference"
         _ -> throw $ Corrupted
           ("Unexpected value in page content ref: " ++ show o) []
-    Just (OArray objs) -> forM (Vector.toList objs) $ \obj ->
+    Just (Array objs) -> forM (Vector.toList objs) $ \obj ->
       sure $ refValue obj `notice` "Content should be a reference"
     _ -> throw $ Corrupted "Unexpected value in page contents" []
 
@@ -160,7 +161,7 @@ combinedContent pdf refs = do
   allStreams <- forM refs $ \ref -> do
     o <- lookupObject pdf ref
     case o of
-      OStream s -> return (ref, s)
+      Stream s -> return (ref, s)
       _ -> throwIO (Corrupted "Page content is not a stream" [])
 
   Streams.fromGenerator $ forM_ allStreams $ \(ref, stream) -> do

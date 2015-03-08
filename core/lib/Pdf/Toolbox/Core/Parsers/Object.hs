@@ -36,6 +36,7 @@ import qualified Data.HashMap.Strict as HashMap
 import Control.Applicative
 import Control.Monad
 
+import Pdf.Toolbox.Core.Name (Name)
 import qualified Pdf.Toolbox.Core.Name as Name
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Parsers.Util
@@ -195,15 +196,15 @@ parseObject :: Parser (Object ())
 parseObject = do
   P.skipSpace
   P.choice [
-    const ONull <$> P.string "null",
-    OName <$> parseName,
-    OBoolean <$> parseBool,
-    ODict <$> parseDict,
-    OArray <$> parseArray,
-    OStr <$> parseString,
-    OStr <$> parseHexString,
-    ORef <$> parseRef,
-    ONumber <$> parseNumber
+    const Null <$> P.string "null",
+    Name <$> parseName,
+    Boolean <$> parseBool,
+    Dict <$> parseDict,
+    Array <$> parseArray,
+    String <$> parseString,
+    String <$> parseHexString,
+    Ref <$> parseRef,
+    Number <$> parseNumber
     ]
 
 -- | Parse object. Input position should point
@@ -223,8 +224,8 @@ parseIndirectObject = do
   obj <- parseObject
   let ref = R index gen
   case obj of
-    ODict d -> P.choice [
-      parseTillStreamData >> return (ref, OStream $ S d ()),
-      return (ref, ODict d)
+    Dict d -> P.choice [
+      parseTillStreamData >> return (ref, Stream $ S d ()),
+      return (ref, Dict d)
       ]
     _ -> return (ref, obj)

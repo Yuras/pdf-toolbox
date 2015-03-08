@@ -7,7 +7,6 @@
 module Pdf.Toolbox.Core.Object.Types
 (
   Object(..),
-  Name,
   Dict,
   Array,
   Stream(..),
@@ -43,13 +42,13 @@ data Ref = R Int Int
 --
 -- It is parameterized by 'Stream' content
 data Object a =
-  ONumber Scientific |
-  OBoolean Bool |
-  OName Name |
-  ODict Dict |
-  OArray Array |
-  OStr ByteString |
-  OStream (Stream a) |
-  ORef Ref |
-  ONull
+  Number Scientific |
+  Boolean Bool |
+  Name Name |
+  Dict Dict |
+  Array Array |
+  String ByteString |
+  Stream (Stream a) |
+  Ref Ref |
+  Null
   deriving (Eq, Show)

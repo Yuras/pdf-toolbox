@@ -44,15 +44,15 @@ readObjectAtOffset buf off = message "readObjectAtOffset" $ do
       `catch` \(Streams.ParseException msg) -> throw (Corrupted msg [])
   o' <-
     case o of
-      ONumber val -> return $ ONumber val
-      OBoolean val -> return $ OBoolean val
-      OName val -> return $ OName val
-      ODict val -> return $ ODict val
-      OArray val -> return $ OArray val
-      OStr val -> return $ OStr val
-      OStream (S dict _) -> (OStream . S dict) <$> bufferTell buf
-      ORef _ -> throw $ Corrupted "Indirect object can't be ORef" []
-      ONull -> return ONull
+      Number val -> return $ Number val
+      Boolean val -> return $ Boolean val
+      Name val -> return $ Name val
+      Dict val -> return $ Dict val
+      Array val -> return $ Array val
+      String val -> return $ String val
+      Stream (S dict _) -> (Stream . S dict) <$> bufferTell buf
+      Ref _ -> throw $ Corrupted "Indirect object can't be a Ref" []
+      Null -> return Null
   return (ref, o')
 
 -- | Read object from object stream

@@ -14,6 +14,7 @@ import Control.Monad
 import Control.Exception
 
 import Pdf.Toolbox.Core
+import Pdf.Toolbox.Core.Name (Name)
 
 -- | Check that the dictionary has the specified \"Type\" filed
 ensureType :: Name -> Dict -> IO ()
@@ -27,6 +28,6 @@ ensureType name dict = do
 dictionaryType :: Dict -> Either String Name
 dictionaryType dict =
   case HashMap.lookup "Type" dict of
-    Just (OName n) -> Right n
+    Just (Name n) -> Right n
     Just _ -> Left "Type should be a name"
     _ -> Left "Type is missing"

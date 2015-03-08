@@ -111,17 +111,17 @@ decodeStream _pdf s@(S dict _) =
 
 -- | Recursively load indirect object
 deref :: Pdf -> Object a -> IO (Object ())
-deref pdf (ORef ref) = do
+deref pdf (Ref ref) = do
   o <- lookupObject pdf ref
   deref pdf o
-deref _ (ONumber n) = return (ONumber n)
-deref _ (OName n) = return (OName n)
-deref _ (OStr str) = return (OStr str)
-deref _ (OBoolean b) = return (OBoolean b)
-deref _ (ODict d) = return (ODict d)
-deref _ (OArray a) = return (OArray a)
-deref _ (OStream (S dict _)) = return (OStream (S dict ()))
-deref _ ONull = return ONull
+deref _ (Number n) = return (Number n)
+deref _ (Name n) = return (Name n)
+deref _ (String str) = return (String str)
+deref _ (Boolean b) = return (Boolean b)
+deref _ (Dict d) = return (Dict d)
+deref _ (Array a) = return (Array a)
+deref _ (Stream (S dict _)) = return (Stream (S dict ()))
+deref _ Null = return Null
 
 -- | Whether the PDF document it encrypted
 isEncrypted :: Pdf -> IO Bool
@@ -143,8 +143,8 @@ setUserPassword pdf pass = message "setUserPassword" $ do
       Just o -> do
         o' <- deref pdf o
         case o' of
-          ODict d -> return d
-          ONull -> throw (Corrupted "encryption encryption dict is null" [])
+          Dict d -> return d
+          Null -> throw (Corrupted "encryption encryption dict is null" [])
           _ -> throw (Corrupted "document Encrypt should be a dictionary" [])
   let either_res = mkStandardDecryptor tr enc
         (ByteString.take 32 $ pass `mappend` defaultUserPassword)

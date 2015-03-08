@@ -25,6 +25,7 @@ import Control.Monad
 
 import Pdf.Toolbox.Core
 import Pdf.Toolbox.Core.Util
+import Pdf.Toolbox.Core.Name (Name)
 
 import Pdf.Toolbox.Content.Ops
 import Pdf.Toolbox.Content.Transform
@@ -151,7 +152,7 @@ processOp (Op_Td, args) _ = Left ("Op_Td: wrong number of arguments: "
 
 processOp (Op_TD, [txo, tyo]) p = do
   l <- realValue tyo `notice` "TD: y should be a real value"
-  p' <- processOp (Op_TL, [ONumber $ Scientific.fromFloatDigits $ negate l]) p
+  p' <- processOp (Op_TL, [Number $ Scientific.fromFloatDigits $ negate l]) p
   processOp (Op_Td, [txo, tyo]) p'
 processOp (Op_TD, args) _ = Left ("Op_TD: wrong number of arguments: "
                                   ++ show args)
@@ -177,7 +178,7 @@ processOp (Op_T_star, []) p = do
   ensureInTextObject True p
   let gstate = prState p
       l = gsTextLeading gstate
-  processOp (Op_TD, map (ONumber . Scientific.fromFloatDigits) [0, negate l]) p
+  processOp (Op_TD, map (Number . Scientific.fromFloatDigits) [0, negate l]) p
 processOp (Op_T_star, args) _ = Left ("Op_T_star: wrong number of arguments: "
                                       ++ show args)
 
@@ -216,7 +217,7 @@ processOp (Op_Tf, [fontO, szO]) p = do
 processOp (Op_Tf, args) _ = Left ("Op_Tf: wrong number of agruments: "
                                   ++ show args)
 
-processOp (Op_Tj, [OStr str]) p = do
+processOp (Op_Tj, [String str]) p = do
   let gstate = prState p
   fontName <-
     case gsFont gstate of
@@ -242,7 +243,7 @@ processOp (Op_Tj, [OStr str]) p = do
 processOp (Op_Tj, args) _ = Left ("Op_Tj: wrong number of agruments:"
                                   ++ show args)
 
-processOp (Op_TJ, [OArray array]) p = do
+processOp (Op_TJ, [Array array]) p = do
   let gstate = prState p
   fontName <-
     case gsFont gstate of
@@ -256,7 +257,7 @@ processOp (Op_TJ, [OArray array]) p = do
                                   (Vector.toList array)
         where
         loop tm res [] = (tm, reverse res)
-        loop tm res (OStr str : rest) =
+        loop tm res (String str : rest) =
           let (tm', gs) = positionGlyghs fontSize
                                          (gsCurrentTransformMatrix gstate)
                                          tm
@@ -264,7 +265,7 @@ processOp (Op_TJ, [OArray array]) p = do
                                          (gsTextWordSpacing gstate)
                                          (prGlyphDecoder p fontName str)
           in loop tm' (gs : res) rest
-        loop tm res (ONumber n : rest) =
+        loop tm res (Number n : rest) =
           let d = Scientific.toRealFloat n
           in loop (translate (-d * fontSize / 1000) 0 tm) res rest
         loop tm res (_:rest) = loop tm res rest

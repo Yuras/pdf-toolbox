@@ -87,13 +87,13 @@ parseArraySpec :: Spec
 parseArraySpec = describe "parseArray" $ do
   it "should parse array" $ do
     parseOnly parseArray "[42 true]"
-      `shouldBe` Right (Vector.fromList [ONumber 42, OBoolean True])
+      `shouldBe` Right (Vector.fromList [Number 42, Boolean True])
 
 parseDictSpec :: Spec
 parseDictSpec = describe "parseDict" $ do
   it "should parse a dictionary" $ do
     parseOnly parseDict "<</hello true>>"
-      `shouldBe` Right (HashMap.fromList [("hello", OBoolean True)])
+      `shouldBe` Right (HashMap.fromList [("hello", Boolean True)])
 
 parseRefSpec :: Spec
 parseRefSpec = describe "parseRef" $ do

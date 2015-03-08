@@ -37,7 +37,7 @@ pageNodeParent :: PageNode -> IO (Maybe PageNode)
 pageNodeParent (PageNode pdf _ dict) =
   case HashMap.lookup "Parent" dict of
     Nothing -> return Nothing
-    Just o@(ORef ref) -> do
+    Just o@(Ref ref) -> do
       obj <- deref pdf o
       node <- sure $ dictValue obj `notice` "Parent should be a dictionary"
       ensureType "Pages" node

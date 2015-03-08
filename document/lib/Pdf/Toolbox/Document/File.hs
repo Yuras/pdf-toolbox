@@ -68,15 +68,15 @@ findObject file ref =
   (lookupEntryRec file ref
   >>= readObjectForEntry file)
     -- unknown type should be interpreted as reference to null object
-    `catch` \(UnknownXRefStreamEntryType _) -> return (ONull, False)
+    `catch` \(UnknownXRefStreamEntryType _) -> return (Null, False)
 
 streamContent :: File_ -> Stream Int64 -> IO (InputStream ByteString)
 streamContent file s@(S dict _) = do
   len <- do
     obj <- sure $ HashMap.lookup "Length" dict `notice` "Length missing in stream"
     case obj of
-      ONumber _ -> sure $ intValue obj `notice` "Length should be an integer"
-      ORef ref -> do
+      Number _ -> sure $ intValue obj `notice` "Length should be an integer"
+      Ref ref -> do
         (o, _) <- findObject file ref
         sure $ intValue o `notice` "Length should be an integer"
       _ -> throw $ Corrupted "Length should be an integer" []
@@ -84,7 +84,7 @@ streamContent file s@(S dict _) = do
 
 readObjectForEntry :: File_-> XRefEntry -> IO (Object Int64, Bool)
 readObjectForEntry file (XRefTableEntry entry)
-  | teIsFree entry = return (ONull, False)
+  | teIsFree entry = return (Null, False)
   | otherwise = do
     (R _ gen, obj) <- readObjectAtOffset (_buffer file) (teOffset entry)
     unless (gen == teGen entry) $
@@ -92,7 +92,7 @@ readObjectForEntry file (XRefTableEntry entry)
     return (obj, False)
 readObjectForEntry file (XRefStreamEntry entry) =
   case entry of
-    StreamEntryFree{} -> return (ONull, False)
+    StreamEntryFree{} -> return (Null, False)
     StreamEntryUsed off _ -> do
       obj <- readObjectAtOffset (_buffer file) off
       return (snd obj, False)
@@ -111,15 +111,15 @@ readObjectForEntry file (XRefStreamEntry entry) =
       obj <- readCompressedObject decoded (fromIntegral first) num
       return (conv obj, True)
   where
-  conv (OStr v) = OStr v
-  conv (OName v) = OName v
-  conv (ONumber v) = ONumber v
-  conv (OArray v) = OArray v
-  conv (ODict v) = ODict v
-  conv (OBoolean v) = OBoolean v
-  conv (ORef v) = ORef v
-  conv ONull = ONull
-  conv OStream{} = error "conv: impossible: stream"
+  conv (String v) = String v
+  conv (Name v) = Name v
+  conv (Number v) = Number v
+  conv (Array v) = Array v
+  conv (Dict v) = Dict v
+  conv (Boolean v) = Boolean v
+  conv (Ref v) = Ref v
+  conv Null = Null
+  conv Stream{} = error "conv: impossible: stream"
 
 lookupEntryRec :: File_ -> Ref -> IO XRefEntry
 lookupEntryRec file ref = loop (_lastXRef file)

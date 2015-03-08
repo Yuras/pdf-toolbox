@@ -11,6 +11,7 @@ import Data.ByteString (ByteString)
 import System.IO.Streams (InputStream)
 
 import Pdf.Toolbox.Core.Object.Types
+import Pdf.Toolbox.Core.Name (Name)
 
 -- | Stream filter
 data StreamFilter = StreamFilter {

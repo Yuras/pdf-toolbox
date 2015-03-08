@@ -50,13 +50,13 @@ withSimpleFile action = do
   action h
   where
   tr = HashMap.fromList
-    [ ("Size", ONumber $ fromIntegral $ length objects + 1)
-    , ("Info", ORef infoRef)
+    [ ("Size", Number $ fromIntegral $ length objects + 1)
+    , ("Info", Ref infoRef)
     ]
   info = HashMap.fromList
-    [ ("Title", OStr "simple PDF file")
+    [ ("Title", String "simple PDF file")
     ]
   objects =
-    [ (infoRef, ODict info)
+    [ (infoRef, Dict info)
     ]
   infoRef = R 1 0

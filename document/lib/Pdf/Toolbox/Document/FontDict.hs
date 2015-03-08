@@ -122,11 +122,11 @@ loadFontInfoSimple pdf fontDict = do
 
   encoding <-
     case HashMap.lookup "Encoding" fontDict of
-      Just (OName "WinAnsiEncoding") -> return $ Just SimpleFontEncoding
+      Just (Name "WinAnsiEncoding") -> return $ Just SimpleFontEncoding
         { simpleFontBaseEncoding = FontBaseEncodingWinAnsi
         , simpleFontDifferences = []
         }
-      Just (OName "MacRomanEncoding") -> return $ Just SimpleFontEncoding
+      Just (Name "MacRomanEncoding") -> return $ Just SimpleFontEncoding
         { simpleFontBaseEncoding = FontBaseEncodingMacRoman
         , simpleFontDifferences = []
         }
@@ -135,13 +135,13 @@ loadFontInfoSimple pdf fontDict = do
         encDict <- sure (dictValue o'
                       `notice` "Encoding should be a dictionary")
         case HashMap.lookup "BaseEncoding" encDict of
-          Just (OName "WinAnsiEncoding") -> do
+          Just (Name "WinAnsiEncoding") -> do
             diffs <- loadEncodingDifferences pdf encDict
             return $ Just SimpleFontEncoding
               { simpleFontBaseEncoding = FontBaseEncodingWinAnsi
               , simpleFontDifferences = diffs
               }
-          Just (OName "MacRomanEncoding") -> do
+          Just (Name "MacRomanEncoding") -> do
             diffs <- loadEncodingDifferences pdf encDict
             return $ Just SimpleFontEncoding
               { simpleFontBaseEncoding = FontBaseEncodingMacRoman
@@ -197,11 +197,11 @@ loadEncodingDifferences pdf dict = do
   go res _ [] = return res
   go res n (o:rest) =
     case o of
-      (ONumber _) -> do
+      (Number _) -> do
         n' <- fromIntegral <$> (sure $ intValue o
           `notice` "Differences: elements should be integers")
         go res n' rest
-      (OName name) -> go (((n, Name.toByteString name)) : res) (n + 1) rest
+      (Name name) -> go (((n, Name.toByteString name)) : res) (n + 1) rest
       _ -> throw $ Corrupted
         ("Differences array: unexpected object: " ++ show o) []
 
@@ -214,7 +214,7 @@ loadUnicodeCMap pdf fontDict =
         `notice` "ToUnicode should be a reference"
       toUnicode <- lookupObject pdf ref
       case toUnicode of
-        OStream s -> do
+        Stream s -> do
           S _ is <- streamContent pdf ref s
           content <- mconcat <$> Streams.toList is
           case parseUnicodeCMap content of

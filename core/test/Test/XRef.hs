@@ -69,7 +69,7 @@ spec = describe "XRef" $ do
 
   describe "trailer" $ do
     it "should return the dictionary for xref stream" $
-      let dict = HashMap.fromList [("Hello", OStr "World")]
+      let dict = HashMap.fromList [("Hello", String "World")]
       in trailer undefined (XRefStream 0 (S dict 0))
         `shouldReturn` dict
 
@@ -77,13 +77,13 @@ spec = describe "XRef" $ do
       buf <- bytesToBuffer "helloxref\n1 1\n0000000001 00000 n\r\n\
         \trailer\n<</Hello(world)>>"
       trailer buf (XRefTable 5)
-      ) `shouldReturn` HashMap.fromList [("Hello", OStr "world")]
+      ) `shouldReturn` HashMap.fromList [("Hello", String "world")]
 
     it "should handle multisection table" $ (do
       buf <- bytesToBuffer "helloxref\n1 1\n0000000001 00000 n\r\n\
         \1 1\n0000000002 00000 n\r\ntrailer\n<</Hello(world)>>"
       trailer buf (XRefTable 5)
-      ) `shouldReturn` HashMap.fromList [("Hello", OStr "world")]
+      ) `shouldReturn` HashMap.fromList [("Hello", String "world")]
 
     it "should throw Corrupted exception if can't parse" $ (do
       buf <- bytesToBuffer "helloxref\n1 Hello(world)>>"
@@ -94,7 +94,7 @@ spec = describe "XRef" $ do
   describe "prevXRef" $ do
     it "should read xref located at offset from\
         \ Prev entry in current trailer" $ (do
-      let dict = HashMap.fromList [("Prev", ONumber 5)]
+      let dict = HashMap.fromList [("Prev", Number 5)]
       buf <- bytesToBuffer "helloxref\n"
       prevXRef buf (XRefStream undefined (S dict undefined))
       ) `shouldReturn` Just (XRefTable 5)
@@ -106,7 +106,7 @@ spec = describe "XRef" $ do
       ) `shouldReturn` Nothing
 
     it "should throw Corrupted when Prev is not an int" $ (do
-      let dict = HashMap.fromList [("Prev", OStr "hello")]
+      let dict = HashMap.fromList [("Prev", String "hello")]
       buf <- bytesToBuffer "helloxref\n"
       prevXRef buf (XRefStream undefined (S dict undefined))
       ) `shouldThrow` \Corrupted{} -> True
@@ -141,9 +141,9 @@ spec = describe "XRef" $ do
           , 0,  0, 4,  0
           ]
         dict = HashMap.fromList
-          [ ("Index", OArray $ Vector.fromList $ map ONumber [3, 4])
-          , ("W", OArray $ Vector.fromList $ map ONumber [1, 2, 1])
-          , ("Size", ONumber 4)
+          [ ("Index", Array $ Vector.fromList $ map Number [3, 4])
+          , ("W", Array $ Vector.fromList $ map Number [1, 2, 1])
+          , ("Size", Number 4)
           ]
     it "should handle free objects" $ (do
       is <- Streams.fromByteString bytes
@@ -167,9 +167,9 @@ spec = describe "XRef" $ do
 
     it "should handle multiple sections" $ (do
       let dict' = HashMap.fromList
-            [ ("Index", OArray $ Vector.fromList $ map ONumber [3, 2, 10, 2])
-            , ("W", OArray $ Vector.fromList $ map ONumber [1, 2, 1])
-            , ("Size", ONumber 4)
+            [ ("Index", Array $ Vector.fromList $ map Number [3, 2, 10, 2])
+            , ("W", Array $ Vector.fromList $ map Number [1, 2, 1])
+            , ("Size", Number 4)
             ]
       is <- Streams.fromByteString bytes
       lookupStreamEntry (S dict' is) (R 11 0)
