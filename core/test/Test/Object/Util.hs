@@ -10,6 +10,7 @@ import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Object.Util
 
 import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Test.Hspec
 
 spec :: Spec
@@ -19,6 +20,7 @@ spec = describe "Object.Util" $ do
   intValueSpec
   realValueSpec
   arrayValueSpec
+  dictValueSpec
 
 boolValueSpec :: Spec
 boolValueSpec = describe "boolValue" $ do
@@ -66,3 +68,12 @@ arrayValueSpec = describe "arrayValue" $ do
 
   it "should return Nothing for any other value" $ do
     arrayValue (OBoolean True) `shouldBe` Nothing
+
+dictValueSpec :: Spec
+dictValueSpec = describe "dictValue" $ do
+  it "should convert dict value to Dict" $ do
+    let dict = HashMap.fromList [("hello", OBoolean True)]
+    dictValue (ODict dict) `shouldBe` Just dict
+
+  it "should return Nothing for any other value" $ do
+    dictValue (OBoolean True) `shouldBe` Nothing

@@ -16,12 +16,13 @@ import Data.Monoid
 import Data.String
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
+import Data.Hashable (Hashable)
 
 -- | Names usually are used as keys in dictionaries
 --
 -- Byte 0 is not allowed inside names
 newtype Name = Name ByteString
-  deriving (Eq, Show, Ord, Monoid)
+  deriving (Eq, Show, Ord, Monoid, Hashable)
 
 -- | Make a name.
 --

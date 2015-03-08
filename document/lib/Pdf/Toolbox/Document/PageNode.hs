@@ -15,6 +15,7 @@ module Pdf.Toolbox.Document.PageNode
 where
 
 import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
 import Control.Exception
 
@@ -28,13 +29,13 @@ import Pdf.Toolbox.Document.Internal.Util
 -- | Total number of child leaf nodes, including deep children
 pageNodeNKids :: PageNode -> IO Int
 pageNodeNKids (PageNode _ _ dict) = sure $
-  (lookupDict "Count" dict >>= intValue)
+  (HashMap.lookup "Count" dict >>= intValue)
   `notice` "Count should be an integer"
 
 -- | Parent page node
 pageNodeParent :: PageNode -> IO (Maybe PageNode)
 pageNodeParent (PageNode pdf _ dict) =
-  case lookupDict "Parent" dict of
+  case HashMap.lookup "Parent" dict of
     Nothing -> return Nothing
     Just o@(ORef ref) -> do
       obj <- deref pdf o
@@ -46,7 +47,7 @@ pageNodeParent (PageNode pdf _ dict) =
 -- | Referencies to all kids
 pageNodeKids :: PageNode -> IO [Ref]
 pageNodeKids (PageNode pdf _ dict) = do
-  obj <- sure (lookupDict "Kids" dict
+  obj <- sure (HashMap.lookup "Kids" dict
                 `notice` "Page node should have Kids")
         >>= deref pdf
   kids <- sure $ arrayValue obj

@@ -22,6 +22,7 @@ import Data.Int
 import Data.IORef
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
+import qualified Data.HashMap.Strict as HashMap
 import Control.Applicative
 import Control.Exception
 import System.IO (Handle)
@@ -126,7 +127,7 @@ deref _ ONull = return ONull
 isEncrypted :: Pdf -> IO Bool
 isEncrypted pdf = message "isEncrypted" $ do
   tr <- File.trailer (file pdf)
-  case lookupDict "Encrypt" tr of
+  case HashMap.lookup "Encrypt" tr of
     Nothing -> return False
     Just _ -> return True
 
@@ -137,7 +138,7 @@ setUserPassword :: Pdf -> ByteString -> IO Bool
 setUserPassword pdf pass = message "setUserPassword" $ do
   tr <- File.trailer (file pdf)
   enc <-
-    case lookupDict "Encrypt" tr of
+    case HashMap.lookup "Encrypt" tr of
       Nothing -> throw (Unexpected "document is not encrypted" [])
       Just o -> do
         o' <- deref pdf o

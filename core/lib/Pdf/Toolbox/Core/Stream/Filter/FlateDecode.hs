@@ -13,6 +13,7 @@ where
 import Data.Word
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
+import qualified Data.HashMap.Strict as HashMap
 import Control.Exception
 import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
@@ -32,7 +33,7 @@ flateDecode = StreamFilter
 decode :: Maybe Dict -> InputStream ByteString -> IO (InputStream ByteString)
 decode Nothing is = Streams.decompress is
 decode (Just dict) is =
-  case lookupDict "Predictor" dict of
+  case HashMap.lookup "Predictor" dict of
     Nothing -> Streams.decompress is
     Just o | Just val <- intValue o ->
       Streams.decompress is >>= unpredict dict val
@@ -44,7 +45,7 @@ unpredict :: Dict
           -> IO (InputStream ByteString)
 unpredict _ 1 is = return is
 unpredict dict 12 is = message "unpredict" $
-  case lookupDict "Columns" dict of
+  case HashMap.lookup "Columns" dict of
     Nothing -> throw $ Corrupted "Column is missing" []
     Just o
       | Just cols <- intValue o

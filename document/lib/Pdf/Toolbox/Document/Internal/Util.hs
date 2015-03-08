@@ -9,6 +9,7 @@ module Pdf.Toolbox.Document.Internal.Util
 )
 where
 
+import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
 import Control.Exception
 
@@ -25,7 +26,7 @@ ensureType name dict = do
 -- | Get dictionary type, name at key \"Type\"
 dictionaryType :: Dict -> Either String Name
 dictionaryType dict =
-  case lookupDict "Type" dict of
+  case HashMap.lookup "Type" dict of
     Just (OName n) -> Right n
     Just _ -> Left "Type should be a name"
     _ -> Left "Type is missing"

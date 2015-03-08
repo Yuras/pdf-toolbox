@@ -27,6 +27,7 @@ import qualified Data.ByteString.Base16 as Base16
 import Data.Scientific (Scientific)
 import qualified Data.Scientific as Scientific
 import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Text.Printf
 
 import Pdf.Toolbox.Core.Object.Types
@@ -92,10 +93,11 @@ intercalate sep (x:xs) = x `mappend` go xs
   go [] = mempty
   go (y:ys) = sep `mappend` y `mappend` go ys
 
+-- | Build a dictionary
 buildDict :: Dict -> Builder
-buildDict (Dict xs) =
+buildDict dict =
   byteString "<<" `mappend`
-  intercalate (char7 ' ') (concatMap build xs) `mappend`
+  intercalate (char7 ' ') (concatMap build $ HashMap.toList dict) `mappend`
   byteString ">>"
   where
   build (key, val) = [buildName key, buildObject val]

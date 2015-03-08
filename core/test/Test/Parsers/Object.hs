@@ -11,6 +11,7 @@ import Pdf.Toolbox.Core.Parsers.Object
 
 import Data.Attoparsec.ByteString
 import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Test.Hspec
 
 spec :: Spec
@@ -21,6 +22,7 @@ spec = describe "Parsers.Object" $ do
   parseNameSpec
   parseNumberSpec
   parseArraySpec
+  parseDictSpec
 
 parseStringSpec :: Spec
 parseStringSpec = describe "parseString" $ do
@@ -85,3 +87,9 @@ parseArraySpec = describe "parseArray" $ do
   it "should parse array" $ do
     parseOnly parseArray "[42 true]"
       `shouldBe` Right (Vector.fromList [ONumber 42, OBoolean True])
+
+parseDictSpec :: Spec
+parseDictSpec = describe "parseDict" $ do
+  it "should parse a dictionary" $ do
+    parseOnly parseDict "<</hello true>>"
+      `shouldBe` Right (HashMap.fromList [("hello", OBoolean True)])

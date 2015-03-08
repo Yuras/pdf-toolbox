@@ -11,6 +11,7 @@ import Pdf.Toolbox.Core.Object.Builder
 
 import qualified Data.ByteString.Builder as Builder
 import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Test.Hspec
 
 spec :: Spec
@@ -20,6 +21,7 @@ spec = describe "Object.Builder" $ do
   buildNameSpec
   buildNumberSpec
   buildArraySpec
+  buildDictSpec
 
 buildBoolSpec :: Spec
 buildBoolSpec = describe "buildBool" $ do
@@ -70,3 +72,9 @@ buildArraySpec = describe "buildArray" $ do
   it "should build empty array" $ do
     let res = buildArray Vector.empty
     Builder.toLazyByteString res `shouldBe` "[]"
+
+buildDictSpec :: Spec
+buildDictSpec = describe "buildDict" $ do
+  it "should build a dictionary" $ do
+    let res = buildDict (HashMap.fromList [("hello", OBoolean False)])
+    Builder.toLazyByteString res `shouldBe` "<</hello false>>"

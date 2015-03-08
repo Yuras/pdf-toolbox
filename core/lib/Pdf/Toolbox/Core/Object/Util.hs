@@ -3,7 +3,6 @@
 
 module Pdf.Toolbox.Core.Object.Util
 (
-  lookupDict,
   intValue,
   boolValue,
   realValue,
@@ -21,10 +20,6 @@ import Data.Scientific (Scientific)
 import qualified Data.Scientific as Scientific
 
 import Pdf.Toolbox.Core.Object.Types
-
--- | Lookup object by key
-lookupDict :: Name -> Dict -> Maybe (Object ())
-lookupDict key (Dict d) = lookup key d
 
 -- | Try to convert object to 'Int'
 --

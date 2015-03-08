@@ -16,6 +16,7 @@ import Data.Monoid
 import Data.Functor
 import Data.ByteString (ByteString)
 import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
 import Control.Exception
 import qualified System.IO.Streams as Streams
@@ -40,7 +41,7 @@ data FontSubtype
 -- | Get font subtype
 fontDictSubtype :: FontDict -> IO FontSubtype
 fontDictSubtype (FontDict pdf dict) = do
-  obj <- sure (lookupDict "Subtype" dict
+  obj <- sure (HashMap.lookup "Subtype" dict
               `notice` "Subtype should exist")
             >>= deref pdf
   str <- sure $ nameValue obj `notice` "Subtype should be a name"
@@ -60,7 +61,7 @@ fontDictLoadInfo fd@(FontDict pdf fontDict) = do
     FontType0 -> FontInfoComposite <$> loadFontInfoComposite pdf fontDict
     FontType3 -> do
       fi <- loadFontInfoSimple pdf fontDict
-      obj <- sure (lookupDict "FontMatrix" fontDict
+      obj <- sure (HashMap.lookup "FontMatrix" fontDict
                     `notice` "FontMatrix should exist")
               >>= deref pdf
       arr <- sure $ arrayValue obj
@@ -81,7 +82,7 @@ loadFontInfoComposite pdf fontDict = do
   toUnicode <- loadUnicodeCMap pdf fontDict
 
   descFont <- do
-    descFontObj <- sure (lookupDict "DescendantFonts" fontDict
+    descFontObj <- sure (HashMap.lookup "DescendantFonts" fontDict
                           `notice` "DescendantFonts should exist")
                     >>= deref pdf
     descFontArr <- sure $ arrayValue descFontObj
@@ -95,14 +96,14 @@ loadFontInfoComposite pdf fontDict = do
             "Unexpected value of DescendantFonts key in font dictionary" []
 
   defaultWidth <-
-    case lookupDict "DW" descFont of
+    case HashMap.lookup "DW" descFont of
       Nothing -> return 1000
       Just o -> do
         o' <- deref pdf o
         sure $ realValue o' `notice` "DW should be real"
 
   widths <-
-    case lookupDict "W" descFont of
+    case HashMap.lookup "W" descFont of
       Nothing -> return mempty
       Just o -> do
         o' <- deref pdf o
@@ -120,7 +121,7 @@ loadFontInfoSimple pdf fontDict = do
   toUnicode <- loadUnicodeCMap pdf fontDict
 
   encoding <-
-    case lookupDict "Encoding" fontDict of
+    case HashMap.lookup "Encoding" fontDict of
       Just (OName "WinAnsiEncoding") -> return $ Just SimpleFontEncoding
         { simpleFontBaseEncoding = FontBaseEncodingWinAnsi
         , simpleFontDifferences = []
@@ -133,7 +134,7 @@ loadFontInfoSimple pdf fontDict = do
         o' <- deref pdf o
         encDict <- sure (dictValue o'
                       `notice` "Encoding should be a dictionary")
-        case lookupDict "BaseEncoding" encDict of
+        case HashMap.lookup "BaseEncoding" encDict of
           Just (OName "WinAnsiEncoding") -> do
             diffs <- loadEncodingDifferences pdf encDict
             return $ Just SimpleFontEncoding
@@ -157,7 +158,7 @@ loadFontInfoSimple pdf fontDict = do
       _ -> return Nothing
 
   widths <-
-    case lookupDict "Widths" fontDict of
+    case HashMap.lookup "Widths" fontDict of
       Nothing -> return Nothing
       Just v -> do
         v' <- deref pdf v
@@ -165,9 +166,9 @@ loadFontInfoSimple pdf fontDict = do
             `notice` "Widths should be an array"
         widths <- forM (Vector.toList array) $ \o ->
           sure (realValue o `notice` "Widths elements should be real")
-        firstChar <- sure $ (lookupDict "FirstChar" fontDict >>= intValue)
+        firstChar <- sure $ (HashMap.lookup "FirstChar" fontDict >>= intValue)
                 `notice` "FirstChar should be an integer"
-        lastChar <- sure $ (lookupDict "LastChar" fontDict >>= intValue)
+        lastChar <- sure $ (HashMap.lookup "LastChar" fontDict >>= intValue)
                 `notice` "LastChar should be an integer"
         return $ Just (firstChar, lastChar, widths)
 
@@ -180,7 +181,7 @@ loadFontInfoSimple pdf fontDict = do
 
 loadEncodingDifferences :: Pdf -> Dict -> IO [(Word8, ByteString)]
 loadEncodingDifferences pdf dict = do
-  case lookupDict "Differences" dict of
+  case HashMap.lookup "Differences" dict of
     Nothing -> return []
     Just v -> do
       v' <- deref pdf v
@@ -206,7 +207,7 @@ loadEncodingDifferences pdf dict = do
 
 loadUnicodeCMap :: Pdf -> Dict -> IO (Maybe UnicodeCMap)
 loadUnicodeCMap pdf fontDict =
-  case lookupDict "ToUnicode" fontDict of
+  case HashMap.lookup "ToUnicode" fontDict of
     Nothing -> return Nothing
     Just o -> do
       ref <- sure $ refValue o

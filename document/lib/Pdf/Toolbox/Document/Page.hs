@@ -23,6 +23,7 @@ import qualified Data.Text.Lazy as Lazy.Text
 import qualified Data.Text.Lazy.Builder as Text.Builder
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Exception
@@ -44,7 +45,7 @@ import Pdf.Toolbox.Document.Internal.Util
 -- | Page's parent node
 pageParentNode :: Page -> IO PageNode
 pageParentNode (Page pdf _ dict) = do
-  ref <- sure $ (lookupDict "Parent" dict >>= refValue)
+  ref <- sure $ (HashMap.lookup "Parent" dict >>= refValue)
       `notice` "Parent should be a reference"
   node <- loadPageNode pdf ref
   case node of
@@ -56,7 +57,7 @@ pageParentNode (Page pdf _ dict) = do
 pageContents :: Page -> IO [Ref]
 pageContents (Page pdf pageRef dict) =
   message ("contents for page: " ++ show pageRef) $ do
-  case lookupDict "Contents" dict of
+  case HashMap.lookup "Contents" dict of
     Nothing -> return []
     Just (ORef ref) -> do
       -- it could be reference to the only content stream,
@@ -82,7 +83,7 @@ mediaBoxRec tree = do
         case tree of
           PageTreeNode (PageNode p _ d) -> (p, d)
           PageTreeLeaf (Page p _ d) -> (p, d)
-  case lookupDict "MediaBox" dict of
+  case HashMap.lookup "MediaBox" dict of
     Just box -> do
       box' <- deref pdf box
       arr <- sure $ arrayValue box'
@@ -102,19 +103,19 @@ mediaBoxRec tree = do
 -- | Font dictionaries for the page
 pageFontDicts :: Page -> IO [(Name, FontDict)]
 pageFontDicts (Page pdf _ dict) =
-  case lookupDict "Resources" dict of
+  case HashMap.lookup "Resources" dict of
     Nothing -> return []
     Just res -> do
       res' <- deref pdf res
       resDict <- sure $ dictValue res'
           `notice` "Resources should be a dictionary"
-      case lookupDict "Font" resDict of
+      case HashMap.lookup "Font" resDict of
         Nothing -> return []
         Just fonts -> do
           fonts' <- deref pdf fonts
-          Dict fontsDict <- sure $ dictValue fonts'
+          fontsDict <- sure $ dictValue fonts'
               `notice` "Font should be a dictionary"
-          forM fontsDict $ \(name, font) -> do
+          forM (HashMap.toList fontsDict) $ \(name, font) -> do
             font' <- deref pdf font
             fontDict <- sure $ dictValue font'
                 `notice` "Each font should be a dictionary"

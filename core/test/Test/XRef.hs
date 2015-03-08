@@ -8,6 +8,7 @@ where
 
 import qualified Data.ByteString as ByteString
 import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
 import qualified System.IO.Streams as Streams
 
@@ -45,7 +46,7 @@ spec = do
     it "should support xref stream" $ (do
       buf <- bytesToBuffer "hello1 1 obj\n<<>>stream\r\ncontent"
       readXRef buf 5
-      ) `shouldReturn` XRefStream 5 (Stream (Dict []) 25)
+      ) `shouldReturn` XRefStream 5 (Stream HashMap.empty 25)
 
     it "should throw exception if xref not found" $ (do
       buf <- bytesToBuffer "hello\n"
@@ -68,7 +69,7 @@ spec = do
 
   describe "trailer" $ do
     it "should return the dictionary for xref stream" $
-      let dict = Dict [("Hello", OStr "World")]
+      let dict = HashMap.fromList [("Hello", OStr "World")]
       in trailer undefined (XRefStream 0 (Stream dict 0))
         `shouldReturn` dict
 
@@ -76,13 +77,13 @@ spec = do
       buf <- bytesToBuffer "helloxref\n1 1\n0000000001 00000 n\r\n\
         \trailer\n<</Hello(world)>>"
       trailer buf (XRefTable 5)
-      ) `shouldReturn` Dict [("Hello", OStr "world")]
+      ) `shouldReturn` HashMap.fromList [("Hello", OStr "world")]
 
     it "should handle multisection table" $ (do
       buf <- bytesToBuffer "helloxref\n1 1\n0000000001 00000 n\r\n\
         \1 1\n0000000002 00000 n\r\ntrailer\n<</Hello(world)>>"
       trailer buf (XRefTable 5)
-      ) `shouldReturn` Dict [("Hello", OStr "world")]
+      ) `shouldReturn` HashMap.fromList [("Hello", OStr "world")]
 
     it "should throw Corrupted exception if can't parse" $ (do
       buf <- bytesToBuffer "helloxref\n1 Hello(world)>>"
@@ -93,19 +94,19 @@ spec = do
   describe "prevXRef" $ do
     it "should read xref located at offset from\
         \ Prev entry in current trailer" $ (do
-      let dict = Dict [("Prev", ONumber 5)]
+      let dict = HashMap.fromList [("Prev", ONumber 5)]
       buf <- bytesToBuffer "helloxref\n"
       prevXRef buf (XRefStream undefined (Stream dict undefined))
       ) `shouldReturn` Just (XRefTable 5)
 
     it "should return Nothing for the last xref" $ (do
-      let dict = Dict []
+      let dict = HashMap.fromList []
       buf <- bytesToBuffer "helloxref\n"
       prevXRef buf (XRefStream undefined (Stream dict undefined))
       ) `shouldReturn` Nothing
 
     it "should throw Corrupted when Prev is not an int" $ (do
-      let dict = Dict [("Prev", OStr "hello")]
+      let dict = HashMap.fromList [("Prev", OStr "hello")]
       buf <- bytesToBuffer "helloxref\n"
       prevXRef buf (XRefStream undefined (Stream dict undefined))
       ) `shouldThrow` \Corrupted{} -> True
@@ -139,7 +140,7 @@ spec = do
           , 2,  0, 3,  4
           , 0,  0, 4,  0
           ]
-        dict = Dict
+        dict = HashMap.fromList
           [ ("Index", OArray $ Vector.fromList $ map ONumber [3, 4])
           , ("W", OArray $ Vector.fromList $ map ONumber [1, 2, 1])
           , ("Size", ONumber 4)
@@ -165,7 +166,7 @@ spec = do
       ) `shouldReturn` Nothing
 
     it "should handle multiple sections" $ (do
-      let dict' = Dict
+      let dict' = HashMap.fromList
             [ ("Index", OArray $ Vector.fromList $ map ONumber [3, 2, 10, 2])
             , ("W", OArray $ Vector.fromList $ map ONumber [1, 2, 1])
             , ("Size", ONumber 4)

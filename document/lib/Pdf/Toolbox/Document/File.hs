@@ -16,6 +16,7 @@ import Data.Int
 import Data.Typeable
 import Data.IORef
 import Data.ByteString (ByteString)
+import qualified Data.HashMap.Strict as HashMap
 import Control.Applicative
 import Control.Monad
 import Control.Exception
@@ -72,7 +73,7 @@ findObject file ref =
 streamContent :: File_ -> Stream Int64 -> IO (InputStream ByteString)
 streamContent file s@(Stream dict _) = do
   len <- do
-    obj <- sure $ lookupDict "Length" dict `notice` "Length missing in stream"
+    obj <- sure $ HashMap.lookup "Length" dict `notice` "Length missing in stream"
     case obj of
       ONumber _ -> sure $ intValue obj `notice` "Length should be an integer"
       ORef ref -> do
@@ -99,7 +100,7 @@ readObjectForEntry file (XRefStreamEntry entry) =
       objStream@(Stream dict _) <- do
         (o, _) <- findObject file (Ref index 0)
         sure $ streamValue o `notice` "Compressed entry should be in stream"
-      first <- sure $ (lookupDict "First" dict >>= intValue)
+      first <- sure $ (HashMap.lookup "First" dict >>= intValue)
           `notice` "First should be an integer"
       raw <- streamContent file objStream
       decrypted <-

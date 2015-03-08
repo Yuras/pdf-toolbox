@@ -6,6 +6,7 @@ module Main
 )
 where
 
+import qualified Data.HashMap.Strict as HashMap
 import Control.Exception (bracket, finally)
 import Control.Monad
 import System.IO
@@ -48,11 +49,11 @@ withSimpleFile action = do
     writeXRefTable 0 tr
   action h
   where
-  tr = Dict
+  tr = HashMap.fromList
     [ ("Size", ONumber $ fromIntegral $ length objects + 1)
     , ("Info", ORef infoRef)
     ]
-  info = Dict
+  info = HashMap.fromList
     [ ("Title", OStr "simple PDF file")
     ]
   objects =

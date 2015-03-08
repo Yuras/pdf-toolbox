@@ -32,6 +32,7 @@ import qualified Data.Attoparsec.ByteString.Char8 as P
 import Data.Scientific (Scientific)
 import qualified Data.Scientific as Scientific
 import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Control.Applicative
 import Control.Monad
 
@@ -39,16 +40,14 @@ import qualified Pdf.Toolbox.Core.Name as Name
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Parsers.Util
 
--- |
--- >>> parseOnly parseDict "<</Key1(some string)/Key2 123>>"
--- Right (Dict [(Name "Key1",OStr (Str "some string")),(Name "Key2",ONumber (NumInt 123))])
+-- | Parse a dictionary
 parseDict :: Parser Dict
 parseDict = do
   _ <- P.string "<<"
   dict <- many parseKey
   P.skipSpace
   _ <- P.string ">>"
-  return $ Dict dict
+  return $ HashMap.fromList dict
 
 parseKey :: Parser (Name, Object ())
 parseKey = do
@@ -66,7 +65,7 @@ parseArray = do
   _ <- P.char ']'
   return $ Vector.fromList array
 
--- | parse number
+-- | Parse number
 parseNumber :: Parser Scientific
 parseNumber = P.choice [
   P.scientific,

@@ -16,11 +16,13 @@ import Pdf.Toolbox.Document.Pdf
 import Pdf.Toolbox.Document.Internal.Types
 import Pdf.Toolbox.Document.Internal.Util
 
+import qualified Data.HashMap.Strict as HashMap
+
 -- | Get root node of page tree
 catalogPageNode :: Catalog -> IO PageNode
 catalogPageNode (Catalog pdf _ dict) = do
   ref <- sure $
-    (lookupDict "Pages" dict >>= refValue)
+    (HashMap.lookup "Pages" dict >>= refValue)
     `notice` "Pages should be an indirect reference"
   obj <- lookupObject pdf ref >>= deref pdf
   node <- sure $ dictValue obj `notice` "Pages should be a dictionary"

@@ -25,6 +25,7 @@ import Data.Int
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Control.Applicative
 import Control.Monad
 import Control.Exception
@@ -101,7 +102,7 @@ readXRef buf off = do
 prevXRef :: Buffer -> XRef -> IO (Maybe XRef)
 prevXRef buf xref = message "prevXRef" $ do
   tr <- trailer buf xref
-  case lookupDict "Prev" tr of
+  case HashMap.lookup "Prev" tr of
     Just prev -> do
       off <- sure $ intValue prev
         `notice` "Prev in trailer should be an integer"
@@ -189,10 +190,10 @@ lookupStreamEntry (Stream dict is) (Ref objNumber _) =
   message "lookupStreamEntry" $ do
 
   index <- sure $ do
-    sz <- (lookupDict "Size" dict >>= intValue)
+    sz <- (HashMap.lookup "Size" dict >>= intValue)
       `notice` "Size should be an integer"
     i <-
-      case lookupDict "Index" dict of
+      case HashMap.lookup "Index" dict of
         Nothing           -> Right [ONumber 0, ONumber (fromIntegral sz)]
         Just (OArray arr) -> Right (Vector.toList arr)
         _                 -> Left "Index should be an array"
@@ -208,7 +209,7 @@ lookupStreamEntry (Stream dict is) (Ref objNumber _) =
 
   width <- sure $ do
     ws <-
-      case lookupDict "W" dict of
+      case HashMap.lookup "W" dict of
         Just (OArray ws) -> Right (Vector.toList ws)
         _ -> Left "W should be an array"
     mapM intValue ws

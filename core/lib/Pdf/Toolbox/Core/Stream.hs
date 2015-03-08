@@ -18,6 +18,7 @@ import Data.Int
 import Data.Maybe
 import Data.ByteString (ByteString)
 import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Control.Applicative
 import Control.Monad
 import Control.Exception
@@ -28,7 +29,6 @@ import qualified System.IO.Streams.Attoparsec as Streams
 import Pdf.Toolbox.Core.IO.Buffer
 import Pdf.Toolbox.Core.Exception
 import Pdf.Toolbox.Core.Object.Types
-import Pdf.Toolbox.Core.Object.Util
 import Pdf.Toolbox.Core.Parsers.Object
 import Pdf.Toolbox.Core.Stream.Filter.Type
 import Pdf.Toolbox.Core.Stream.Filter.FlateDecode
@@ -89,8 +89,8 @@ decodeStream filters (Stream dict istream) =
 
 buildFilterList :: Dict -> IO [(Name, Maybe Dict)]
 buildFilterList dict = do
-  let f = fromMaybe ONull $ lookupDict "Filter" dict
-      p = fromMaybe ONull $ lookupDict "DecodeParms" dict
+  let f = fromMaybe ONull $ HashMap.lookup "Filter" dict
+      p = fromMaybe ONull $ HashMap.lookup "DecodeParms" dict
   case (f, p) of
     (ONull, _) -> return []
     (OName fd, ONull) -> return [(fd, Nothing)]

@@ -11,6 +11,7 @@ module Pdf.Toolbox.Document.Document
 )
 where
 
+import qualified Data.HashMap.Strict as HashMap
 import Control.Exception
 
 import Pdf.Toolbox.Core
@@ -28,7 +29,7 @@ pdf (Document p _) = p
 -- | Get the document catalog
 documentCatalog :: Document -> IO Catalog
 documentCatalog doc = do
-  ref <- sure $ (lookupDict "Root" (dict doc) >>= refValue)
+  ref <- sure $ (HashMap.lookup "Root" (dict doc) >>= refValue)
     `notice` "trailer: Root should be an indirect reference"
   obj <- lookupObject (pdf doc) ref
   d <- sure $ dictValue obj `notice` "catalog should be a dictionary"
@@ -37,7 +38,7 @@ documentCatalog doc = do
 -- | Infornation dictionary for the document
 documentInfo :: Document -> IO (Maybe Info)
 documentInfo doc = do
-  case lookupDict "Info" (dict doc) of
+  case HashMap.lookup "Info" (dict doc) of
     Nothing -> return Nothing
     Just (ORef ref) -> do
       obj <- lookupObject (pdf doc) ref
@@ -48,7 +49,7 @@ documentInfo doc = do
 -- | Document encryption dictionary
 documentEncryption :: Document -> IO (Maybe Dict)
 documentEncryption doc = do
-  case lookupDict "Encrypt" (dict doc) of
+  case HashMap.lookup "Encrypt" (dict doc) of
     Nothing -> return Nothing
     Just o -> do
       o' <- deref (pdf doc) o

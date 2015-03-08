@@ -12,6 +12,7 @@ module Pdf.Toolbox.Document.Encryption
 )
 where
 
+import qualified Data.Traversable as Traversable
 import Data.Bits (xor)
 import Data.IORef
 import Data.ByteString (ByteString)
@@ -19,6 +20,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
 import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Control.Applicative
 import Control.Monad
 import System.IO.Streams (InputStream)
@@ -61,11 +63,8 @@ decryptStr decryptor ref str = do
   return $ BS.concat res
 
 decryptDict :: Decryptor -> Ref -> Dict -> IO Dict
-decryptDict decryptor ref (Dict vals) = Dict <$> forM vals decr
-  where
-  decr (key, val) = do
-    res <- decryptObject decryptor ref val
-    return (key, res)
+decryptDict decryptor ref vals = Traversable.forM vals $
+  decryptObject decryptor ref
 
 decryptArray :: Decryptor -> Ref -> Array -> IO Array
 decryptArray decryptor ref vals = Vector.forM vals decr
@@ -91,14 +90,14 @@ mkStandardDecryptor :: Dict
                     -> Either String (Maybe Decryptor)
 mkStandardDecryptor tr enc pass = do
   filterType <-
-    case lookupDict "Filter" enc of
+    case HashMap.lookup "Filter" enc of
       Just o -> nameValue o `notice` "Filter should be a name"
       _ -> Left "Filter missing"
   unless (filterType == "Standard") $
     Left ("Unsupported encryption handler: " ++ show filterType)
 
   v <-
-    case lookupDict "V" enc of
+    case HashMap.lookup "V" enc of
       Just n -> intValue n `notice` "V should be an integer"
       _ -> Left "V is missing"
 
@@ -112,7 +111,7 @@ mkStandardDecryptor tr enc pass = do
       case v of
         1 -> Right 5
         2 -> do
-          case lookupDict "Length" enc of
+          case HashMap.lookup "Length" enc of
             Just o -> fmap (`div` 8) (intValue o
                         `notice` "Length should be an integer")
             Nothing -> Left "Length is missing"
@@ -126,18 +125,18 @@ mkStandardDecryptor tr enc pass = do
         else Just $ \ref _ is -> mkDecryptor V2 ekey n ref is
 
   mk4 = do
-    Dict cryptoFilters <-
-      case lookupDict "CF" enc of
+    cryptoFilters <-
+      case HashMap.lookup "CF" enc of
         Nothing -> Left "CF is missing in crypt handler V4"
         Just o -> dictValue o `notice` "CF should be a dictionary"
-    keysMap <- forM cryptoFilters $ \(name, obj) -> do
+    keysMap <- Traversable.forM cryptoFilters $ \obj -> do
       dict <- dictValue obj `notice` "Crypto filter should be a dictionary"
       n <-
-        case lookupDict "Length" dict of
+        case HashMap.lookup "Length" dict of
           Nothing -> Left "Crypto filter without Length"
           Just o -> intValue o `notice` "Crypto filter length should be int"
       algName <-
-        case lookupDict "CFM" dict of
+        case HashMap.lookup "CFM" dict of
           Nothing -> Left "CFM is missing"
           Just o -> nameValue o `notice` "CFM should be a name"
       alg <-
@@ -146,23 +145,23 @@ mkStandardDecryptor tr enc pass = do
           "AESV2" -> return AESV2
           _ -> Left $ "Unknown crypto method: " ++ show algName
       ekey <- mkKey tr enc pass n
-      return (name, (ekey, n, alg))
+      return (ekey, n, alg)
 
-    (stdCfKey, _, _) <- lookup "StdCF" keysMap
+    (stdCfKey, _, _) <- HashMap.lookup "StdCF" keysMap
       `notice` "StdCF is missing"
     ok <- verifyKey tr enc stdCfKey
     if not ok
       then return Nothing
 
       else do
-        strFName <- (lookupDict "StrF" enc >>= nameValue)
+        strFName <- (HashMap.lookup "StrF" enc >>= nameValue)
           `notice` "StrF is missing"
-        (strFKey, strFN, strFAlg) <- lookup strFName keysMap
+        (strFKey, strFN, strFAlg) <- HashMap.lookup strFName keysMap
           `notice` ("Crypto filter not found: " ++ show strFName)
 
-        stmFName <- (lookupDict "StmF" enc >>= nameValue)
+        stmFName <- (HashMap.lookup "StmF" enc >>= nameValue)
           `notice` "StmF is missing"
-        (stmFKey, stmFN, stmFAlg) <- lookup stmFName keysMap
+        (stmFKey, stmFN, stmFAlg) <- HashMap.lookup stmFName keysMap
           `notice` ("Crypto filter not found: " ++ show stmFName)
 
         return $ Just $ \ref scope is ->
@@ -173,28 +172,28 @@ mkStandardDecryptor tr enc pass = do
 mkKey :: Dict -> Dict -> ByteString -> Int -> Either String ByteString
 mkKey tr enc pass n = do
   oVal <- do
-    o <- lookupDict "O" enc `notice` "O is missing"
+    o <- HashMap.lookup "O" enc `notice` "O is missing"
     stringValue o `notice` "o should be a string"
 
   pVal <- do
-    o <- lookupDict "P" enc `notice` "P is missing"
+    o <- HashMap.lookup "P" enc `notice` "P is missing"
     i <- intValue o `notice` "P should be an integer"
     Right . BS.pack . BSL.unpack . toLazyByteString
           . word32LE . fromIntegral $ i
 
   idVal <- do
-    ids <- (lookupDict "ID" tr >>= arrayValue)
+    ids <- (HashMap.lookup "ID" tr >>= arrayValue)
         `notice` "ID should be an array"
     case (Vector.toList ids) of
       [] -> Left "ID array is empty"
       (x:_) -> stringValue x
                   `notice` "The first element if ID should be a string"
 
-  rVal <- (lookupDict "R" enc >>= intValue)
+  rVal <- (HashMap.lookup "R" enc >>= intValue)
       `notice` "R should be an integer"
 
   encMD <-
-    case lookupDict "EncryptMetadata" enc of
+    case HashMap.lookup "EncryptMetadata" enc of
       Nothing -> return True
       Just o -> boolValue o `notice` "EncryptMetadata should be a bool"
 
@@ -214,18 +213,18 @@ mkKey tr enc pass n = do
 
 verifyKey :: Dict -> Dict -> ByteString -> Either String Bool
 verifyKey tr enc ekey = do
-  rVal <- (lookupDict "R" enc >>= intValue)
+  rVal <- (HashMap.lookup "R" enc >>= intValue)
       `notice` "R should be an integer"
 
   idVal <- do
-    ids <- (lookupDict "ID" tr >>= arrayValue)
+    ids <- (HashMap.lookup "ID" tr >>= arrayValue)
         `notice` "ID should be an array"
     case (Vector.toList ids) of
       [] -> Left "ID array is empty"
       (x:_) -> stringValue x
                   `notice` "The first element if ID should be a string"
 
-  uVal <- (lookupDict "U" enc >>= stringValue)
+  uVal <- (HashMap.lookup "U" enc >>= stringValue)
       `notice` "U should be a string"
 
   return $

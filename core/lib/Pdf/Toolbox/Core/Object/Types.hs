@@ -8,7 +8,7 @@ module Pdf.Toolbox.Core.Object.Types
 (
   Object(..),
   Name,
-  Dict(..),
+  Dict,
   Array,
   Stream(..),
   Ref(..)
@@ -20,10 +20,10 @@ import Pdf.Toolbox.Core.Name (Name)
 import Data.ByteString (ByteString)
 import Data.Scientific (Scientific)
 import Data.Vector (Vector)
+import Data.HashMap.Strict as HashMap
 
--- | Set of key/value pairs
-newtype Dict = Dict [(Name, Object ())]
-  deriving (Eq, Show)
+-- | Dictionary
+type Dict = HashMap Name (Object ())
 
 -- | An array
 type Array = Vector (Object ())
