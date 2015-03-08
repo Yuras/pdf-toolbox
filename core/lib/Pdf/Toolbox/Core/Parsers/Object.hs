@@ -198,7 +198,7 @@ parseObject = do
   P.choice [
     const Null <$> P.string "null",
     Name <$> parseName,
-    Boolean <$> parseBool,
+    Bool <$> parseBool,
     Dict <$> parseDict,
     Array <$> parseArray,
     String <$> parseString,

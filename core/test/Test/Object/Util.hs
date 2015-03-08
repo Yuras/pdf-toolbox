@@ -28,7 +28,7 @@ spec = describe "Object.Util" $ do
 boolValueSpec :: Spec
 boolValueSpec = describe "boolValue" $ do
   it "should convert boolean value to Bool" $ do
-    boolValue (Boolean True) `shouldBe` Just True
+    boolValue (Bool True) `shouldBe` Just True
 
   it "should return Nothing for other values" $ do
     boolValue (String "hello") `shouldBe` Nothing
@@ -39,7 +39,7 @@ stringValueSpec = describe "stringValue" $ do
     stringValue (String "hello") `shouldBe` Just "hello"
 
   it "should return Nothing for other values" $ do
-    stringValue (Boolean True) `shouldBe` Nothing
+    stringValue (Bool True) `shouldBe` Nothing
 
 intValueSpec :: Spec
 intValueSpec = describe "intValue" $ do
@@ -50,7 +50,7 @@ intValueSpec = describe "intValue" $ do
     intValue (Number 42.6) `shouldBe` Nothing
 
   it "should not convert any other value" $ do
-    intValue (Boolean True) `shouldBe` Nothing
+    intValue (Bool True) `shouldBe` Nothing
 
 realValueSpec :: Spec
 realValueSpec = describe "realValue" $ do
@@ -61,25 +61,25 @@ realValueSpec = describe "realValue" $ do
     realValue (Number 42.4) `shouldBe` Just 42.4
 
   it "should not convert any other value" $ do
-    realValue (Boolean True) `shouldBe` Nothing
+    realValue (Bool True) `shouldBe` Nothing
 
 arrayValueSpec :: Spec
 arrayValueSpec = describe "arrayValue" $ do
   it "should convert array value to Array" $ do
-    let arr = Vector.fromList [Boolean True]
+    let arr = Vector.fromList [Bool True]
     arrayValue (Array arr) `shouldBe` Just arr
 
   it "should return Nothing for any other value" $ do
-    arrayValue (Boolean True) `shouldBe` Nothing
+    arrayValue (Bool True) `shouldBe` Nothing
 
 dictValueSpec :: Spec
 dictValueSpec = describe "dictValue" $ do
   it "should convert dict value to Dict" $ do
-    let dict = HashMap.fromList [("hello", Boolean True)]
+    let dict = HashMap.fromList [("hello", Bool True)]
     dictValue (Dict dict) `shouldBe` Just dict
 
   it "should return Nothing for any other value" $ do
-    dictValue (Boolean True) `shouldBe` Nothing
+    dictValue (Bool True) `shouldBe` Nothing
 
 nameValueSpec :: Spec
 nameValueSpec = describe "nameValue" $ do
@@ -87,7 +87,7 @@ nameValueSpec = describe "nameValue" $ do
     nameValue (Name "hello") `shouldBe` Just "hello"
 
   it "should return Nothing for any other value" $ do
-    nameValue (Boolean True) `shouldBe` Nothing
+    nameValue (Bool True) `shouldBe` Nothing
 
 refValueSpec :: Spec
 refValueSpec = describe "refValue" $ do
@@ -96,7 +96,7 @@ refValueSpec = describe "refValue" $ do
     refValue (Ref ref) `shouldBe` Just ref
 
   it "should return Nothing for any other value" $ do
-    refValue (Boolean True) `shouldBe` Nothing
+    refValue (Bool True) `shouldBe` Nothing
 
 streamValueSpec :: Spec
 streamValueSpec = describe "streamValue" $ do
@@ -106,4 +106,4 @@ streamValueSpec = describe "streamValue" $ do
     streamValue (Stream stream) `shouldBe` Just stream
 
   it "should return Nothing for any other value" $ do
-    streamValue (Boolean True) `shouldBe` (Nothing :: Maybe (Stream String))
+    streamValue (Bool True) `shouldBe` (Nothing :: Maybe (Stream String))

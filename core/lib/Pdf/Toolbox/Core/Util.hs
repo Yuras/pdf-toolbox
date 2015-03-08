@@ -45,7 +45,7 @@ readObjectAtOffset buf off = message "readObjectAtOffset" $ do
   o' <-
     case o of
       Number val -> return $ Number val
-      Boolean val -> return $ Boolean val
+      Bool val -> return $ Bool val
       Name val -> return $ Name val
       Dict val -> return $ Dict val
       Array val -> return $ Array val

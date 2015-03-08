@@ -37,7 +37,7 @@ floatingOrInteger = Scientific.floatingOrInteger
 
 -- | Try to convert object to 'Bool'
 boolValue :: Object a -> Maybe Bool
-boolValue (Boolean b) = Just b
+boolValue (Bool b) = Just b
 boolValue _ = Nothing
 
 -- | Try to convert object to 'Double'

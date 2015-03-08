@@ -53,7 +53,7 @@ buildIndirectObject (R i g) object =
 -- be inlined, but should always be an indirect object
 buildObject :: Object a -> Builder
 buildObject (Number n) = buildNumber n
-buildObject (Boolean b) = buildBool b
+buildObject (Bool b) = buildBool b
 buildObject (Name n) = buildName n
 buildObject (Dict d) = buildDict d
 buildObject (Array a) = buildArray a

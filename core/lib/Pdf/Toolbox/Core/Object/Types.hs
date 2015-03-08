@@ -43,7 +43,7 @@ data Ref = R Int Int
 -- It is parameterized by 'Stream' content
 data Object a =
   Number Scientific |
-  Boolean Bool |
+  Bool Bool |
   Name Name |
   Dict Dict |
   Array Array |
