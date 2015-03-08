@@ -61,12 +61,16 @@ buildObject (ORef r) = buildRef r
 buildObject (OStream _) = error "buildObject: please don't pass streams to me"
 buildObject ONull = byteString "null"
 
+-- | Build a stream
+--
+-- The function doesn't try to encode or encrypt the content
 buildStream :: Stream BSL.ByteString -> Builder
-buildStream (Stream dict content) =
-  buildDict dict `mappend`
-  byteString "stream\n" `mappend`
-  lazyByteString content `mappend`
-  byteString "\nendstream"
+buildStream (S dict content) = mconcat
+  [ buildDict dict
+  , byteString "stream\n"
+  , lazyByteString content
+  , byteString "\nendstream"
+  ]
 
 -- | Build a number
 buildNumber :: Scientific -> Builder

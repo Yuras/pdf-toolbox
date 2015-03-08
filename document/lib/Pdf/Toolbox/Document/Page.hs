@@ -164,7 +164,7 @@ combinedContent pdf refs = do
       _ -> throwIO (Corrupted "Page content is not a stream" [])
 
   Streams.fromGenerator $ forM_ allStreams $ \(ref, stream) -> do
-    Stream _ is <- liftIO $ streamContent pdf ref stream
+    S _ is <- liftIO $ streamContent pdf ref stream
     yield is
   where
   yield is =

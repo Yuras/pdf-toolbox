@@ -23,6 +23,7 @@ spec = describe "Object.Builder" $ do
   buildArraySpec
   buildDictSpec
   buildRefSpec
+  buildStreamSpec
 
 buildBoolSpec :: Spec
 buildBoolSpec = describe "buildBool" $ do
@@ -85,3 +86,11 @@ buildRefSpec = describe "buildRef" $ do
   it "should build a ref" $ do
     let res = buildRef (R 42 24)
     Builder.toLazyByteString res `shouldBe` "42 24 R"
+
+buildStreamSpec :: Spec
+buildStreamSpec = describe "buildStream" $ do
+  it "should build a stream" $ do
+    let res = buildStream (S dict "hello")
+        dict = HashMap.fromList [("a", OStr "b")]
+    Builder.toLazyByteString res
+      `shouldBe` "<</a (b)>>stream\nhello\nendstream"

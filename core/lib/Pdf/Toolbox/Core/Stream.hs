@@ -42,7 +42,7 @@ readStream is off = do
   (_, obj) <- Streams.parseFromStream parseIndirectObject is'
     `catch` \(Streams.ParseException msg) -> throwIO (Corrupted msg [])
   case obj of
-    OStream (Stream dict _) -> Stream dict . (+off) . fromIntegral <$> counter
+    OStream (S dict _) -> S dict . (+off) . fromIntegral <$> counter
     _ -> throw $ Streams.ParseException ("stream expected, but got: "
                                           ++ show obj)
 
@@ -64,7 +64,7 @@ rawStreamContent :: Buffer
                  -> Stream Int64  -- ^ stream object to read content for.
                                   -- The payload is offset of stream data
                  -> IO (InputStream ByteString)
-rawStreamContent buf len (Stream _ off) = do
+rawStreamContent buf len (S _ off) = do
   bufferSeek buf off
   Streams.takeBytes (fromIntegral len) (bufferToInputStream buf)
 
@@ -76,7 +76,7 @@ rawStreamContent buf len (Stream _ off) = do
 decodeStream :: [StreamFilter]
              -> Stream (InputStream ByteString)
              -> IO (InputStream ByteString)
-decodeStream filters (Stream dict istream) =
+decodeStream filters (S dict istream) =
   buildFilterList dict >>= foldM decode istream
   where
   decode is (name, params) = do
@@ -132,7 +132,7 @@ decodedStreamContent :: Buffer
                      -> Stream Int64
                      -- ^ stream with offset
                      -> IO (InputStream ByteString)
-decodedStreamContent buf filters decryptor len s@(Stream dict _) =
+decodedStreamContent buf filters decryptor len s@(S dict _) =
   rawStreamContent buf len s >>=
   decryptor >>=
-  decodeStream filters . Stream dict
+  decodeStream filters . S dict

@@ -71,7 +71,7 @@ findObject file ref =
     `catch` \(UnknownXRefStreamEntryType _) -> return (ONull, False)
 
 streamContent :: File_ -> Stream Int64 -> IO (InputStream ByteString)
-streamContent file s@(Stream dict _) = do
+streamContent file s@(S dict _) = do
   len <- do
     obj <- sure $ HashMap.lookup "Length" dict `notice` "Length missing in stream"
     case obj of
@@ -97,7 +97,7 @@ readObjectForEntry file (XRefStreamEntry entry) =
       obj <- readObjectAtOffset (_buffer file) off
       return (snd obj, False)
     StreamEntryCompressed index num -> do
-      objStream@(Stream dict _) <- do
+      objStream@(S dict _) <- do
         (o, _) <- findObject file (R index 0)
         sure $ streamValue o `notice` "Compressed entry should be in stream"
       first <- sure $ (HashMap.lookup "First" dict >>= intValue)
@@ -107,7 +107,7 @@ readObjectForEntry file (XRefStreamEntry entry) =
         readIORef (_decrRef file)
         >>= maybe (return raw)
           (\decr -> decr (R index 0) DecryptStream raw)
-      decoded <- decodeStream (_filters file) (Stream dict decrypted)
+      decoded <- decodeStream (_filters file) (S dict decrypted)
       obj <- readCompressedObject decoded (fromIntegral first) num
       return (conv obj, True)
   where
@@ -137,10 +137,10 @@ lookupEntryRec file ref = loop (_lastXRef file)
 lookupEntry :: File_ -> Ref -> XRef -> IO (Maybe XRefEntry)
 lookupEntry file ref xref@(XRefTable _) =
   fmap XRefTableEntry <$> lookupTableEntry (_buffer file) xref ref
-lookupEntry file ref (XRefStream _ s@(Stream dict _)) = do
+lookupEntry file ref (XRefStream _ s@(S dict _)) = do
   raw <- streamContent file s
-  decoded <- decodeStream (_filters file) (Stream dict raw)
-  fmap XRefStreamEntry <$> lookupStreamEntry (Stream dict decoded) ref
+  decoded <- decodeStream (_filters file) (S dict raw)
+  fmap XRefStreamEntry <$> lookupStreamEntry (S dict decoded) ref
 
 data NotFound = NotFound String
   deriving (Show, Typeable)

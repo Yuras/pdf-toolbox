@@ -43,10 +43,10 @@ import Pdf.Toolbox.Core.Parsers.Util
 -- | Parse a dictionary
 parseDict :: Parser Dict
 parseDict = do
-  _ <- P.string "<<"
+  void $ P.string "<<"
   dict <- many parseKey
   P.skipSpace
-  _ <- P.string ">>"
+  void $ P.string ">>"
   return $ HashMap.fromList dict
 
 parseKey :: Parser (Name, Object ())
@@ -59,10 +59,10 @@ parseKey = do
 -- | Parse an array
 parseArray :: Parser Array
 parseArray = do
-  _ <- P.char '['
+  void $ P.char '['
   array <- many parseObject
   P.skipSpace
-  _ <- P.char ']'
+  void $ P.char ']'
   return $ Vector.fromList array
 
 -- | Parse number
@@ -80,7 +80,7 @@ parseNumber = P.choice [
 -- | Parse literal string
 parseString :: Parser ByteString
 parseString = do
-  _ <- P.char '('
+  void $ P.char '('
   str <- takeStr 0 []
   return $ BS8.pack str
   where
@@ -130,9 +130,9 @@ parseString = do
 -- | Parse hex string
 parseHexString :: Parser ByteString
 parseHexString = do
-  _ <- P.char '<'
+  void $ P.char '<'
   str <- many takeHex
-  _ <- P.char '>'
+  void $ P.char '>'
   return $ BS.pack str
   where
   takeHex = do
@@ -147,7 +147,7 @@ parseRef = do
   P.skipSpace
   gen <- P.decimal
   P.skipSpace
-  _ <- P.char 'R'
+  void $ P.char 'R'
   return $ R obj gen
 
 -- | Parse a name
@@ -183,11 +183,11 @@ parseBool = P.choice [
 parseTillStreamData :: Parser ()
 parseTillStreamData = do
   P.skipSpace
-  _ <- P.string "stream"
+  void $ P.string "stream"
   endOfLine
 
--- | It parses any 'Object' except 'Stream'
--- cos for 'Stream' we need offset of data in file
+-- | Parse any 'Object' except 'Stream'
+-- because for 'Stream' we need offset of data in file
 --
 -- >>> parseOnly parseObject "/Name"
 -- Right (OName (Name "Name"))
@@ -218,13 +218,13 @@ parseIndirectObject = do
   P.skipSpace
   gen <- P.decimal :: Parser Int
   P.skipSpace
-  _ <- P.string "obj"
+  void $ P.string "obj"
   P.skipSpace
   obj <- parseObject
   let ref = R index gen
   case obj of
     ODict d -> P.choice [
-      parseTillStreamData >> return (ref, OStream $ Stream d ()),
+      parseTillStreamData >> return (ref, OStream $ S d ()),
       return (ref, ODict d)
       ]
     _ -> return (ref, obj)

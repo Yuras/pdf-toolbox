@@ -23,6 +23,7 @@ spec = describe "Object.Util" $ do
   dictValueSpec
   nameValueSpec
   refValueSpec
+  streamValueSpec
 
 boolValueSpec :: Spec
 boolValueSpec = describe "boolValue" $ do
@@ -96,3 +97,13 @@ refValueSpec = describe "refValue" $ do
 
   it "should return Nothing for any other value" $ do
     refValue (OBoolean True) `shouldBe` Nothing
+
+streamValueSpec :: Spec
+streamValueSpec = describe "streamValue" $ do
+  it "should convert stream value to Stream" $ do
+    let stream = S dict ("hello" :: String)
+        dict = HashMap.fromList [("a", OStr "b")]
+    streamValue (OStream stream) `shouldBe` Just stream
+
+  it "should return Nothing for any other value" $ do
+    streamValue (OBoolean True) `shouldBe` (Nothing :: Maybe (Stream String))

@@ -121,7 +121,7 @@ trailer buf (XRefTable off) = do
     Streams.parseFromStream parseTrailerAfterTable is
     ) `catch` \(Streams.ParseException msg) ->
                   throw (Corrupted "trailer" [msg])
-trailer _ (XRefStream _ (Stream dict _)) = return dict
+trailer _ (XRefStream _ (S dict _)) = return dict
 
 skipTable :: InputStream ByteString -> IO ()
 skipTable is = message "skipTable" $
@@ -186,7 +186,7 @@ lookupStreamEntry
   :: Stream (InputStream ByteString)  -- ^ decoded xref stream content
   -> Ref                              -- ^ indirect object
   -> IO (Maybe StreamEntry)
-lookupStreamEntry (Stream dict is) (R objNumber _) =
+lookupStreamEntry (S dict is) (R objNumber _) =
   message "lookupStreamEntry" $ do
 
   index <- sure $ do

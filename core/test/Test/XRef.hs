@@ -46,7 +46,7 @@ spec = describe "XRef" $ do
     it "should support xref stream" $ (do
       buf <- bytesToBuffer "hello1 1 obj\n<<>>stream\r\ncontent"
       readXRef buf 5
-      ) `shouldReturn` XRefStream 5 (Stream HashMap.empty 25)
+      ) `shouldReturn` XRefStream 5 (S HashMap.empty 25)
 
     it "should throw exception if xref not found" $ (do
       buf <- bytesToBuffer "hello\n"
@@ -70,7 +70,7 @@ spec = describe "XRef" $ do
   describe "trailer" $ do
     it "should return the dictionary for xref stream" $
       let dict = HashMap.fromList [("Hello", OStr "World")]
-      in trailer undefined (XRefStream 0 (Stream dict 0))
+      in trailer undefined (XRefStream 0 (S dict 0))
         `shouldReturn` dict
 
     it "should parse trailer after xref table" $ (do
@@ -96,19 +96,19 @@ spec = describe "XRef" $ do
         \ Prev entry in current trailer" $ (do
       let dict = HashMap.fromList [("Prev", ONumber 5)]
       buf <- bytesToBuffer "helloxref\n"
-      prevXRef buf (XRefStream undefined (Stream dict undefined))
+      prevXRef buf (XRefStream undefined (S dict undefined))
       ) `shouldReturn` Just (XRefTable 5)
 
     it "should return Nothing for the last xref" $ (do
       let dict = HashMap.fromList []
       buf <- bytesToBuffer "helloxref\n"
-      prevXRef buf (XRefStream undefined (Stream dict undefined))
+      prevXRef buf (XRefStream undefined (S dict undefined))
       ) `shouldReturn` Nothing
 
     it "should throw Corrupted when Prev is not an int" $ (do
       let dict = HashMap.fromList [("Prev", OStr "hello")]
       buf <- bytesToBuffer "helloxref\n"
-      prevXRef buf (XRefStream undefined (Stream dict undefined))
+      prevXRef buf (XRefStream undefined (S dict undefined))
       ) `shouldThrow` \Corrupted{} -> True
 
   describe "lookupTableEntry" $ do
@@ -147,22 +147,22 @@ spec = describe "XRef" $ do
           ]
     it "should handle free objects" $ (do
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (Stream dict is) (R 6 0)
+      lookupStreamEntry (S dict is) (R 6 0)
       ) `shouldReturn` Just (StreamEntryFree 4 0)
 
     it "should handle used objects" $ (do
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (Stream dict is) (R 4 0)
+      lookupStreamEntry (S dict is) (R 4 0)
       ) `shouldReturn` Just (StreamEntryUsed 2 3)
 
     it "should handle compressed objects" $ (do
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (Stream dict is) (R 5 0)
+      lookupStreamEntry (S dict is) (R 5 0)
       ) `shouldReturn` Just (StreamEntryCompressed 3 4)
 
     it "should return Nothing when object to found" $ (do
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (Stream dict is) (R 7 0)
+      lookupStreamEntry (S dict is) (R 7 0)
       ) `shouldReturn` Nothing
 
     it "should handle multiple sections" $ (do
@@ -172,5 +172,5 @@ spec = describe "XRef" $ do
             , ("Size", ONumber 4)
             ]
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (Stream dict' is) (R 11 0)
+      lookupStreamEntry (S dict' is) (R 11 0)
       ) `shouldReturn` Just (StreamEntryFree 4 0)

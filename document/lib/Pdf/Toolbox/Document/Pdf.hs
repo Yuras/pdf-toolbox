@@ -78,8 +78,8 @@ rawStreamContent
   :: Pdf
   -> Stream Int64
   -> IO (Stream (InputStream ByteString))
-rawStreamContent pdf s@(Stream dict _) =
-  Stream dict <$> File.stream (file pdf) s
+rawStreamContent pdf s@(S dict _) =
+  S dict <$> File.stream (file pdf) s
 
 -- | Decrypt stream content
 --
@@ -91,11 +91,11 @@ decryptStream
   -> Ref
   -> Stream (InputStream ByteString)
   -> IO (Stream (InputStream ByteString))
-decryptStream pdf ref (Stream dict is) = do
+decryptStream pdf ref (S dict is) = do
   maybe_decryptor <- readIORef decrRef
   case maybe_decryptor of
-    Nothing -> return (Stream dict is)
-    Just decryptor -> Stream dict <$> decryptor ref DecryptStream is
+    Nothing -> return (S dict is)
+    Just decryptor -> S dict <$> decryptor ref DecryptStream is
   where
   Pdf _ decrRef = pdf
 
@@ -106,8 +106,8 @@ decodeStream
   :: Pdf
   -> Stream (InputStream ByteString)
   -> IO (Stream (InputStream ByteString))
-decodeStream _pdf s@(Stream dict _) =
-  Stream dict <$> Core.decodeStream knownFilters s
+decodeStream _pdf s@(S dict _) =
+  S dict <$> Core.decodeStream knownFilters s
 
 -- | Recursively load indirect object
 deref :: Pdf -> Object a -> IO (Object ())
@@ -120,7 +120,7 @@ deref _ (OStr str) = return (OStr str)
 deref _ (OBoolean b) = return (OBoolean b)
 deref _ (ODict d) = return (ODict d)
 deref _ (OArray a) = return (OArray a)
-deref _ (OStream (Stream dict _)) = return (OStream (Stream dict ()))
+deref _ (OStream (S dict _)) = return (OStream (S dict ()))
 deref _ ONull = return ONull
 
 -- | Whether the PDF document it encrypted

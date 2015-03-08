@@ -32,7 +32,7 @@ type Array = Vector (Object ())
 --
 -- The payload could be offset within pdf file, actual content,
 -- content stream or nothing
-data Stream a = Stream Dict a
+data Stream a = S Dict a
   deriving (Eq, Show)
 
 -- | Object reference, contains object index and generation

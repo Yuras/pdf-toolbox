@@ -50,7 +50,7 @@ readObjectAtOffset buf off = message "readObjectAtOffset" $ do
       ODict val -> return $ ODict val
       OArray val -> return $ OArray val
       OStr val -> return $ OStr val
-      OStream (Stream dict _) -> (OStream . Stream dict) <$> bufferTell buf
+      OStream (S dict _) -> (OStream . S dict) <$> bufferTell buf
       ORef _ -> throw $ Corrupted "Indirect object can't be ORef" []
       ONull -> return ONull
   return (ref, o')
