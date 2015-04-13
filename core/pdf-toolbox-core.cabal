@@ -52,7 +52,7 @@ library
                        io-streams,
                        attoparsec >= 0.10,
                        scientific,
-                       errors,
+                       errors < 2.0,
                        transformers,
                        containers,
                        zlib-bindings
