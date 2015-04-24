@@ -22,7 +22,6 @@ module Pdf.Toolbox.Core.IO
 where
 
 import Data.Int
-import Data.Functor
 import Data.Attoparsec.ByteString (Parser)
 import Data.ByteString (ByteString)
 import Control.Monad.IO.Class

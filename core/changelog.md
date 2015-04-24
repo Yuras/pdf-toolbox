@@ -1,7 +1,8 @@
 
-unreleased
+0.0.3.3
 
 * add upper bound to `errors` dependency
+* support ghc-7.10.1
 
 0.0.3.2
 

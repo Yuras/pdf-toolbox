@@ -18,7 +18,6 @@ module Pdf.Toolbox.Core.Object.Types
 )
 where
 
-import Data.Monoid
 import Data.String
 import Data.ByteString (ByteString)
 

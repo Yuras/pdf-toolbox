@@ -18,7 +18,6 @@ where
 
 import Data.List
 import Data.Word
-import Data.Monoid
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.ByteString (ByteString)

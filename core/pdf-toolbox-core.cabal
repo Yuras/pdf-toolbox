@@ -1,5 +1,5 @@
 name:                pdf-toolbox-core
-version:             0.0.3.2
+version:             0.0.3.3
 synopsis:            A collection of tools for processing PDF files.
 license:             BSD3
 license-file:        LICENSE
@@ -30,6 +30,7 @@ source-repository head
 
 library
   hs-source-dirs:      lib
+                       compat
   exposed-modules:     Pdf.Toolbox.Core
                        Pdf.Toolbox.Core.IO
                        Pdf.Toolbox.Core.IO.RIS
@@ -46,8 +47,8 @@ library
                        Pdf.Toolbox.Core.XRef
                        Pdf.Toolbox.Core.Util
                        Pdf.Toolbox.Core.Writer
-  -- other-modules:       
-  build-depends:       base >= 4.6 && < 4.8,
+  other-modules:       Prelude
+  build-depends:       base >= 4.6 && < 5,
                        bytestring,
                        io-streams,
                        attoparsec >= 0.10,

@@ -6,7 +6,6 @@ module Main
 )
 where
 
-import Data.Functor
 import qualified Data.Traversable as Traversable
 import qualified Data.Map as Map
 import qualified Data.ByteString.Char8 as BS8

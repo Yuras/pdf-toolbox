@@ -1,5 +1,5 @@
 name:                pdf-toolbox-document
-version:             0.0.5.0
+version:             0.0.5.1
 synopsis:            A collection of tools for processing PDF files.
 license:             BSD3
 license-file:        LICENSE
@@ -22,6 +22,7 @@ source-repository head
 
 library
   hs-source-dirs:      lib
+                       compat
   exposed-modules:     Pdf.Toolbox.Document
                        Pdf.Toolbox.Document.Types
                        Pdf.Toolbox.Document.Monad
@@ -35,7 +36,8 @@ library
                        Pdf.Toolbox.Document.Encryption
                        Pdf.Toolbox.Document.Internal.Types
                        Pdf.Toolbox.Document.Internal.Util
-  build-depends:       base >= 4.6 && < 4.8,
+  other-modules:       Prelude
+  build-depends:       base >= 4.6 && < 5,
                        transformers,
                        containers,
                        text,

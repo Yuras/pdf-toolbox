@@ -16,7 +16,6 @@ module Pdf.Toolbox.Core.IO.RIS
 where
 
 import Data.Int (Int64)
-import Data.Functor
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.IORef

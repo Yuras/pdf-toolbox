@@ -12,7 +12,6 @@ module Pdf.Toolbox.Document.Encryption
 )
 where
 
-import Data.Functor
 import Data.Bits (xor)
 import Data.IORef
 import Data.ByteString (ByteString)

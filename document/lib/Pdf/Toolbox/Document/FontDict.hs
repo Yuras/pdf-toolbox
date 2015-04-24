@@ -12,8 +12,6 @@ module Pdf.Toolbox.Document.FontDict
 where
 
 import Data.Word
-import Data.Monoid
-import Data.Functor
 import Data.ByteString (ByteString)
 import Control.Monad
 import qualified System.IO.Streams as Streams

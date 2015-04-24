@@ -13,8 +13,6 @@ module Pdf.Toolbox.Document.Page
 )
 where
 
-import Data.Monoid
-import Data.Functor
 import qualified Data.Traversable as Traversable
 import Data.Text (Text)
 import qualified Data.Text.Lazy as TextL

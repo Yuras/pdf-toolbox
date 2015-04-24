@@ -1,5 +1,5 @@
 name:                pdf-toolbox-viewer
-version:             0.0.3.2
+version:             0.0.3.3
 synopsis:            Simple pdf viewer
 description:         Proof of concept, only for debuging
 homepage:            https://github.com/Yuras/pdf-toolbox
@@ -19,7 +19,10 @@ source-repository head
 
 executable pdf-toolbox-viewer
   main-is:             viewer.hs
-  build-depends:       base >= 4.6 && < 4.8,
+  hs-source-dirs:      .
+                       compat
+  other-modules:       Prelude
+  build-depends:       base >= 4.6 && < 5,
                        bytestring,
                        text,
                        transformers,

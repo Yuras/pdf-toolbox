@@ -21,13 +21,11 @@ module Pdf.Toolbox.Document.Pdf
 )
 where
 
-import Data.Monoid
 import Data.Int
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State

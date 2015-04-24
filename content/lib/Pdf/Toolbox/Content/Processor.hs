@@ -16,7 +16,6 @@ module Pdf.Toolbox.Content.Processor
 )
 where
 
-import Data.Monoid
 import Data.Text (Text)
 import Control.Monad
 
