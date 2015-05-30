@@ -19,7 +19,6 @@ import Data.Int
 import Data.ByteString (ByteString)
 import Data.Attoparsec.ByteString.Char8 (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as Parser
-import Control.Applicative
 import Control.Monad
 import Control.Exception
 import System.IO.Streams (InputStream)

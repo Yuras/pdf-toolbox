@@ -17,7 +17,6 @@ module Pdf.Toolbox.Core.Object.Builder
 )
 where
 
-import Data.Monoid
 import Data.Char
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as Char8

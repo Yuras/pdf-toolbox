@@ -12,7 +12,6 @@ module Pdf.Toolbox.Core.Name
 )
 where
 
-import Data.Monoid
 import Data.String
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString

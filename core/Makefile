@@ -6,6 +6,7 @@ all: build
 
 debug:
 	$(CABAL) configure --disable-library-profiling --disable-shared \
+		--disable-profiling \
 		--disable-optimization --enable-tests --enable-coverage \
 		--ghc-options="-Wall"
 

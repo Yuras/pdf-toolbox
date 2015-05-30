@@ -31,8 +31,6 @@ import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
 
 import Data.Function
-import Data.Monoid
-import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State

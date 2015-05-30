@@ -21,7 +21,6 @@ import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
 import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap
-import Control.Applicative
 import Control.Monad
 import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams

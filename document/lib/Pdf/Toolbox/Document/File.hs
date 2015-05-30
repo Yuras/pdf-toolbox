@@ -17,7 +17,6 @@ import Data.Typeable
 import Data.IORef
 import Data.ByteString (ByteString)
 import qualified Data.HashMap.Strict as HashMap
-import Control.Applicative
 import Control.Monad
 import Control.Exception
 import System.IO.Streams (InputStream)

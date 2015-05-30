@@ -8,7 +8,6 @@ where
 
 import Pdf.Toolbox.Content.UnicodeCMap
 
-import Data.Monoid
 import Data.Either
 import qualified Data.Map as Map
 import qualified Data.ByteString as ByteString

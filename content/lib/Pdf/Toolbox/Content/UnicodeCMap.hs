@@ -12,7 +12,6 @@ module Pdf.Toolbox.Content.UnicodeCMap
 where
 
 import Data.Monoid
-import Data.Functor
 import Data.Char
 import Data.Map (Map)
 import qualified Data.Map as Map

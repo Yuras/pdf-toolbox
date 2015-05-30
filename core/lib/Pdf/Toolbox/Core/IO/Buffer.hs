@@ -16,7 +16,6 @@ import Data.Int
 import Data.IORef
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
-import Control.Applicative
 import Control.Monad
 import System.IO
 import qualified System.IO.Streams as Streams

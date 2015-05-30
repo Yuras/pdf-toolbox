@@ -17,13 +17,11 @@ module Pdf.Toolbox.Document.Pdf
 )
 where
 
-import Data.Monoid
 import Data.Int
 import Data.IORef
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import qualified Data.HashMap.Strict as HashMap
-import Control.Applicative
 import Control.Exception
 import System.IO (Handle)
 import System.IO.Streams (InputStream)

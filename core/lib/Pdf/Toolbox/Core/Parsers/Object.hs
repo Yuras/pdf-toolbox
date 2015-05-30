@@ -95,7 +95,7 @@ parseString = do
                else takeStr (lvl - 1) (ch : res)
       '\\' -> do
         ch' <- P.anyChar
-        if ch' `elem` "()\\"
+        if ch' `elem` ("()\\" :: String)
           then takeStr lvl (ch' : res)
           else case ch' of
                  'r' -> takeStr lvl ('\r' : res)
@@ -162,7 +162,7 @@ parseName = do
 
 -- | Whether the character can appear in 'Name'
 isRegularChar :: Char -> Bool
-isRegularChar = (`notElem` "[]()/<>{}% \n\r")
+isRegularChar = (`notElem` ("[]()/<>{}% \n\r" :: String))
 
 -- | Parse bool value
 parseBool :: Parser Bool

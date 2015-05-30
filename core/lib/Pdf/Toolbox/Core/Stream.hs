@@ -28,7 +28,6 @@ import Data.Maybe
 import Data.ByteString (ByteString)
 import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap
-import Control.Applicative
 import Control.Monad
 import Control.Exception
 import System.IO.Streams (InputStream)

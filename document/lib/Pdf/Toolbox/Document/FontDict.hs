@@ -12,8 +12,6 @@ module Pdf.Toolbox.Document.FontDict
 where
 
 import Data.Word
-import Data.Monoid
-import Data.Functor
 import Data.ByteString (ByteString)
 import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap

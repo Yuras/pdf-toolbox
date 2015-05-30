@@ -13,8 +13,6 @@ module Pdf.Toolbox.Document.Page
 )
 where
 
-import Data.Functor
-import Data.Monoid
 import Data.Maybe
 import qualified Data.Traversable as Traversable
 import Data.ByteString (ByteString)
