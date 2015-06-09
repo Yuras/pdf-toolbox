@@ -9,6 +9,7 @@ module Pdf.Toolbox.Content.Parser
 where
 
 import Data.Int
+import qualified Data.ByteString.Char8 as ByteString8
 import Data.Attoparsec.ByteString.Char8 (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as Parser
 import Data.IORef
@@ -87,7 +88,24 @@ parseContent
   = (skipSpace >> Parser.endOfInput >> return Nothing)
   <|> do
     skipSpace
-    fmap Just $ fmap Obj parseObject <|> fmap (Op . toOp) (Parser.takeWhile1 isRegularChar)
+    fmap Just $ fmap Obj parseObject
+      <|> fmap (Op . toOp) (Parser.takeWhile1 isRegularChar)
+      -- See Note Inline image
+      <|> fmap (Op . UnknownOp . ByteString8.pack . return) Parser.anyChar
+
+{- Note Inline image
+
+There is at least one case that doesn't fit the way we represent content
+stream operators: inline images, see Pdf1.7:8.9.7
+
+Inline image looks like "BI" operator, a number of key/value pairs, "ID"
+operator, image data and "EI" operator. I have no idea how to handle that case.
+There is no data length, so the "EI" string is the only indicator for end
+of image data. What if the data contains "EI"?
+
+For now lets skip all unknown bytes as unknown operator. That seems to work,
+but it is not reliable.
+-}
 
 -- Treat comments as spaces
 skipSpace :: Parser ()

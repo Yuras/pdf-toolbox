@@ -1,3 +1,6 @@
+unreleased
+
+* workaround for parse error on inline image in content stream
 
 0.0.3.3
 
