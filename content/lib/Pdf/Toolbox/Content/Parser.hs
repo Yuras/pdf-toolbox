@@ -49,11 +49,11 @@ readNextOperator is = annotateError "reading the next operator from content stre
         `catch` (\e -> return $ Left $ UnexpectedError $ show (e :: Streams.ParseException))
       case e of
         Right expr -> return expr
-        Left er -> left er
+        Left er -> throwE er
     case expr of
       Nothing -> case args of
                    [] -> return Nothing
-                   _ -> left $ UnexpectedError $ "Args without op: " ++ show args
+                   _ -> throwE $ UnexpectedError $ "Args without op: " ++ show args
       Just (Obj o) -> go (o : args)
       Just (Op o) -> return $ Just (o, reverse args)
 
@@ -75,7 +75,7 @@ combineStreams ris filters decryptor (x:xs) = do
         case ss of
           [] -> return Nothing
           (h:t) -> do
-            reader <- runEitherT $ mkReader h t
+            reader <- runExceptT $ mkReader h t
             case reader of
               Left e -> liftIO $ ioError $ userError $ show e
               Right r -> do

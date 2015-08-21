@@ -121,7 +121,7 @@ makeCIDFontWidths (Array vals) = go mempty vals
     n <- intValue x
     ws <- forM arr $ \w -> fromObject w >>= realValue
     go res {cidFontWidthsChars = Map.fromList (zip [n ..] ws) `mappend` cidFontWidthsChars res} xs
-  go _ _ = left $ UnexpectedError "Can't parse CIDFont width"
+  go _ _ = throwE $ UnexpectedError "Can't parse CIDFont width"
 
 -- | Get glyph width by glyph code
 cidFontGetWidth :: CIDFontWidths -> Int -> Maybe Double

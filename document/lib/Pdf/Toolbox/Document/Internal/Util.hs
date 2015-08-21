@@ -17,7 +17,7 @@ import Pdf.Toolbox.Core
 ensureType :: Monad m => Name -> Dict -> PdfE m ()
 ensureType name dict = do
   n <- dictionaryType dict
-  unless (n == name) $ left $ UnexpectedError $ "Expected type: " ++ show name ++ ", but found: " ++ show n
+  unless (n == name) $ throwE $ UnexpectedError $ "Expected type: " ++ show name ++ ", but found: " ++ show n
 
 -- | Get dictionary type, name at key \"Type\"
 dictionaryType :: Monad m => Dict -> PdfE m Name

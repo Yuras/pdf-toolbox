@@ -119,7 +119,9 @@ writePdfFile path = do
   handle <- liftIO $ openBinaryFile path ReadMode
   res <- runPdfWithHandle handle knownFilters $ do
     encrypted <- isEncrypted
-    when encrypted $ setUserPassword defaultUserPassord
+    when encrypted $ do
+      ok <- setUserPassword defaultUserPassword
+      unless ok $ error "wrong password"
     root <- document >>= documentCatalog >>= catalogPageNode
     count <- pageNodeNKids root
     forM_ [0..count-1] $ \i -> do

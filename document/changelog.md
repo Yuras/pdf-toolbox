@@ -1,3 +1,8 @@
+
+0.0.6.0
+
+* switch to errors-2.0
+
 0.0.5.1
 
 * support ghc-7.10.1

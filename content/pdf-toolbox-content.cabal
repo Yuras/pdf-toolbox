@@ -1,5 +1,5 @@
 name:                pdf-toolbox-content
-version:             0.0.3.3
+version:             0.0.4.0
 synopsis:            A collection of tools for processing PDF files
 license:             BSD3
 license-file:        LICENSE
@@ -41,4 +41,4 @@ library
                        base16-bytestring,
                        text,
                        io-streams,
-                       pdf-toolbox-core >=0.0.2.0 && <0.0.4
+                       pdf-toolbox-core ==0.0.4.*

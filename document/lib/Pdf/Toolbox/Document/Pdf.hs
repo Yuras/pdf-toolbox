@@ -122,7 +122,7 @@ lookupEntryRec ref = annotateError ("Can't find xref entry for ref: " ++ show re
         prev <- prevXRef ris xref
         case prev of
           Just xref' -> loop xref'
-          Nothing -> left $ UnexpectedError "There are no more xrefs"
+          Nothing -> throwE $ UnexpectedError "There are no more xrefs"
 
 lookupXRefEntry :: MonadIO m => Ref -> XRef -> Pdf m (Maybe XRefEntry)
 lookupXRefEntry ref (XRefTable off) = do
@@ -141,7 +141,7 @@ takeStreamContent decryptor s@(Stream dict _) = annotateError ("reading stream c
     case obj of
       ONumber _ -> fromObject obj >>= intValue
       ORef ref -> lookupObject ref >>= fromObject >>= intValue
-      _ -> left $ UnexpectedError $ "Unexpected length object in stream: " ++ show obj
+      _ -> throwE $ UnexpectedError $ "Unexpected length object in stream: " ++ show obj
   ris <- getRIS
   filters <- lift $ Pdf' $ gets stFilters
   decodedStreamContent ris filters decryptor len s
@@ -186,7 +186,7 @@ flushObjectCache = lift $ Pdf' $ modify $ \st -> st {stObjectCache = Map.empty}
 
 -- | Execute PDF action with 'RIS'
 runPdf :: MonadIO m => RIS -> [StreamFilter] -> Pdf m a -> m (Either PdfError a)
-runPdf ris filters action = runPdf' ris filters $ runEitherT action
+runPdf ris filters action = runPdf' ris filters $ runExceptT action
 
 -- | Execute PDF action with 'Handle'
 runPdfWithHandle :: MonadIO m => Handle -> [StreamFilter] -> Pdf m a -> m (Either PdfError a)
@@ -230,7 +230,7 @@ setUserPassword pass = annotateError "setUserPassword" $ do
   ris <- getRIS
   tr <- lastXRef ris >>= trailer ris
   enc <- case lookupDict' "Encrypt" tr of
-    Nothing -> left $ UnexpectedError "The document is not encrypted"
+    Nothing -> throwE $ UnexpectedError "The document is not encrypted"
     Just enc -> deref enc >>= fromObject
   decryptor <- mkStandardDecryptor tr enc $ BS.take 32 $ pass `mappend` defaultUserPassword
   lift $ Pdf' $ modify $ \s -> s {stDecryptor = decryptor}

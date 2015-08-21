@@ -86,10 +86,10 @@ decodeStream filters decryptor (Stream dict istream) = annotateError "Can't deco
 
 buildFilterList :: Monad m => Dict -> PdfE m [(Name, Maybe Dict)]
 buildFilterList dict = do
-  f <- lookupDict "Filter" dict `catchT` (const $ right ONull)
-  p <- lookupDict "DecodeParms" dict `catchT` (const $ right ONull)
+  f <- lookupDict "Filter" dict `catchE` (const $ return ONull)
+  p <- lookupDict "DecodeParms" dict `catchE` (const $ return ONull)
   case (f, p) of
-    (ONull, _) -> right []
+    (ONull, _) -> return []
     (OName fd, ONull) -> return [(fd, Nothing)]
     (OName fd, ODict pd) -> return [(fd, Just pd)]
     (OName fd, OArray (Array [ODict pd])) -> return [(fd, Just pd)]
@@ -100,4 +100,4 @@ buildFilterList dict = do
       fa' <- mapM fromObject fa
       pa' <- mapM fromObject pa
       return $ zip fa' (map Just pa')
-    _ -> left $ UnexpectedError $ "Can't handle Filter and DecodeParams: (" ++ show f ++ ", " ++ show p ++ ")"
+    _ -> throwE $ UnexpectedError $ "Can't handle Filter and DecodeParams: (" ++ show f ++ ", " ++ show p ++ ")"

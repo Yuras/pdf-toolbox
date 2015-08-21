@@ -52,7 +52,7 @@ parse p is = do
     `catch` (\(Streams.ParseException str) -> return $ Left $ ParseError [] str)
     `catch` (\(e :: IOError) -> return $ Left $ IOError e)
   case res of
-    Left e -> left e
+    Left e -> throwE e
     Right r -> return r
 
 -- | Convert random access stream to sequential

@@ -71,7 +71,7 @@ mkStandardDecryptor :: Monad m
                     -> PdfE m (Maybe Decryptor)
 mkStandardDecryptor tr enc pass = do
   Name filterType <- lookupDict "Filter" enc >>= fromObject
-  unless (filterType == "Standard") $ left $ UnexpectedError $ "Unsupported encryption handler: " ++ show filterType
+  unless (filterType == "Standard") $ throwE $ UnexpectedError $ "Unsupported encryption handler: " ++ show filterType
   vVal <- lookupDict "V" enc >>= fromObject >>= intValue
 
   if vVal == 4
@@ -85,7 +85,7 @@ mkStandardDecryptor tr enc pass = do
            2 -> do
              len <- lookupDict "Length" enc >>= fromObject >>= intValue
              return $ len `div` 8
-           _ -> left $ UnexpectedError $ "Unsuported encryption handler version: " ++ show vVal
+           _ -> throwE $ UnexpectedError $ "Unsuported encryption handler version: " ++ show vVal
 
     ekey <- mkKey tr enc pass n
     ok <- verifyKey tr enc ekey
@@ -105,13 +105,13 @@ mkStandardDecryptor tr enc pass = do
         case algName of
           "V2" -> return V2
           "AESV2" -> return AESV2
-          _ -> left $ UnexpectedError $ "Unknown crypto method: " ++ show algName
+          _ -> throwE $ UnexpectedError $ "Unknown crypto method: " ++ show algName
       ekey <- mkKey tr enc pass n
       return (name, (ekey, n, alg))
 
     (stdCfKey, _, _) <-
       case lookup "StdCF" keysMap of
-        Nothing -> left $ UnexpectedError "StdCF is missing"
+        Nothing -> throwE $ UnexpectedError "StdCF is missing"
         Just v -> return v
     ok <- verifyKey tr enc stdCfKey
     if not ok
@@ -121,13 +121,13 @@ mkStandardDecryptor tr enc pass = do
         strFName <- lookupDict "StrF" enc >>= toName
         (strFKey, strFN, strFAlg) <-
           case lookup strFName keysMap of
-            Nothing -> left $ UnexpectedError $ "Crypto filter not found: " ++ show strFName
+            Nothing -> throwE $ UnexpectedError $ "Crypto filter not found: " ++ show strFName
             Just v -> return v
 
         stmFName <- lookupDict "StmF" enc >>= toName
         (stmFKey, stmFN, stmFAlg) <-
           case lookup stmFName keysMap of
-            Nothing -> left $ UnexpectedError $ "Crypto filter not found: " ++ show stmFName
+            Nothing -> throwE $ UnexpectedError $ "Crypto filter not found: " ++ show stmFName
             Just v -> return v
 
         return $ Just $ \ref scope is ->
@@ -143,7 +143,7 @@ mkKey tr enc pass n = do
   Str idVal <- do
     Array ids <- lookupDict "ID" tr >>= fromObject
     case ids of
-      [] -> left $ UnexpectedError $ "ID array is empty"
+      [] -> throwE $ UnexpectedError $ "ID array is empty"
       (x:_) -> fromObject x
   rVal <- lookupDict "R" enc >>= fromObject >>= intValue
 
@@ -170,7 +170,7 @@ verifyKey tr enc ekey = do
   Str idVal <- do
     Array ids <- lookupDict "ID" tr >>= fromObject
     case ids of
-      [] -> left $ UnexpectedError $ "ID array is empty"
+      [] -> throwE $ UnexpectedError $ "ID array is empty"
       (x:_) -> fromObject x
   rVal <- lookupDict "R" enc >>= fromObject >>= intValue
   Str uVal <- lookupDict "U" enc >>= fromObject

@@ -1,5 +1,6 @@
-unreleased
+0.0.4.0
 
+* switch to errors-2.0
 * workaround for parse error on inline image in content stream
 
 0.0.3.3

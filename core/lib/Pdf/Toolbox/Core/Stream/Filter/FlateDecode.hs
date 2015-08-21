@@ -37,11 +37,11 @@ catchZlibExceptions is =
 decode :: Maybe Dict -> IS -> IO IS
 decode Nothing is = Streams.decompress is
 decode (Just dict) is = do
-  predictor <- runEitherT $ lookupDict "Predictor" dict
+  predictor <- runExceptT $ lookupDict "Predictor" dict
   case predictor of
     Left _ -> Streams.decompress is
     Right p -> do
-      p' <- runEitherT $ fromObject p >>= intValue
+      p' <- runExceptT $ fromObject p >>= intValue
       case p' of
         Left e -> fail $ "Malformed predictor: " ++ show e
         Right val -> Streams.decompress is >>= unpredict dict val
@@ -49,7 +49,7 @@ decode (Just dict) is = do
 unpredict :: Dict -> Int -> IS -> IO IS
 unpredict _ 1 is = return is
 unpredict dict 12 is = do
-  c <- runEitherT $ lookupDict "Columns" dict >>= fromObject >>= intValue
+  c <- runExceptT $ lookupDict "Columns" dict >>= fromObject >>= intValue
   case c of
     Left e -> fail $ "flateDecode: malformed Columns value: " ++ show e
     Right cols -> unpredict12 (cols + 1) is

@@ -22,4 +22,4 @@ rectangleFromArray (Array [a', b', c', d']) = do
   c <- fromObject c' >>= realValue
   d <- fromObject d' >>= realValue
   return $ Rectangle a b c d
-rectangleFromArray array = left $ UnexpectedError $ "rectangleFromArray: " ++ show array
+rectangleFromArray array = throwE $ UnexpectedError $ "rectangleFromArray: " ++ show array

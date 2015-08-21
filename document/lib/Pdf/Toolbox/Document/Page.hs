@@ -38,7 +38,7 @@ pageParentNode (Page _ dict) = do
   node <- loadPageNode ref
   case node of
     PageTreeNode n -> return n
-    PageTreeLeaf _ -> left $ UnexpectedError "page parent should be a note, but leaf should"
+    PageTreeLeaf _ -> throwE $ UnexpectedError "page parent should be a note, but leaf should"
 
 -- | List of references to page's content streams
 pageContents :: MonadPdf m => Page -> PdfE m [Ref]
@@ -52,9 +52,9 @@ pageContents page@(Page _ dict) = annotateError ("contents for page: " ++ show p
       case o of
         OStream _ -> return [ref]
         OArray (Array objs) -> mapM fromObject objs
-        _ -> left $ UnexpectedError $ "Unexpected value in page content ref: " ++ show o
+        _ -> throwE $ UnexpectedError $ "Unexpected value in page content ref: " ++ show o
     Just (OArray (Array objs)) -> mapM fromObject objs
-    _ -> left $ UnexpectedError "Unexpected value in page contents"
+    _ -> throwE $ UnexpectedError "Unexpected value in page contents"
 
 -- | Media box, inheritable
 pageMediaBox :: MonadPdf m => Page -> PdfE m (Rectangle Double)
@@ -72,7 +72,7 @@ mediaBox tree = do
                   PageTreeNode node -> do
                     parent <- pageNodeParent node
                     case parent of
-                      Nothing -> left $ UnexpectedError $ "Media box not found"
+                      Nothing -> throwE $ UnexpectedError $ "Media box not found"
                       Just p -> return $ PageTreeNode p
                   PageTreeLeaf page -> PageTreeNode `liftM` pageParentNode page
       mediaBox parent

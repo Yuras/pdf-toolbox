@@ -100,13 +100,13 @@ mkProcessor = Processor {
 processOp :: Monad m => Operator -> Processor -> PdfE m Processor
 
 processOp (Op_q, []) p = return p {prStateStack = prState p : prStateStack p}
-processOp (Op_q, args) _ = left $ UnexpectedError $ "Op_q: wrong number of arguments: " ++ show args
+processOp (Op_q, args) _ = throwE $ UnexpectedError $ "Op_q: wrong number of arguments: " ++ show args
 
 processOp (Op_Q, []) p =
   case prStateStack p of
-    [] -> left $ UnexpectedError "Op_Q: state is empty"
+    [] -> throwE $ UnexpectedError "Op_Q: state is empty"
     (x:xs) -> return p {prState = x, prStateStack = xs}
-processOp (Op_Q, args) _ = left $ UnexpectedError $ "Op_Q: wrong number of arguments: " ++ show args
+processOp (Op_Q, args) _ = throwE $ UnexpectedError $ "Op_Q: wrong number of arguments: " ++ show args
 
 processOp (Op_BT, []) p = do
   ensureInTextObject False p
@@ -116,7 +116,7 @@ processOp (Op_BT, []) p = do
     gsTextMatrix = identity,
     gsTextLineMatrix = identity
     }}
-processOp (Op_BT, args) _ = left $ UnexpectedError $ "Op_BT: wrong number of arguments: " ++ show args
+processOp (Op_BT, args) _ = throwE $ UnexpectedError $ "Op_BT: wrong number of arguments: " ++ show args
 
 processOp (Op_ET, []) p = do
   ensureInTextObject True p
@@ -124,7 +124,7 @@ processOp (Op_ET, []) p = do
   return p {prState = gstate {
     gsInText = False
     }}
-processOp (Op_ET, args) _ = left $ UnexpectedError $ "Op_ET: wrong number of arguments: " ++ show args
+processOp (Op_ET, args) _ = throwE $ UnexpectedError $ "Op_ET: wrong number of arguments: " ++ show args
 
 processOp (Op_Td, [txo, tyo]) p = do
   ensureInTextObject True p
@@ -136,13 +136,13 @@ processOp (Op_Td, [txo, tyo]) p = do
     gsTextMatrix = tm,
     gsTextLineMatrix = tm
     }}
-processOp (Op_Td, args) _ = left $ UnexpectedError $ "Op_Td: wrong number of arguments: " ++ show args
+processOp (Op_Td, args) _ = throwE $ UnexpectedError $ "Op_Td: wrong number of arguments: " ++ show args
 
 processOp (Op_TD, [txo, tyo]) p = do
   l <- fromObject tyo >>= realValue
   p' <- processOp (Op_TL, [ONumber $ NumReal $ negate l]) p
   processOp (Op_Td, [txo, tyo]) p'
-processOp (Op_TD, args) _ = left $ UnexpectedError $ "Op_TD: wrong number of arguments: " ++ show args
+processOp (Op_TD, args) _ = throwE $ UnexpectedError $ "Op_TD: wrong number of arguments: " ++ show args
 
 processOp (Op_Tm, [a', b', c', d', e', f']) p = do
   ensureInTextObject True p
@@ -158,14 +158,14 @@ processOp (Op_Tm, [a', b', c', d', e', f']) p = do
     gsTextMatrix = tm,
     gsTextLineMatrix = tm
     }}
-processOp (Op_Tm, args) _ = left $ UnexpectedError $ "Op_Tm: wrong number of arguments: " ++ show args
+processOp (Op_Tm, args) _ = throwE $ UnexpectedError $ "Op_Tm: wrong number of arguments: " ++ show args
 
 processOp (Op_T_star, []) p = do
   ensureInTextObject True p
   let gstate = prState p
       l = gsTextLeading gstate
   processOp (Op_TD, map (ONumber . NumReal) [0, negate l]) p
-processOp (Op_T_star, args) _ = left $ UnexpectedError $ "Op_T_star: wrong number of arguments: " ++ show args
+processOp (Op_T_star, args) _ = throwE $ UnexpectedError $ "Op_T_star: wrong number of arguments: " ++ show args
 
 processOp (Op_TL, [lo]) p = do
   l <- fromObject lo >>= realValue
@@ -173,7 +173,7 @@ processOp (Op_TL, [lo]) p = do
   return p {prState = gstate {
     gsTextLeading = l
     }}
-processOp (Op_TL, args) _ = left $ UnexpectedError $ "Op_TL: wrong number of arguments: " ++ show args
+processOp (Op_TL, args) _ = throwE $ UnexpectedError $ "Op_TL: wrong number of arguments: " ++ show args
 
 processOp (Op_cm, [a', b', c', d', e', f']) p = do
   a <- fromObject a' >>= realValue
@@ -187,7 +187,7 @@ processOp (Op_cm, [a', b', c', d', e', f']) p = do
   return p {prState = gstate {
     gsCurrentTransformMatrix = ctm
     }}
-processOp (Op_cm, args) _ = left $ UnexpectedError $ "Op_cm: wrong number of arguments: " ++ show args
+processOp (Op_cm, args) _ = throwE $ UnexpectedError $ "Op_cm: wrong number of arguments: " ++ show args
 
 processOp (Op_Tf, [fontO, szO]) p = do
   font <- fromObject fontO
@@ -197,17 +197,17 @@ processOp (Op_Tf, [fontO, szO]) p = do
     gsFont = Just font,
     gsFontSize = Just sz
     }}
-processOp (Op_Tf, args) _ = left $ UnexpectedError $ "Op_Tf: wrong number of agruments: " ++ show args
+processOp (Op_Tf, args) _ = throwE $ UnexpectedError $ "Op_Tf: wrong number of agruments: " ++ show args
 
 processOp (Op_Tj, [OStr str]) p = do
   let gstate = prState p
   fontName <-
     case gsFont gstate of
-      Nothing -> left $ UnexpectedError "Op_Tj: font not set"
+      Nothing -> throwE $ UnexpectedError "Op_Tj: font not set"
       Just fn -> return fn
   fontSize <-
     case gsFontSize gstate of
-      Nothing -> left $ UnexpectedError "Op_Tj: font size not set"
+      Nothing -> throwE $ UnexpectedError "Op_Tj: font size not set"
       Just fs -> return fs
   let (tm, glyphs) = positionGlyghs fontSize (gsCurrentTransformMatrix gstate)
                        (gsTextMatrix gstate) (gsTextCharSpacing gstate) (gsTextWordSpacing gstate) $
@@ -218,17 +218,17 @@ processOp (Op_Tj, [OStr str]) p = do
       gsTextMatrix = tm
       }
     }
-processOp (Op_Tj, args) _ = left $ UnexpectedError $ "Op_Tj: wrong number of agruments:" ++ show args
+processOp (Op_Tj, args) _ = throwE $ UnexpectedError $ "Op_Tj: wrong number of agruments:" ++ show args
 
 processOp (Op_TJ, [OArray (Array array)]) p = do
   let gstate = prState p
   fontName <-
     case gsFont gstate of
-      Nothing -> left $ UnexpectedError "Op_Tj: font not set"
+      Nothing -> throwE $ UnexpectedError "Op_Tj: font not set"
       Just fn -> return fn
   fontSize <-
     case gsFontSize gstate of
-      Nothing -> left $ UnexpectedError "Op_Tj: font size not set"
+      Nothing -> throwE $ UnexpectedError "Op_Tj: font size not set"
       Just fs -> return fs
   let (textMatrix, glyphs) = loop (gsTextMatrix gstate) [] array
         where
@@ -246,7 +246,7 @@ processOp (Op_TJ, [OArray (Array array)]) p = do
       gsTextMatrix = textMatrix
       }
     }
-processOp (Op_TJ, args) _ = left $ UnexpectedError $ "Op_TJ: wrong number of agruments:" ++ show args
+processOp (Op_TJ, args) _ = throwE $ UnexpectedError $ "Op_TJ: wrong number of agruments:" ++ show args
 
 processOp (Op_Tc, [o]) p = do
   spacing <- fromObject o >>= realValue
@@ -256,7 +256,7 @@ processOp (Op_Tc, [o]) p = do
       gsTextCharSpacing = spacing
       }
     }
-processOp (Op_Tc, args) _ = left $ UnexpectedError $ "Op_Tc: wrong number of agruments:" ++ show args
+processOp (Op_Tc, args) _ = throwE $ UnexpectedError $ "Op_Tc: wrong number of agruments:" ++ show args
 
 processOp (Op_Tw, [o]) p = do
   spacing <- fromObject o >>= realValue
@@ -266,18 +266,18 @@ processOp (Op_Tw, [o]) p = do
       gsTextWordSpacing = spacing
       }
     }
-processOp (Op_Tw, args) _ = left $ UnexpectedError $ "Op_Tw: wrong number of agruments:" ++ show args
+processOp (Op_Tw, args) _ = throwE $ UnexpectedError $ "Op_Tw: wrong number of agruments:" ++ show args
 
 processOp (Op_apostrophe, [o]) p = do
   p' <- processOp (Op_T_star, []) p
   processOp (Op_Tj, [o]) p'
-processOp (Op_apostrophe, args) _ = left $ UnexpectedError $ "Op_apostrophe: wrong number of agruments:" ++ show args
+processOp (Op_apostrophe, args) _ = throwE $ UnexpectedError $ "Op_apostrophe: wrong number of agruments:" ++ show args
 
 processOp _ p = return p
 
 ensureInTextObject :: Monad m => Bool -> Processor -> PdfE m ()
 ensureInTextObject inText p =
-  unless (inText == gsInText (prState p)) $ left $
+  unless (inText == gsInText (prState p)) $ throwE $
     UnexpectedError $ "ensureInTextObject: expected: " ++ show inText ++ ", found: " ++ show (gsInText $ prState p)
 
 positionGlyghs :: Double -> Transform Double -> Transform Double -> Double -> Double -> [(Glyph, Double)] -> (Transform Double, [Glyph])

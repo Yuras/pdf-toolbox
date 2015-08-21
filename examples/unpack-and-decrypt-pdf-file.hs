@@ -68,7 +68,7 @@ main = do
 -- but if it is not possible (e.g. streams filter is not found),
 -- then load raw content. It may not work with encrypted documents
 loadStream :: Ref -> Object Int64 -> Pdf IO (Object BSL.ByteString)
-loadStream r (OStream s) = loadDecodedStream r s `catchT` \_ -> loadRawStream s
+loadStream r (OStream s) = loadDecodedStream r s `catchE` \_ -> loadRawStream s
 loadStream _ o = return $ mapObject (error "impossible") o
 
 loadDecodedStream :: Ref -> Stream Int64 -> Pdf IO (Object BSL.ByteString)

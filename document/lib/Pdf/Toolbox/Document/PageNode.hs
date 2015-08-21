@@ -50,7 +50,7 @@ loadPageNode ref = do
   case nodeType of
     "Pages" -> return $ PageTreeNode $ PageNode ref node
     "Page" -> return $ PageTreeLeaf $ Page ref node
-    _ -> left $ UnexpectedError $ "Unexpected page tree node type: " ++ show nodeType
+    _ -> throwE $ UnexpectedError $ "Unexpected page tree node type: " ++ show nodeType
 
 -- | Find page by it's number
 --
@@ -62,7 +62,7 @@ pageNodePageByNum :: MonadPdf m => PageNode -> Int -> PdfE m Page
 pageNodePageByNum node num = annotateError ("page #" ++ show num ++ " for node: " ++ show node) $ do
   pageNodeKids node >>= loop num
   where
-  loop _ [] = left $ UnexpectedError "Page not found"
+  loop _ [] = throwE $ UnexpectedError "Page not found"
   loop i (x:xs) = do
     kid <- loadPageNode x
     case kid  of

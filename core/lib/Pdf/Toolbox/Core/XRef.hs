@@ -79,7 +79,7 @@ readXRef ris off = do
 -- The keyword iyself is consumed
 isTable :: MonadIO m => IS -> PdfE m Bool
 isTable is = do
-  res <- runEitherT (parse tableXRef is)
+  res <- runExceptT (parse tableXRef is)
   case res of
     Right _ -> return True
     Left _ -> return False
@@ -88,7 +88,7 @@ isTable is = do
 prevXRef :: MonadIO m => RIS -> XRef -> PdfE m (Maybe XRef)
 prevXRef ris xref = annotateError "Can't find prev xref" $ do
   tr <- trailer ris xref
-  prev <- runEitherT $ lookupDict "Prev" tr
+  prev <- runExceptT $ lookupDict "Prev" tr
   case prev of
     Right p -> do
       off <- fromObject p >>= intValue
@@ -117,7 +117,7 @@ subsectionHeader = parse parseSubsectionHeader
 nextSubsectionHeader :: MonadIO m => IS -> Int -> PdfE m (Maybe (Int, Int))
 nextSubsectionHeader is count = do
   skipSubsection is count
-  hush `liftM` (runEitherT $ subsectionHeader is)
+  hush `liftM` (runExceptT $ subsectionHeader is)
 
 skipSubsection :: MonadIO m => IS -> Int -> PdfE m ()
 skipSubsection is count = dropExactly (count * 20) is
@@ -138,7 +138,7 @@ lookupTableEntry ris (Ref index gen) = annotateError "Can't read entry from xref
       then do
         tell ris >>= seek ris . (+ (fromIntegral $ index - start) * 20)
         (off, gen', free) <- inputStream ris >>= parse parseTableEntry
-        unless (gen == gen') $ left $ UnexpectedError "Generation mismatch"
+        unless (gen == gen') $ throwE $ UnexpectedError "Generation mismatch"
         return $ Just $ TableEntry off gen free
       else do
         is <- inputStream ris
@@ -156,20 +156,20 @@ lookupStreamEntry (Stream dict is) (Ref objNumber _) = annotateError "Can't pars
 
   index <- do
     Array i <- (lookupDict "Index" dict >>= fromObject)
-      `catchT`
+      `catchE`
       const (return $ Array [ONumber $ NumInt 0, ONumber $ NumInt sz])
     let convertIndex res [] = return $ reverse res
         convertIndex res (x1:x2:xs) = do
           from <- fromObject x1 >>= intValue
           count <- fromObject x2 >>= intValue
           convertIndex ((from, count) : res) xs
-        convertIndex _ _ = left $ UnexpectedError $ "Malformed Index in xref stream: " ++ show i
+        convertIndex _ _ = throwE $ UnexpectedError $ "Malformed Index in xref stream: " ++ show i
     convertIndex [] i
 
   width <- do
     Array w <- lookupDict "W" dict >>= fromObject
     mapM (fromObject >=> intValue) w
-  unless (length width == 3) $ left $ UnexpectedError $ "Malformed With array in xref stream: " ++ show width
+  unless (length width == 3) $ throwE $ UnexpectedError $ "Malformed With array in xref stream: " ++ show width
 
   values <- do
     let position = loop 0 index
@@ -198,4 +198,4 @@ lookupStreamEntry (Stream dict is) (Ref objNumber _) = annotateError "Can't pars
         0 -> return $ Just $ StreamEntryFree (fromIntegral v2) (fromIntegral v3)
         1 -> return $ Just $ StreamEntryUsed v2 (fromIntegral v3)
         2 -> return $ Just $ StreamEntryCompressed (fromIntegral v2) (fromIntegral v3)
-        _ -> left $ UnexpectedError $ "Unexpected xret stream entry type: " ++ show v1
+        _ -> throwE $ UnexpectedError $ "Unexpected xret stream entry type: " ++ show v1

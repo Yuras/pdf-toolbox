@@ -29,7 +29,7 @@ data PdfError =
   deriving Show
 
 -- | API uses this for error handling
-type PdfE m = EitherT PdfError m
+type PdfE m = ExceptT PdfError m
 
 -- | Wrap any 'PdfError' into 'AnnotatedError'
 --
@@ -51,4 +51,4 @@ tryPdfIO action = do
       `catch` (\(e :: IOError) -> return $ Left $ IOError e)
   case res of
     Right a -> return a
-    Left e -> left e
+    Left e -> throwE e

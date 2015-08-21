@@ -284,7 +284,7 @@ pdfSync :: MVar (Pdf IO Bool) -> Pdf IO a -> IO a
 pdfSync mvar action = do
   mvar' <- newEmptyMVar
   putMVar mvar $ do
-    res <- (Right <$> action) `catchT` (return . Left)
+    res <- (Right <$> action) `catchE` (return . Left)
     liftIO $ putMVar mvar' res
     return False
   res <- takeMVar mvar'

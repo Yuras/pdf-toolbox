@@ -41,7 +41,7 @@ fontDictSubtype (FontDict dict) = do
     "MMType1" -> return FontMMType1
     "Type3" -> return FontType3
     "TrueType" -> return FontTrueType
-    _ -> left $ UnexpectedError $ "Unexpected font subtype: " ++ show str
+    _ -> throwE $ UnexpectedError $ "Unexpected font subtype: " ++ show str
 
 -- | Load font info for the font
 fontDictLoadInfo :: (MonadPdf m, MonadIO m) => FontDict -> PdfE m FontInfo
@@ -62,7 +62,7 @@ fontDictLoadInfo fd@(FontDict fontDict) = do
             e' <- fromObject e >>= realValue
             f' <- fromObject f >>= realValue
             return $ Transform a' b' c' d' e' f'
-          _ -> left $ UnexpectedError "FontMatrix: wrong number of elements"
+          _ -> throwE $ UnexpectedError "FontMatrix: wrong number of elements"
       return $ FontInfoSimple fi {
         fiSimpleFontMatrix = fontMatrix
         }
@@ -75,7 +75,7 @@ loadFontInfoComposite fontDict = do
     descFontArr <- lookupDict "DescendantFonts" fontDict >>= deref >>= fromObject
     case descFontArr of
       Array [o] -> deref o >>= fromObject
-      _ -> left $ UnexpectedError "Unexpected value of DescendantFonts key in font dictionary"
+      _ -> throwE $ UnexpectedError "Unexpected value of DescendantFonts key in font dictionary"
   defaultWidth <-
     case lookupDict' "DW" descFont of
       Nothing -> return 1000
@@ -153,7 +153,7 @@ loadEncodingDifferences dict = do
         (ONumber n : rest) -> do
           n' <- fromIntegral <$> intValue n
           go [] n' rest
-        _ -> left $ UnexpectedError "Differences array: the first object should be a number"
+        _ -> throwE $ UnexpectedError "Differences array: the first object should be a number"
   where
   go res _ [] = return res
   go res n (o:rest) =
@@ -162,7 +162,7 @@ loadEncodingDifferences dict = do
         n'' <- fromIntegral <$> intValue n'
         go res n'' rest
       (OName (Name bs)) -> go (((n, bs)) : res) (n + 1) rest
-      _ -> left $ UnexpectedError $ "Differences array: unexpected object: " ++ show o
+      _ -> throwE $ UnexpectedError $ "Differences array: unexpected object: " ++ show o
 
 loadUnicodeCMap :: (MonadPdf m, MonadIO m) => Dict -> PdfE m (Maybe UnicodeCMap)
 loadUnicodeCMap fontDict =
@@ -176,6 +176,6 @@ loadUnicodeCMap fontDict =
           Stream _ is <- streamContent ref s
           content <- mconcat <$> liftIO (Streams.toList is)
           case parseUnicodeCMap content of
-            Left e -> left $ UnexpectedError $ "can't parse cmap: " ++ show e
+            Left e -> throwE $ UnexpectedError $ "can't parse cmap: " ++ show e
             Right cmap -> return $ Just cmap
-        _ -> left $ UnexpectedError "ToUnicode: not a stream"
+        _ -> throwE $ UnexpectedError "ToUnicode: not a stream"

@@ -31,8 +31,8 @@ import Pdf.Toolbox.Core.Error
 lookupDict :: Monad m => Name -> Dict -> PdfE m (Object ())
 lookupDict key (Dict d) =
   case lookup key d of
-    Just o -> right o
-    Nothing -> left $ UnexpectedError $ "Key not found: " ++ show key ++ " " ++ show d
+    Just o -> return o
+    Nothing -> throwE $ UnexpectedError $ "Key not found: " ++ show key ++ " " ++ show d
 
 lookupDict' :: Name -> Dict -> Maybe (Object ())
 lookupDict' key (Dict d) = lookup key d
@@ -51,44 +51,44 @@ setValueForKey key val dict = Dict $ (key, val) : vals
   Dict vals = deleteValueForKey key dict
 
 intValue :: Monad m => Number -> PdfE m Int
-intValue (NumInt i) = right i
-intValue (NumReal r) = left $ UnexpectedError $ "Integer expected, but real received: " ++ show r
+intValue (NumInt i) = return i
+intValue (NumReal r) = throwE $ UnexpectedError $ "Integer expected, but real received: " ++ show r
 
 realValue :: Monad m => Number -> PdfE m Double
-realValue (NumReal r) = right r
-realValue (NumInt i) = right $ fromIntegral i
+realValue (NumReal r) = return r
+realValue (NumInt i) = return $ fromIntegral i
 
 toNumber :: (Show a, Monad m) => Object a -> PdfE m Number
-toNumber (ONumber n) = right n
-toNumber o = left $ UnexpectedError $ "Can't cast object to Number: " ++ show o
+toNumber (ONumber n) = return n
+toNumber o = throwE $ UnexpectedError $ "Can't cast object to Number: " ++ show o
 
 toBoolean :: (Show a, Monad m) => Object a -> PdfE m Boolean
-toBoolean (OBoolean b) = right b
-toBoolean o = left $ UnexpectedError $ "Can't cast object to Boolean: " ++ show o
+toBoolean (OBoolean b) = return b
+toBoolean o = throwE $ UnexpectedError $ "Can't cast object to Boolean: " ++ show o
 
 toName :: (Show a, Monad m) => Object a -> PdfE m Name
-toName (OName n) = right n
-toName o = left $ UnexpectedError $ "Can't cast object to Name: " ++ show o
+toName (OName n) = return n
+toName o = throwE $ UnexpectedError $ "Can't cast object to Name: " ++ show o
 
 toDict :: (Show a, Monad m) => Object a -> PdfE m Dict
-toDict (ODict d) = right d
-toDict o = left $ UnexpectedError $ "Can't cast object to Dict: " ++ show o
+toDict (ODict d) = return d
+toDict o = throwE $ UnexpectedError $ "Can't cast object to Dict: " ++ show o
 
 toStr :: (Show a, Monad m) => Object a -> PdfE m Str
-toStr (OStr s) = right s
-toStr o = left $ UnexpectedError $ "Can't cast object to Str: " ++ show o
+toStr (OStr s) = return s
+toStr o = throwE $ UnexpectedError $ "Can't cast object to Str: " ++ show o
 
 toRef :: (Show a, Monad m) => Object a -> PdfE m Ref
-toRef (ORef r) = right r
-toRef o = left $ UnexpectedError $ "Can't cast object to Ref: " ++ show o
+toRef (ORef r) = return r
+toRef o = throwE $ UnexpectedError $ "Can't cast object to Ref: " ++ show o
 
 toArray :: (Show a, Monad m) => Object a -> PdfE m Array
-toArray (OArray a) = right a
-toArray o = left $ UnexpectedError $ "Can't cast object to Array: " ++ show o
+toArray (OArray a) = return a
+toArray o = throwE $ UnexpectedError $ "Can't cast object to Array: " ++ show o
 
 toStream :: (Show a, Monad m) => Object a -> PdfE m (Stream a)
-toStream (OStream s) = right s
-toStream o = left $ UnexpectedError $ "Can't cast object to Stream: " ++ show o
+toStream (OStream s) = return s
+toStream o = throwE $ UnexpectedError $ "Can't cast object to Stream: " ++ show o
 
 -- | Apply function to all stream contents
 mapObject :: (a -> b) -> Object a -> Object b

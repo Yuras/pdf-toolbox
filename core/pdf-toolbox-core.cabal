@@ -1,5 +1,5 @@
 name:                pdf-toolbox-core
-version:             0.0.3.3
+version:             0.0.4.0
 synopsis:            A collection of tools for processing PDF files.
 license:             BSD3
 license-file:        LICENSE
@@ -53,7 +53,7 @@ library
                        io-streams,
                        attoparsec >= 0.10,
                        scientific,
-                       errors < 2.0,
+                       errors >=2.0 && <3.0,
                        transformers,
                        containers,
                        zlib-bindings
