@@ -1,3 +1,7 @@
+unreleased
+
+* add support for multiple bfrange section in CMap
+
 0.0.4.0
 
 * switch to errors-2.0

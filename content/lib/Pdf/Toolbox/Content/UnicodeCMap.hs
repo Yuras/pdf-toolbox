@@ -14,6 +14,7 @@ where
 import Data.Monoid
 import Data.Functor
 import Data.Char
+import qualified Data.List as List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.ByteString (ByteString)
@@ -108,8 +109,16 @@ charsParser = do
 --
 -- Array ranges are converted to char map
 rangesParser :: Parser ([(Int, Int, Char)], Map Int Text)
-rangesParser = do
-  n <- P.option (0 :: Int) $ skipTillParser $ do
+rangesParser =
+  combineRanges <$> P.many' rangesParser'
+  where
+  combineRanges = List.foldl' combineRange ([], Map.empty)
+  combineRange (ranges, rmap) (ranges', rmap') =
+    (ranges ++ ranges', Map.union rmap rmap')
+
+rangesParser' :: Parser ([(Int, Int, Char)], Map Int Text)
+rangesParser' = do
+  n <- skipTillParser $ do
     n <- P.decimal
     P.skipSpace
     void $ P.string "beginbfrange"
