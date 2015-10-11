@@ -1,6 +1,6 @@
 unreleased
 
-* add support for multiple bfrange section in CMap
+* add support for multiple bfrange and bfchars sections in CMap
 * support spaces inside hex numbers in CMap
 
 0.0.4.0
