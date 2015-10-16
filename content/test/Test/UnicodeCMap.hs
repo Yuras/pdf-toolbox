@@ -52,6 +52,21 @@ parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
     fmap unicodeCMapChars res `shouldBe`
       Right (Map.fromList [(14871,"\131134")])
 
+  it "should parse multiple chars" $ do
+    let input = ByteString.concat
+          [ "0 begincodespacerange\n"
+          , "1 beginbfchar\n"
+          , "<25> <00660066>\n"
+          , "endbfchar\n"
+          , "1 beginbfchar\n"
+          , "<26> <0066006c>\n"
+          , "endbfchar\n"
+          , "0 beginbfrange\n"
+          ]
+        res = parseUnicodeCMap input
+    fmap unicodeCMapChars res `shouldBe`
+      Right (Map.fromList [(37,"ff"), (38, "fl")])
+
   it "should parse ranges" $ do
     let input = ByteString.concat
           [ "0 begincodespacerange\n"

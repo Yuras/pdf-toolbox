@@ -88,8 +88,14 @@ unicodeCMapDecodeGlyph cmap glyph =
   inRange (start, end, _) = glyph >= start && glyph <= end
 
 charsParser :: Parser (Map Int Text)
-charsParser = do
-  n <- P.option 0 $ skipTillParser $ do
+charsParser =
+  combineChars <$> P.many' charsParser'
+  where
+  combineChars = List.foldl' Map.union Map.empty
+
+charsParser' :: Parser (Map Int Text)
+charsParser' = do
+  n <- skipTillParser $ do
     n <- P.decimal
     P.skipSpace
     _ <- P.string "beginbfchar"
