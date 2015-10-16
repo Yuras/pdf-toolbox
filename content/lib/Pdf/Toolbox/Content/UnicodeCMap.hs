@@ -152,7 +152,8 @@ codeRangesParser = do
 parseHex :: Parser ByteString
 parseHex = do
   void $ P.char '<'
-  res <- P.takeTill (== '>') >>= fromHex
+  -- hex can contain spaces, lets filter them out
+  res <- P.takeTill (== '>') >>= fromHex . BS.filter (/= 32)
   void $ P.char '>'
   return res
 

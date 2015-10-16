@@ -73,6 +73,17 @@ parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
     fmap unicodeCMapChars res `shouldBe`
       Right (Map.fromList [(95,"ff"),(96,"fi"),(97,"ffl")])
 
+  it "should allow spaces in hex numbers" $ do
+    let input = ByteString.concat
+          [ "1 begincodespacerange\n"
+          , "<0000> <FF FF>\n"
+          , "0 beginbfchar\n"
+          , "0 beginbfrange\n"
+          ]
+        res = parseUnicodeCMap input
+    fmap unicodeCMapCodeRanges res `shouldBe`
+      Right [ (ByteString.pack [0, 0], ByteString.pack [255, 255])]
+
 unicodeCMapDecodeGlyphSpec :: Spec
 unicodeCMapDecodeGlyphSpec = describe "unicodeCMapDecodeGlyph" $ do
   it "should take glyph from char map if possible" $ do
