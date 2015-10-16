@@ -10,6 +10,8 @@ module Pdf.Toolbox.Document.Page
   pageMediaBox,
   pageFontDicts,
   pageExtractText,
+  pageExtractGlyphs,
+  glyphsToText
 )
 where
 
@@ -126,7 +128,10 @@ pageFontDicts (Page pdf _ dict) =
 -- It tries to add spaces between chars if they don't present
 -- as actual characters in content stream.
 pageExtractText :: Page -> IO Text
-pageExtractText page = do
+pageExtractText page = glyphsToText <$> pageExtractGlyphs page
+
+pageExtractGlyphs :: Page -> IO [[Glyph]]
+pageExtractGlyphs page = do
   fontDicts <- Map.fromList <$> pageFontDicts page
   glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
     fontInfoDecodeGlyphs <$> fontDictLoadInfo fontDict
@@ -149,10 +154,11 @@ pageExtractText page = do
             case processOp op p of
               Left err -> throwIO (Unexpected err [])
               Right  p' -> loop p'
-          Nothing -> return $ glyphsToText (prGlyphs p)
-  loop $ mkProcessor {
+          Nothing -> return p
+  p <- loop $ mkProcessor {
     prGlyphDecoder = glyphDecoder
     }
+  return (prGlyphs p)
 
 combinedContent :: Pdf -> [Ref] -> IO (InputStream ByteString)
 combinedContent pdf refs = do
