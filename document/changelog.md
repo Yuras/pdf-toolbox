@@ -1,3 +1,6 @@
+0.0.7.0
+
+* support xobjects in text extraction
 
 0.0.6.0
 
