@@ -6,8 +6,8 @@ module Main
 )
 where
 
+import qualified Data.ByteString.Char8 as ByteString.Char8
 import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text
 import Data.IORef
 import Control.Monad
 import Control.Monad.IO.Class
@@ -68,7 +68,7 @@ main = do
       viewerRenderGlyphs = False
       }
 
-    let winTitle = maybe "Untitled" Text.decodeUtf8 title
+    let winTitle = maybe "Untitled" ByteString.Char8.unpack title
 
     window <- windowNew
     set window [

@@ -9,6 +9,7 @@ where
 import Pdf.Toolbox.Content.UnicodeCMap
 
 import Data.Either
+import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.ByteString as ByteString
 import Test.Hspec
@@ -61,6 +62,21 @@ parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
         res = parseUnicodeCMap input
     fmap unicodeCMapRanges res `shouldBe`
       Right [(0,94,' ')]
+
+  it "should parse multiple ranges" $ do
+    let input = ByteString.concat
+          [ "0 begincodespacerange\n"
+          , "0 beginbfchar\n"
+          , "1 beginbfrange\n"
+          , "<21> <21> <0045>\n"
+          , "endbfrange\n"
+          , "1 beginbfrange\n"
+          , "<22> <22> <0073>\n"
+          , "endbfrange\n"
+          ]
+        res = parseUnicodeCMap input
+    fmap (List.sort . unicodeCMapRanges) res `shouldBe`
+      Right (List.sort [(33,33,'E'), (34, 34, 's')])
 
   it "should parse array ranges into char map" $ do
     let input = ByteString.concat
