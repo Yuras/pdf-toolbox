@@ -16,7 +16,7 @@ import Data.Char
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
+import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Base16 as Base16
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -59,16 +59,16 @@ unicodeCMapNextGlyph cmap = go 1
   where
   go 5 _ = Nothing
   go n str =
-    let glyph = BS.take n str in
-    if BS.length glyph /= n
+    let glyph = ByteString.take n str in
+    if ByteString.length glyph /= n
       then Nothing
       else if any (inRange glyph) (unicodeCMapCodeRanges cmap)
-             then Just (toCode glyph, BS.drop n str)
+             then Just (toCode glyph, ByteString.drop n str)
              else go (n + 1) str
   inRange glyph (start, end) = glyph >= start && glyph <= end
 
 toCode :: ByteString -> Int
-toCode bs = fst $ BS.foldr (\b (sm, i) ->
+toCode bs = fst $ ByteString.foldr (\b (sm, i) ->
                     (sm + fromIntegral b * i, i * 255)) (0, 1) bs
 
 -- | Convert glyph to text
@@ -153,7 +153,7 @@ parseHex :: Parser ByteString
 parseHex = do
   void $ P.char '<'
   -- hex can contain spaces, lets filter them out
-  res <- P.takeTill (== '>') >>= fromHex . BS.filter (/= 32)
+  res <- P.takeTill (== '>') >>= fromHex . ByteString.filter (/= 32)
   void $ P.char '>'
   return res
 
@@ -171,11 +171,11 @@ parseHexArray = do
 fromHex :: Monad m => ByteString -> m ByteString
 fromHex hex = do
   let (str, rest) = Base16.decode $ bsToLower hex
-  unless (BS.null rest) $
+  unless (ByteString.null rest) $
     fail $ "Can't decode hex" ++ show rest
   return str
   where
-  bsToLower = BS.map $ fromIntegral
+  bsToLower = ByteString.map $ fromIntegral
                      . fromEnum
                      . toLower
                      . toEnum

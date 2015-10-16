@@ -22,7 +22,7 @@ parseUnicodeCMapSpec :: Spec
 parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
   it "should parse trivial cmap" $ do
     let input = ByteString.concat
-          [ "0 begincodespacerange\n" 
+          [ "0 begincodespacerange\n"
           , "0 beginbfchar\n"
           , "0 beginbfrange\n"
           ]
@@ -31,7 +31,7 @@ parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
 
   it "should parse codespace ranges" $ do
     let input = ByteString.concat
-          [ "1 begincodespacerange\n" 
+          [ "1 begincodespacerange\n"
           , "<0000> <FFFF>\n"
           , "0 beginbfchar\n"
           , "0 beginbfrange\n"
@@ -42,7 +42,7 @@ parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
 
   it "should parse chars" $ do
     let input = ByteString.concat
-          [ "0 begincodespacerange\n" 
+          [ "0 begincodespacerange\n"
           , "1 beginbfchar\n"
           , "<3A51> <D840DC3E>\n"
           , "0 beginbfrange\n"
@@ -53,7 +53,7 @@ parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
 
   it "should parse ranges" $ do
     let input = ByteString.concat
-          [ "0 begincodespacerange\n" 
+          [ "0 begincodespacerange\n"
           , "0 beginbfchar\n"
           , "1 beginbfrange\n"
           , "<0000> <005E> <0020>\n"
