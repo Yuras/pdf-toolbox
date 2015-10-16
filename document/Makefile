@@ -1,12 +1,13 @@
+CABAL=cabal --sandbox-config=../cabal.sandbox.config
 
 all: build
 
 debug: clean
-	cabal configure --disable-library-profiling --enable-executable-dynamic --disable-optimization --ghc-options="-Wall"
+	$(CABAL) configure --disable-library-profiling --enable-executable-dynamic --disable-optimization --ghc-options="-Wall"
 
 clean:
-	cabal clean
+	$(CABAL) clean
 
 build:
-	cabal build -j --only
-	cabal haddock --hyperlink-sources
+	$(CABAL) build -j --only
+	$(CABAL) haddock --hyperlink-sources

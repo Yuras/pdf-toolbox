@@ -15,13 +15,15 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Concurrent
 import System.IO
+import qualified System.IO.Streams as Streams
+import qualified System.IO.Streams.Attoparsec as Streams
 import System.Directory
 import System.FilePath
 import System.Random (randomIO)
 import System.Process
 import System.Exit
 import Graphics.UI.Gtk hiding (Rectangle, FontMap, rectangle)
-import Graphics.Rendering.Cairo hiding (transform, Glyph)
+import Graphics.Rendering.Cairo as Cairo hiding (transform, Glyph)
 
 import Pdf.Toolbox.Document
 import Pdf.Toolbox.Document.Encryption
@@ -167,6 +169,7 @@ main = do
 
 onDraw :: FilePath -> MVar (Pdf IO Bool) -> IORef ViewerState -> Render ()
 onDraw file mvar viewerState = do
+  Cairo.scale 2 2
   st <- liftIO $ readIORef viewerState
   let pg = viewerPage st
       num = viewerPageNum st
@@ -231,7 +234,7 @@ pageGlyphDecoder page = do
     return $ fontInfoDecodeGlyphs fontInfo
   return $ \fontName str ->
     case Map.lookup fontName decoders of
-      Nothing -> []
+      Nothing -> error "Not font!?" -- []
       Just decode -> decode str
 
 startRender :: MVar (Pdf IO Bool) -> Page -> IO (Chan (Maybe Glyph))
@@ -239,6 +242,7 @@ startRender mvar page = do
   chan <- newChan
   putMVar mvar $ do
     glyphDecoder <- pageGlyphDecoder page
+    --pageExtractText page >>= liftIO . print
 
     contents <- pageContents page
     streams <- forM contents $ \ref -> do
@@ -253,19 +257,36 @@ startRender mvar page = do
         Just d -> return $ \ref is -> d ref DecryptStream is
     is <- parseContentStream ris knownFilters decryptor streams
 
-    let loop p = do
-          next <- readNextOperator is
+    xobjects <- Map.fromList <$> pageXObjects page
+
+    let loop s p = do
+          next <- readNextOperator s
           case next of
             Nothing -> do
-              forM_ (prGlyphs p) $ \glyphs ->
-                forM_ glyphs $ \glyph ->
-                  liftIO $ writeChan chan (Just glyph)
-              --liftIO $ print $ prGlyphs p
+              return p
+            Just (Op_Do, [OName n]) -> processDo n p >>= loop s
             Just (Op_quote, args) -> error $ "Op_quote (please report): " ++ show args
-            Just op -> processOp op p >>= loop
-    loop $ mkProcessor {
+            Just op -> processOp op p >>= loop s
+
+        processDo name p = do
+          case Map.lookup name xobjects of
+            Nothing -> return p
+            Just (XObject cont gdec) -> do
+              xois <- liftIO $ do
+                cont_is <- Streams.fromLazyByteString cont
+                Streams.parserToInputStream parseContent cont_is
+              let gdec' = prGlyphDecoder p
+              p' <- loop xois (p {prGlyphDecoder = gdec})
+              return (p' {prGlyphDecoder = gdec'})
+
+    p <- loop is $ mkProcessor {
       prGlyphDecoder = glyphDecoder
       }
+    forM_ (prGlyphs p) $ \glyphs ->
+      forM_ glyphs $ \glyph ->
+        liftIO $ writeChan chan (Just glyph)
+    --liftIO $ print $ prGlyphs p
+
     liftIO $ writeChan chan Nothing
     return False
   return chan

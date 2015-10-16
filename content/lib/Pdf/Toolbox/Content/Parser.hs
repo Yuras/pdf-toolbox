@@ -4,7 +4,8 @@
 module Pdf.Toolbox.Content.Parser
 (
   parseContentStream,
-  readNextOperator
+  readNextOperator,
+  parseContent
 )
 where
 

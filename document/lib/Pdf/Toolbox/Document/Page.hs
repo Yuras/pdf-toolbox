@@ -9,16 +9,23 @@ module Pdf.Toolbox.Document.Page
   pageContents,
   pageMediaBox,
   pageFontDicts,
-  pageExtractText
+  pageExtractText,
+  XObject(..),
+  pageXObjects
 )
 where
 
 import qualified Data.Traversable as Traversable
+import qualified Data.ByteString.Lazy as Lazy (ByteString)
+import qualified Data.ByteString.Lazy as Lazy.ByteString
 import Data.Text (Text)
 import qualified Data.Text.Lazy as TextL
 import qualified Data.Text.Lazy.Builder as TextB
+import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad
+import qualified System.IO.Streams as Streams
+import qualified System.IO.Streams.Attoparsec as Streams
 
 import Pdf.Toolbox.Core
 import Pdf.Toolbox.Content
@@ -93,6 +100,36 @@ pageFontDicts (Page _ dict) =
             ensureType "Font" fontDict
             return (name, FontDict fontDict)
 
+data XObject = XObject Lazy.ByteString GlyphDecoder
+
+pageXObjects :: (MonadPdf m, MonadIO m) => Page -> PdfE m [(Name, XObject)]
+pageXObjects (Page _ dict) =
+  case lookupDict' "Resources" dict of
+    Nothing -> return []
+    Just res -> do
+      resDict <- deref res >>= fromObject
+      case lookupDict' "XObject" resDict of
+        Nothing -> return []
+        Just xo -> do
+          Dict xosDict <- deref xo >>= fromObject
+          forM xosDict $ \(name, o) -> do
+            ref <- fromObject o
+            xo <- lookupObject ref >>= toStream
+
+            Stream xoDict is <- streamContent ref xo
+            cont <- liftIO $ Lazy.ByteString.fromChunks <$> Streams.toList is
+
+            fontDicts <- Map.fromList <$> pageFontDicts (Page undefined xoDict)
+
+            glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
+              fontInfoDecodeGlyphs <$> fontDictLoadInfo fontDict
+            let glyphDecoder fontName = \str ->
+                  case Map.lookup fontName glyphDecoders of
+                    Nothing -> []
+                    Just decode -> decode str
+
+            return (name, XObject cont glyphDecoder)
+
 -- | Extract text from the page
 --
 -- It tries to add spaces between chars if they don't present
@@ -107,6 +144,8 @@ pageExtractText page = do
         case Map.lookup fontName glyphDecoders of
           Nothing -> []
           Just decode -> decode str
+
+  xobjects <- Map.fromList <$> pageXObjects page
 
   -- prepare content streams
   contents <- pageContents page
@@ -127,14 +166,29 @@ pageExtractText page = do
   is <- parseContentStream ris filters decr streams
 
   -- use content stream processor to extract text
-  let loop p = do
-        next <- readNextOperator is
+  let loop s p = do
+        next <- readNextOperator s
         case next of
-          Just op -> processOp op p >>= loop
-          Nothing -> return $ glyphsToText (prGlyphs p)
-  loop $ mkProcessor {
+          Just op@(Op_Do, [OName xoName]) -> processDo xoName p >>= loop s
+          Just op -> processOp op p >>= loop s
+          Nothing -> return p
+
+      processDo name p = do
+        case Map.lookup name xobjects of
+          Nothing -> return p
+          Just (XObject cont gdec) -> do
+            xois <- liftIO $ do
+              cont_is <- Streams.fromLazyByteString cont
+              Streams.parserToInputStream parseContent cont_is
+            let gdec' = prGlyphDecoder p
+            p' <- loop xois (p {prGlyphDecoder = gdec})
+            return (p' {prGlyphDecoder = gdec'})
+
+  p <- loop is $ mkProcessor {
     prGlyphDecoder = glyphDecoder
     }
+
+  return $ glyphsToText (prGlyphs p)
 
 -- | Convert glyphs to text, trying to add spaces and newlines
 --
