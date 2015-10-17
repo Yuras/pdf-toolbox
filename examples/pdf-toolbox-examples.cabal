@@ -55,3 +55,19 @@ executable change-document-title.hs
                        , pdf-toolbox-core
                        , pdf-toolbox-document
   default-language:    Haskell2010
+
+executable merge-pdf-files
+  main-is:             merge-pdf-files.hs
+  other-modules:       Prelude
+                       Data.Either
+  hs-source-dirs:      .
+                       compat
+  build-depends:       base
+                       , bytestring
+                       , vector
+                       , transformers
+                       , unordered-containers
+                       , io-streams
+                       , pdf-toolbox-core
+                       , pdf-toolbox-document
+  default-language:    Haskell2010
