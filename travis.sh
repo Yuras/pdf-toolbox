@@ -24,3 +24,8 @@ cabal build
 cabal haddock
 cabal test
 cabal install
+
+cd ../examples
+cabal install --only-dependencies
+cabal configure --ghc-options="-Wall -Werror"
+cabal build
