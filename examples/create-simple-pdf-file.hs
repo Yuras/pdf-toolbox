@@ -13,6 +13,8 @@ module Main
 where
 
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Vector as Vector
+import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
 import qualified System.IO.Streams as Streams
 
@@ -20,58 +22,58 @@ import Pdf.Toolbox.Core
 
 main :: IO ()
 main = do
-  let tr = Dict [
-        ("Size", ONumber $ NumInt $ length objects),
-        ("Root", ORef catalogRef)
+  let tr = HashMap.fromList [
+        ("Size", Number $ fromIntegral $ length objects),
+        ("Root", Ref catalogRef)
         ]
       objects = [
-        (ODict catalog, catalogRef),
-        (ODict rootNode, rootNodeRef),
-        (ODict page, pageRef),
-        (OStream content, contentRef),
-        (ODict font, fontRef)
+        (Dict catalog, catalogRef),
+        (Dict rootNode, rootNodeRef),
+        (Dict page, pageRef),
+        (Stream content, contentRef),
+        (Dict font, fontRef)
         ]
-      catalog = Dict [
-        ("Type", OName "Catalog"),
-        ("Pages", ORef rootNodeRef)
+      catalog = HashMap.fromList [
+        ("Type", Name "Catalog"),
+        ("Pages", Ref rootNodeRef)
         ]
-      rootNode = Dict [
-        ("Type", OName "Pages"),
-        ("Kids", OArray $ Array [ORef pageRef]),
-        ("Count", ONumber $ NumInt 1)
+      rootNode = HashMap.fromList [
+        ("Type", Name "Pages"),
+        ("Kids", Array $ Vector.fromList [Ref pageRef]),
+        ("Count", Number 1)
         ]
-      page = Dict [
-        ("Type", OName "Page"),
-        ("Parent", ORef rootNodeRef),
-        ("Contents", ORef contentRef),
-        ("Resources", ODict resourcesDict),
-        ("MediaBox", OArray $ Array [
-          ONumber (NumInt 0),
-          ONumber (NumInt 0),
-          ONumber (NumInt 200),
-          ONumber (NumInt 200)
+      page = HashMap.fromList [
+        ("Type", Name "Page"),
+        ("Parent", Ref rootNodeRef),
+        ("Contents", Ref contentRef),
+        ("Resources", Dict resourcesDict),
+        ("MediaBox", Array $ Vector.fromList [
+          Number 0,
+          Number 0,
+          Number 200,
+          Number 200
           ])
         ]
-      resourcesDict = Dict [
-        ("Font", ODict $ Dict [
-          ("F1", ORef fontRef)
+      resourcesDict = HashMap.fromList [
+        ("Font", Dict $ HashMap.fromList [
+          ("F1", Ref fontRef)
           ])
         ]
-      font = Dict [
-        ("Type", OName "Font"),
-        ("Subtype", OName "Type1"),
-        ("BaseFont", OName "Helvetica")
+      font = HashMap.fromList [
+        ("Type", Name "Font"),
+        ("Subtype", Name "Type1"),
+        ("BaseFont", Name "Helvetica")
         ]
-      content = Stream contentDict contentData
-      contentDict = Dict [
-        ("Length", ONumber $ NumInt $ fromIntegral $ BSL.length contentData)
+      content = S contentDict contentData
+      contentDict = HashMap.fromList [
+        ("Length", Number $ fromIntegral $ BSL.length contentData)
         ]
       contentData = "BT /F1 12 Tf 100 100 TD (Hello World!!!) Tj ET"
-      catalogRef = Ref 1 0
-      rootNodeRef = Ref 2 0
-      pageRef = Ref 3 0
-      contentRef = Ref 4 0
-      fontRef = Ref 5 0
+      catalogRef = R 1 0
+      rootNodeRef = R 2 0
+      pageRef = R 3 0
+      contentRef = R 4 0
+      fontRef = R 5 0
   runPdfWriter Streams.stdout $ do
     writePdfHeader
     forM_ objects $ \(obj, ref) -> writeObject ref obj
