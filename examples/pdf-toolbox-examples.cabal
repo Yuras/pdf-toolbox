@@ -43,7 +43,7 @@ executable create-simple-pdf-file
                        , pdf-toolbox-core
   default-language:    Haskell2010
 
-executable change-document-title.hs
+executable change-document-title
   main-is:             change-document-title.hs
   other-modules:       Prelude
                        Data.Either
