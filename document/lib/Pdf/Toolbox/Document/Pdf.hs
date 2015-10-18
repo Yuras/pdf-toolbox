@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Pdf.Toolbox.Document.Pdf
@@ -14,14 +15,18 @@ module Pdf.Toolbox.Document.Pdf
   deref,
   isEncrypted,
   setUserPassword,
+  EncryptedError (..)
 )
 where
 
+import Data.Typeable
 import Data.Int
 import Data.IORef
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
+import Data.Text (Text)
 import qualified Data.HashMap.Strict as HashMap
+import Control.Monad
 import Control.Exception
 import System.IO (Handle)
 import System.IO.Streams (InputStream)
@@ -50,7 +55,17 @@ file (Pdf f _) = f
 
 -- | Get PDF document
 document :: Pdf -> IO Document
-document pdf = Document pdf <$> File.trailer (file pdf)
+document pdf = do
+  let Pdf _ decrRef = pdf
+  encrypted <- isEncrypted pdf
+  when encrypted $ do
+    maybe_decr <- readIORef decrRef
+    case maybe_decr of
+      Nothing -> throwIO $
+        EncryptedError "File is encrypted, use 'setUserPassword'"
+      Just _ -> return ()
+
+  Document pdf <$> File.trailer (file pdf)
 
 -- | Find object by it's reference
 lookupObject :: Pdf -> Ref -> IO (Object Int64)
@@ -163,3 +178,9 @@ decrypt (Pdf _ decr_ref) ref o = do
   case maybe_decr of
     Nothing -> return o
     Just decr -> decryptObject decr ref o
+
+-- | File is enctypted
+data EncryptedError = EncryptedError Text
+  deriving (Show, Typeable)
+
+instance Exception EncryptedError
