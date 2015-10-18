@@ -16,8 +16,11 @@ module Pdf.Toolbox.Document.Page
 where
 
 import Data.Maybe
+import qualified Data.List as List
 import qualified Data.Traversable as Traversable
 import Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy as Lazy (ByteString)
+import qualified Data.ByteString.Lazy as Lazy.ByteString
 import Data.Text (Text)
 import qualified Data.Text.Lazy as Lazy.Text
 import qualified Data.Text.Lazy.Builder as Text.Builder
@@ -123,6 +126,56 @@ pageFontDicts (Page pdf _ dict) =
             ensureType "Font" fontDict
             return (name, FontDict pdf fontDict)
 
+data XObject = XObject Lazy.ByteString GlyphDecoder
+
+pageXObjects :: Page -> IO [(Name, XObject)]
+pageXObjects (Page pdf _ dict) =
+  case HashMap.lookup "Resources" dict of
+    Nothing -> return []
+    Just res -> do
+      resDict <- do
+        v <- deref pdf res
+        sure $ dictValue v
+          `notice` "Resources should be a dict"
+
+      case HashMap.lookup "XObject" resDict of
+        Nothing -> return []
+        Just xo -> do
+          xosDict <- do
+            v <- deref pdf xo
+            sure $ dictValue v
+              `notice` "XObject should be a dict"
+          result <- forM (HashMap.toList xosDict) $ \(name, o) -> do
+            ref <- sure $ refValue o
+              `notice` "Not a ref"
+            s@(S xoDict _) <- do
+              v <- lookupObject pdf ref
+              sure $ streamValue v
+                `notice` "Not a stream"
+
+            case HashMap.lookup "Subtype" xoDict of
+              Just (Name "Form") -> do
+                S _ is <- streamContent pdf ref s
+                cont <- Lazy.ByteString.fromChunks <$> Streams.toList is
+
+                fontDicts <- Map.fromList <$>
+                  pageFontDicts (Page pdf undefined xoDict)
+
+                glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
+                  fontInfoDecodeGlyphs <$> fontDictLoadInfo fontDict
+                let glyphDecoder fontName = \str ->
+                      case Map.lookup fontName glyphDecoders of
+                        Nothing -> []
+                        Just decode -> decode str
+
+                return (name, Just (XObject cont glyphDecoder))
+
+              _ -> return (name, Nothing)
+
+          let step l (_, Nothing) = l
+              step l (name, Just o) = (name, o) : l
+          return (List.foldl' step [] result)
+
 -- | Extract text from the page
 --
 -- It tries to add spaces between chars if they don't present
@@ -140,6 +193,8 @@ pageExtractGlyphs page = do
           Nothing -> []
           Just decode -> decode str
 
+  xobjects <- Map.fromList <$> pageXObjects page
+
   is <- do
     contents <- pageContents page
     let Page pdf _ _ = page
@@ -147,15 +202,29 @@ pageExtractGlyphs page = do
     Streams.parserToInputStream parseContent is
 
   -- use content stream processor to extract text
-  let loop p = do
-        next <- readNextOperator is
+  let loop s p = do
+        next <- readNextOperator s
         case next of
+          Just (Op_Do, [Name name]) -> processDo name p >>= loop s
           Just op ->
             case processOp op p of
               Left err -> throwIO (Unexpected err [])
-              Right  p' -> loop p'
+              Right  p' -> loop s p'
           Nothing -> return p
-  p <- loop $ mkProcessor {
+
+      processDo name p = do
+        case Map.lookup name xobjects of
+          Nothing -> return p
+          Just (XObject cont gdec) -> do
+            s <- do
+              s <- Streams.fromLazyByteString cont
+              Streams.parserToInputStream parseContent s
+
+            let gdec' = prGlyphDecoder p
+            p' <- loop s (p {prGlyphDecoder = gdec})
+            return (p' {prGlyphDecoder = gdec'})
+
+  p <- loop is $ mkProcessor {
     prGlyphDecoder = glyphDecoder
     }
   return (prGlyphs p)
