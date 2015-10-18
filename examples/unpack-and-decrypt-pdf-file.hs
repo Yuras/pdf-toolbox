@@ -7,16 +7,14 @@ module Main
 where
 
 import Data.Int
+import Data.IORef
 import qualified Data.ByteString.Lazy as Lazy (ByteString)
 import qualified Data.ByteString.Lazy as Lazy.ByteString
 import qualified Data.Foldable as Foldable
 import qualified Data.Vector as Vector
-import Data.IntSet (IntSet)
 import qualified Data.IntSet as IntSet
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.State
 import Control.Exception
 import System.Environment
 import System.IO
@@ -41,8 +39,11 @@ main = do
 
     Document _ tr <- document pdf
 
+    writer <- makeWriter Streams.stdout
+
+    stateRef <- newIORef IntSet.empty
     let
-        loop :: Object Int64 -> StateT IntSet (PdfWriter IO) ()
+        loop :: Object Int64 -> IO ()
         loop (Dict vals) = Foldable.forM_ vals $ \v ->
           loop (mapObject (error "impossible") v)
         loop (Array vals) = Vector.forM_ vals $ \v ->
@@ -50,27 +51,23 @@ main = do
         loop (Ref r@(R index _)) = do
           -- check that the object is not already written.
           -- necessary to prevent circles
-          member <- gets $ IntSet.member index
+          member <- IntSet.member index <$> readIORef stateRef
           if member
             then return ()
             else do
-              o <- lift $ lift $ lookupObject pdf r
-              lift (lift (loadStream pdf r o) >>= writeObject r)
-              modify $ IntSet.insert index
+              o <- lookupObject pdf r
+              loadStream pdf r o >>= writeObject writer r
+              modifyIORef stateRef $ IntSet.insert index
               loop o
         loop (Stream (S d _)) = loop (Dict d)
         loop _ = return ()
 
-    runPdfWriter Streams.stdout $ do
-      flip evalStateT IntSet.empty $ do
-        lift writePdfHeader
-        -- traverse all the objects starting from trailer
-        -- and write out all the indirect objects found
-        loop (Dict tr)
-        -- There are no more xrefs, so clean prev key
-        lift $ writeXRefTable 0 (HashMap.delete "Prev" tr)
-
-    return ()
+    writeHeader writer
+    -- traverse all the objects starting from trailer
+    -- and write out all the indirect objects found
+    loop (Dict tr)
+    -- There are no more xrefs, so clean prev key
+    writeXRefTable writer 0 (HashMap.delete "Prev" tr)
 
 mapObject :: (a -> b) -> Object a -> Object b
 mapObject _ (Dict d) = Dict d

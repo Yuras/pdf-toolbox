@@ -22,7 +22,6 @@ import qualified Data.ByteString.Lazy as Lazy.ByteString
 import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
-import Control.Monad.IO.Class
 import System.IO
 import qualified System.IO.Streams as Streams
 import System.Environment
@@ -45,35 +44,35 @@ initialAppState = AppState {
   stRootNode = error "stRootNode"
   }
 
-nextFreeIndex :: MonadIO m => IORef AppState -> m Int
+nextFreeIndex :: IORef AppState -> IO Int
 nextFreeIndex stateRef = do
-  st <- liftIO $ readIORef stateRef
+  st <- readIORef stateRef
   let index = stNextFree st
-  liftIO $ writeIORef stateRef $ st {stNextFree = index + 1}
+  writeIORef stateRef $ st {stNextFree = index + 1}
   return index
 
-putPageRef :: MonadIO m => IORef AppState -> Ref -> m ()
+putPageRef :: IORef AppState -> Ref -> IO ()
 putPageRef stateRef ref =
-  liftIO $ modifyIORef stateRef $ \st -> st {stPageRefs = ref : stPageRefs st}
+  modifyIORef stateRef $ \st -> st {stPageRefs = ref : stPageRefs st}
 
 main :: IO ()
 main = do
   files <- getArgs
-  runPdfWriter Streams.stdout $ do
-    writePdfHeader
-    deleteObject (R 0 65535) 0
-    stateRef <- liftIO $ newIORef initialAppState
-    index <- nextFreeIndex stateRef
-    liftIO $ modifyIORef stateRef $ \st -> st {stRootNode = R index 0}
-    forM_ files $
-      writePdfFile stateRef
-    writeTrailer stateRef
+  writer <- makeWriter Streams.stdout
+  writeHeader writer
+  deleteObject writer (R 0 65535) 0
+  stateRef <- newIORef initialAppState
+  index <- nextFreeIndex stateRef
+  modifyIORef stateRef $ \st -> st {stRootNode = R index 0}
+  forM_ files $
+    writePdfFile writer stateRef
+  writeTrailer writer stateRef
 
-writePdfFile :: IORef AppState -> FilePath -> PdfWriter IO ()
-writePdfFile stateRef path = do
-  handle <- liftIO $ openBinaryFile path ReadMode
+writePdfFile :: Writer -> IORef AppState -> FilePath -> IO ()
+writePdfFile writer stateRef path = do
+  handle <- openBinaryFile path ReadMode
 
-  pdf <- liftIO $ do
+  pdf <- do
     pdf <- pdfWithHandle handle
 
     encrypted <- isEncrypted pdf
@@ -83,46 +82,46 @@ writePdfFile stateRef path = do
         error "Wrong password"
     return pdf
 
-  root <- liftIO $ document pdf >>= documentCatalog >>= catalogPageNode
-  count <- liftIO $ pageNodeNKids root
+  root <- document pdf >>= documentCatalog >>= catalogPageNode
+  count <- pageNodeNKids root
   forM_ [0..count-1] $ \i -> do
-    page <- liftIO $ pageNodePageByNum root i
-    writePdfPage stateRef page
+    page <- pageNodePageByNum root i
+    writePdfPage writer stateRef page
 
-  liftIO $ hClose handle
+  hClose handle
 
-writePdfPage :: IORef AppState -> Page -> PdfWriter IO ()
-writePdfPage stateRef page@(Page pdf _ pageDict) = do
-  parentRef <- liftIO $ stRootNode <$> readIORef stateRef
+writePdfPage :: Writer -> IORef AppState -> Page -> IO ()
+writePdfPage writer stateRef page@(Page pdf _ pageDict) = do
+  parentRef <- stRootNode <$> readIORef stateRef
   pageIndex <- nextFreeIndex stateRef
   let pageRef = R pageIndex 0
   putPageRef stateRef pageRef
-  contentRefs <- liftIO $ pageContents page
+  contentRefs <- pageContents page
   contentRefs' <- forM contentRefs $ \r -> do
-    o <- liftIO $ lookupObject pdf r
+    o <- lookupObject pdf r
     case o of
-      Stream s -> writeStream stateRef pdf s
+      Stream s -> writeStream writer stateRef pdf s
       _ -> error "stream expected"
 
   resources <- do
     case HashMap.lookup "Resources" pageDict of
       Nothing -> error "No resources"
       Just v -> do
-        o <- liftIO $ deref pdf v
-        writeObjectChildren stateRef pdf o
-  writeObject pageRef $ Dict $ HashMap.fromList [
+        o <- deref pdf v
+        writeObjectChildren writer stateRef pdf o
+  writeObject writer pageRef $ Dict $ HashMap.fromList [
     ("Type", Name "Page"),
     ("Contents", Array $ Vector.fromList $ map Ref contentRefs'),
     ("Resources", resources),
     ("Parent", Ref parentRef)
     ]
 
-writeTrailer :: IORef AppState -> PdfWriter IO ()
-writeTrailer stateRef = do
-  pageRefs <- liftIO $ stPageRefs <$> readIORef stateRef
+writeTrailer :: Writer -> IORef AppState -> IO ()
+writeTrailer writer stateRef = do
+  pageRefs <- stPageRefs <$> readIORef stateRef
 
-  rootRef <- liftIO $ stRootNode <$> readIORef stateRef
-  writeObject rootRef $ Dict $ HashMap.fromList [
+  rootRef <- stRootNode <$> readIORef stateRef
+  writeObject writer rootRef $ Dict $ HashMap.fromList [
     ("Type", Name "Pages"),
     ("Count", Number $ fromIntegral $ length pageRefs),
     ("Kids", Array $ Vector.fromList $ map Ref $ reverse pageRefs)
@@ -130,53 +129,53 @@ writeTrailer stateRef = do
 
   catalogIndex <- nextFreeIndex stateRef
   let catalogRef = R catalogIndex 0
-  writeObject catalogRef $ Dict $ HashMap.fromList
+  writeObject writer catalogRef $ Dict $ HashMap.fromList
     [ ("Type", Name "Catalog")
     , ("Pages", Ref rootRef)
     ]
 
-  count <- liftIO $ stNextFree <$> readIORef stateRef
-  writeXRefTable 0 (HashMap.fromList
+  count <- stNextFree <$> readIORef stateRef
+  writeXRefTable writer 0 (HashMap.fromList
     [ ("Size", Number $ fromIntegral $ count - 1)
     , ("Root", Ref catalogRef)
     ])
 
-writeStream :: IORef AppState -> Pdf -> Stream Int64 -> PdfWriter IO Ref
-writeStream stateRef pdf s@(S dict _) = do
-  cont <- liftIO $ do
+writeStream :: Writer -> IORef AppState -> Pdf -> Stream Int64 -> IO Ref
+writeStream writer stateRef pdf s@(S dict _) = do
+  cont <- do
     S _ is <- rawStreamContent pdf s
     Lazy.ByteString.fromChunks <$> Streams.toList is
 
   index <- nextFreeIndex stateRef
   let ref = R index 0
 
-  Dict dict' <- writeObjectChildren stateRef pdf (Dict dict)
-  writeObject ref $ Stream $ S dict' cont
+  Dict dict' <- writeObjectChildren writer stateRef pdf (Dict dict)
+  writeObject writer ref $ Stream $ S dict' cont
   return ref
 
-writeObjectChildren :: IORef AppState -> Pdf -> Object () -> PdfWriter IO (Object ())
-writeObjectChildren stateRef pdf (Ref r) = do
-  o <- liftIO $ lookupObject pdf r
+writeObjectChildren :: Writer -> IORef AppState -> Pdf -> Object () -> IO (Object ())
+writeObjectChildren writer stateRef pdf (Ref r) = do
+  o <- lookupObject pdf r
   case o of
     Stream s -> do
-      ref <- writeStream stateRef pdf s
+      ref <- writeStream writer stateRef pdf s
       return $ Ref ref
     _ -> do
       let o' = mapObject (error "impossible") o
-      o'' <- writeObjectChildren stateRef pdf o'
+      o'' <- writeObjectChildren writer stateRef pdf o'
       index <- nextFreeIndex stateRef
       let ref = R index 0
-      writeObject ref $ mapObject (error "impossible") o''
+      writeObject writer ref $ mapObject (error "impossible") o''
       return $ Ref ref
-writeObjectChildren stateRef pdf (Dict vals) = do
+writeObjectChildren writer stateRef pdf (Dict vals) = do
   vals' <- forM (HashMap.toList vals) $ \(key, val) -> do
-    val' <- writeObjectChildren stateRef pdf val
+    val' <- writeObjectChildren writer stateRef pdf val
     return (key, val')
   return $ Dict $ HashMap.fromList vals'
-writeObjectChildren stateRef pdf (Array vals) = do
-  vals' <- Vector.forM vals (writeObjectChildren stateRef pdf)
+writeObjectChildren writer stateRef pdf (Array vals) = do
+  vals' <- Vector.forM vals (writeObjectChildren writer stateRef pdf)
   return $ Array vals'
-writeObjectChildren _ _ o = return o
+writeObjectChildren _ _ _ o = return o
 
 mapObject :: (a -> b) -> Object a -> Object b
 mapObject _ (Dict d) = Dict d

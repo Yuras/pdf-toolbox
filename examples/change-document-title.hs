@@ -67,6 +67,6 @@ main = do
 
     Streams.withFileAsOutput output $ \ostream -> do
       Streams.supply is ostream
-      runPdfWriter ostream $ do
-        writeObject infoRef (Dict newInfo)
-        writeXRefTable fileSize newTr
+      writer <- makeWriter ostream
+      writeObject writer infoRef (Dict newInfo)
+      writeXRefTable writer fileSize newTr

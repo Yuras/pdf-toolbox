@@ -74,7 +74,9 @@ main = do
       pageRef = R 3 0
       contentRef = R 4 0
       fontRef = R 5 0
-  runPdfWriter Streams.stdout $ do
-    writePdfHeader
-    forM_ objects $ \(obj, ref) -> writeObject ref obj
-    writeXRefTable 0 tr
+
+  writer <- makeWriter Streams.stdout
+  writeHeader writer
+  forM_ objects $ \(obj, ref) ->
+    writeObject writer ref obj
+  writeXRefTable writer 0 tr

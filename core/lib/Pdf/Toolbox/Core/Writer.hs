@@ -13,52 +13,42 @@
 -- `writePdfHeader` and append the result to the existent file
 
 module Pdf.Toolbox.Core.Writer
-(
-  PdfWriter,
-  runPdfWriter,
-  writePdfHeader,
-  writeObject,
-  deleteObject,
-  writeXRefTable
+( Writer
+, makeWriter
+, writeHeader
+, writeObject
+, deleteObject
+, writeXRefTable
 )
 where
 
+import Data.IORef
 import Data.Int
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
-
 import Data.Function
 import Control.Monad
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.State
-import Control.Monad.IO.Class
 import System.IO.Streams (OutputStream)
 import qualified System.IO.Streams as Streams
 
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Object.Builder
 
--- | The monad
-newtype PdfWriter m a = PdfWriter (StateT PdfState m a)
-  deriving (Functor, Applicative, Monad, MonadIO, MonadTrans)
+newtype Writer = Writer {toStateRef :: IORef PdfState}
 
--- | Execute writer action
-runPdfWriter :: MonadIO m
-             => OutputStream ByteString    -- ^ streams to write to
-             -> PdfWriter m a              -- ^ action to run
-             -> m a
-runPdfWriter output (PdfWriter action) = do
-  (out, count) <- liftIO $ Streams.countOutput output
+makeWriter :: OutputStream ByteString -> IO Writer
+makeWriter output = do
+  (out, count) <- Streams.countOutput output
   let emptyState = PdfState {
         stOutput = out,
         stObjects = Set.empty,
         stCount = count,
         stOffset = 0
         }
-  evalStateT action emptyState
+  Writer <$> newIORef emptyState
 
 data Elem = Elem {
   elemIndex :: {-# UNPACK #-} !Int,
@@ -82,35 +72,36 @@ data PdfState = PdfState {
 
 -- | Write PDF header. Used for generating new PDF files.
 -- Should be the first call. Not used fo incremental updates
-writePdfHeader :: MonadIO m => PdfWriter m ()
-writePdfHeader = do
-  output <- PdfWriter $ gets stOutput
-  liftIO $ Streams.write (Just "%PDF-1.7\n") output
+writeHeader :: Writer -> IO ()
+writeHeader writer = do
+  st <- readIORef (toStateRef writer)
+  Streams.write (Just "%PDF-1.7\n") (stOutput st)
 
 -- | Write object
-writeObject :: MonadIO m => Ref -> Object BSL.ByteString -> PdfWriter m ()
-writeObject ref@(R index gen) obj = do
-  st <- PdfWriter get
-  pos <- countWritten
-  addElem $ Elem index gen pos False
+writeObject :: Writer -> Ref -> Object BSL.ByteString -> IO ()
+writeObject writer ref@(R index gen) obj = do
+  pos <- countWritten writer
+  st <- readIORef (toStateRef writer)
+  addElem writer $ Elem index gen pos False
   dumpObject (stOutput st) ref obj
-  return ()
 
 -- | Delete object
-deleteObject :: MonadIO m => Ref -> Int64 -> PdfWriter m ()
-deleteObject (R index gen) nextFree =
-  addElem $ Elem index gen nextFree True
+deleteObject :: Writer -> Ref -> Int64 -> IO ()
+deleteObject writer (R index gen) nextFree =
+  addElem writer $ Elem index gen nextFree True
 
 -- | Write xref table. Should be the last call.
 -- Used for generating and incremental updates.
-writeXRefTable :: MonadIO m
-               => Int64           -- ^ size of the original PDF file. Should be 0 for new file
-               -> Dict            -- ^ trailer
-               -> PdfWriter m ()
-writeXRefTable offset tr = do
-  st <- PdfWriter get
-  off <- (+ offset) `liftM` countWritten
-  let elems = Set.mapMonotonic (\e -> e {elemOffset = elemOffset e + offset})  $ stObjects st
+writeXRefTable
+  :: Writer
+  -> Int64           -- ^ size of the original PDF file. Should be 0 for new file
+  -> Dict            -- ^ trailer
+  -> IO ()
+writeXRefTable writer offset tr = do
+  off <- (+ offset) <$> countWritten writer
+  st <- readIORef (toStateRef writer)
+  let elems = Set.mapMonotonic (\e -> e {elemOffset = elemOffset e + offset})
+            $ stObjects st
       content = byteString "xref\n" `mappend`
                 buildXRefTable (Set.toAscList elems) `mappend`
                 byteString "trailer\n" `mappend`
@@ -118,23 +109,26 @@ writeXRefTable offset tr = do
                 byteString "\nstartxref\n" `mappend`
                 int64Dec off `mappend`
                 byteString "\n%%EOF\n"
-  liftIO $ Streams.writeLazyByteString (toLazyByteString content) (stOutput st)
+  Streams.writeLazyByteString (toLazyByteString content) (stOutput st)
 
-countWritten :: MonadIO m => PdfWriter m Int64
-countWritten = do
-  st <- PdfWriter get
-  c <- (stOffset st +) `liftM` liftIO (stCount st)
-  PdfWriter $ put $ st {stOffset = c}
+countWritten :: Writer -> IO Int64
+countWritten writer = do
+  st <- readIORef (toStateRef writer)
+  c <- (stOffset st +) <$> stCount st
+  writeIORef (toStateRef writer) st{stOffset = c}
   return $! c
 
-addElem :: Monad m => Elem -> PdfWriter m ()
-addElem e = do
-  st <- PdfWriter get
-  when (Set.member e $ stObjects st) $ error $ "PdfWriter: attempt to write object with the same index: " ++ show (elemIndex e)
-  PdfWriter $ put st {stObjects = Set.insert e $ stObjects st}
+addElem :: Writer -> Elem -> IO ()
+addElem writer e = do
+  st <- readIORef (toStateRef writer)
+  when (Set.member e $ stObjects st) $
+    error $ "PdfWriter: attempt to write object with the same index: " ++ show (elemIndex e)
+  writeIORef (toStateRef writer) $ st
+    { stObjects = Set.insert e $ stObjects st
+    }
 
-dumpObject :: MonadIO m => OutputStream ByteString -> Ref -> Object BSL.ByteString -> m ()
-dumpObject out ref o = liftIO $ Streams.writeLazyByteString (toLazyByteString $ buildIndirectObject ref o) out
+dumpObject :: OutputStream ByteString -> Ref -> Object BSL.ByteString -> IO ()
+dumpObject out ref o = Streams.writeLazyByteString (toLazyByteString $ buildIndirectObject ref o) out
 
 buildXRefTable :: [Elem] -> Builder
 buildXRefTable entries =

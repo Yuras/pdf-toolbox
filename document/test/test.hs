@@ -41,12 +41,14 @@ withSimpleFile action = do
     (\(path, h) -> hClose h `finally` removeFile path)
     $ \(_, h) -> do
   out <- Streams.handleToOutputStream h
-  runPdfWriter out $ do
-    writePdfHeader
-    deleteObject (R 0 1) 65535
-    forM_ objects $ \(ref, obj) ->
-      writeObject ref obj
-    writeXRefTable 0 tr
+
+  writer <- makeWriter out
+  writeHeader writer
+  deleteObject writer (R 0 1) 65535
+  forM_ objects $ \(ref, obj) ->
+    writeObject writer ref obj
+  writeXRefTable writer 0 tr
+
   action h
   where
   tr = HashMap.fromList
