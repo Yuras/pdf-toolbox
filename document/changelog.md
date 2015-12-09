@@ -1,3 +1,7 @@
+unreleased
+
+* fix xobject handling in text extraction
+
 0.0.7.0
 
 * support xobjects in text extraction

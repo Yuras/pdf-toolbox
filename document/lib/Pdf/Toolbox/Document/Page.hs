@@ -15,6 +15,7 @@ module Pdf.Toolbox.Document.Page
 )
 where
 
+import Data.Int
 import qualified Data.Traversable as Traversable
 import qualified Data.ByteString.Lazy as Lazy (ByteString)
 import qualified Data.ByteString.Lazy as Lazy.ByteString
@@ -112,23 +113,32 @@ pageXObjects (Page _ dict) =
         Nothing -> return []
         Just xo -> do
           Dict xosDict <- deref xo >>= fromObject
-          forM xosDict $ \(name, o) -> do
+          fmap catMaybes $ forM xosDict $ \(name, o) -> do
             ref <- fromObject o
             xo <- lookupObject ref >>= toStream
 
-            Stream xoDict is <- streamContent ref xo
-            cont <- liftIO $ Lazy.ByteString.fromChunks <$> Streams.toList is
+            let Stream xoDict _ = xo
+            case lookupDict' "Subtype" xoDict of
+              Just (OName "Form") -> do
+                xobject <- mkXObject xo ref
+                return $ Just (name, xobject)
+              _ -> return Nothing
 
-            fontDicts <- Map.fromList <$> pageFontDicts (Page undefined xoDict)
+mkXObject :: (MonadPdf m, MonadIO m) => Stream Int64 -> Ref -> PdfE m XObject
+mkXObject s ref = do
+  Stream dict is <- streamContent ref s
+  cont <- liftIO $ Lazy.ByteString.fromChunks <$> Streams.toList is
 
-            glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
-              fontInfoDecodeGlyphs <$> fontDictLoadInfo fontDict
-            let glyphDecoder fontName = \str ->
-                  case Map.lookup fontName glyphDecoders of
-                    Nothing -> []
-                    Just decode -> decode str
+  fontDicts <- Map.fromList <$> pageFontDicts (Page undefined dict)
 
-            return (name, XObject cont glyphDecoder)
+  glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
+    fontInfoDecodeGlyphs <$> fontDictLoadInfo fontDict
+  let glyphDecoder fontName = \str ->
+        case Map.lookup fontName glyphDecoders of
+          Nothing -> []
+          Just decode -> decode str
+
+  return (XObject cont glyphDecoder)
 
 -- | Extract text from the page
 --
