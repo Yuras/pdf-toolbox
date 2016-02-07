@@ -6,9 +6,7 @@
 module Pdf.Toolbox.Core.XRef
 (
   XRef(..),
-  XRefEntry(..),
-  TableEntry(..),
-  StreamEntry(..),
+  Entry(..),
   readXRef,
   lastXRef,
   prevXRef,
@@ -41,28 +39,15 @@ import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 import qualified System.IO.Streams.Attoparsec as Streams
 
--- | Entry in cross reference table
-data TableEntry = TableEntry {
-  teOffset :: Int64,
-  teGen :: Int,
-  teIsFree :: Bool
-  } deriving (Eq, Show)
-
 -- | Entry in cross reference stream
-data StreamEntry =
+data Entry =
   -- | Object number and generation
-  StreamEntryFree Int Int |
+  EntryFree Int Int |
   -- | Object offset (in bytes from the beginning of file) and generation
-  StreamEntryUsed Int64 Int |
+  EntryUsed Int64 Int |
   -- | Object number of object stream and index within the object stream
-  StreamEntryCompressed Int Int
+  EntryCompressed Int Int
   deriving (Eq, Show)
-
--- | Entry in cross reference
-data XRefEntry =
-  XRefTableEntry TableEntry |
-  XRefStreamEntry StreamEntry
-  deriving Show
 
 -- | Cross reference
 data XRef =
@@ -150,7 +135,7 @@ skipSubsection is count = Buffer.dropExactly (count * 20) is
 lookupTableEntry :: Buffer
                  -> XRef  -- ^ should be xref table
                  -> Ref   -- ^ indirect object to look for
-                 -> IO (Maybe TableEntry)
+                 -> IO (Maybe Entry)
 lookupTableEntry buf (XRefTable tableOff) (R index gen)
   = message "lookupTableEntry" $ do
   Buffer.seek buf tableOff
@@ -172,7 +157,10 @@ lookupTableEntry buf (XRefTable tableOff) (R index gen)
               throwIO (Corrupted "parseTableEntry failed" [msg])
         unless (gen == gen') $
           throwIO $ Corrupted "Generation mismatch" []
-        return $ Just $ TableEntry off gen free
+        let entry = if free
+              then EntryFree (fromIntegral off) gen
+              else EntryUsed off gen
+        return (Just entry)
       else
         -- go to the next section if any
         nextSubsectionHeader (Buffer.toInputStream buf) count
@@ -188,7 +176,7 @@ lookupStreamEntry
   :: Dict                    -- ^ xref stream dictionary
   -> InputStream ByteString  -- ^ decoded xref stream content
   -> Ref                     -- ^ indirect object
-  -> IO (Maybe StreamEntry)
+  -> IO (Maybe Entry)
 lookupStreamEntry dict is (R objNumber _) =
   message "lookupStreamEntry" $ do
 
@@ -249,10 +237,10 @@ lookupStreamEntry dict is (R objNumber _) =
             collect res (x:xs) ys = collect (take x ys : res) xs (drop x ys)
             collect _ _ _ = error "readStreamEntry: collect: impossible"
       case v1 of
-        0 -> return $ Just $ StreamEntryFree (fromIntegral v2)
+        0 -> return $ Just $ EntryFree (fromIntegral v2)
                                              (fromIntegral v3)
-        1 -> return $ Just $ StreamEntryUsed v2 (fromIntegral v3)
-        2 -> return $ Just $ StreamEntryCompressed (fromIntegral v2)
+        1 -> return $ Just $ EntryUsed v2 (fromIntegral v3)
+        2 -> return $ Just $ EntryCompressed (fromIntegral v2)
                                                    (fromIntegral v3)
         _ -> throwIO $ UnknownXRefStreamEntryType (fromIntegral v1)
 

@@ -81,36 +81,32 @@ streamContent file (S dict pos) = do
       _ -> throwIO $ Corrupted "Length should be an integer" []
   rawStreamContent (_buffer file) len pos
 
-readObjectForEntry :: File_-> XRefEntry -> IO (Object, Bool)
-readObjectForEntry file (XRefTableEntry entry)
-  | teIsFree entry = return (Null, False)
-  | otherwise = do
-    (R _ gen, obj) <- readObjectAtOffset (_buffer file) (teOffset entry)
-    unless (gen == teGen entry) $
-      throwIO (Corrupted "readObjectForEntry" ["object generation missmatch"])
-    return (obj, False)
-readObjectForEntry file (XRefStreamEntry entry) =
-  case entry of
-    StreamEntryFree{} -> return (Null, False)
-    StreamEntryUsed off _ -> do
-      obj <- readObjectAtOffset (_buffer file) off
-      return (snd obj, False)
-    StreamEntryCompressed index num -> do
-      objStream@(S dict _) <- do
-        (o, _) <- findObject file (R index 0)
-        sure $ streamValue o `notice` "Compressed entry should be in stream"
-      first <- sure $ (HashMap.lookup "First" dict >>= intValue)
-          `notice` "First should be an integer"
-      raw <- streamContent file objStream
-      decrypted <-
-        readIORef (_decrRef file)
-        >>= maybe (return raw)
-          (\decr -> decr (R index 0) DecryptStream raw)
-      decoded <- decodeStream (_filters file) objStream decrypted
-      obj <- readCompressedObject decoded (fromIntegral first) num
-      return (obj, True)
+readObjectForEntry :: File_-> Entry -> IO (Object, Bool)
 
-lookupEntryRec :: File_ -> Ref -> IO XRefEntry
+readObjectForEntry _file EntryFree{} = return (Null, False)
+
+readObjectForEntry file (EntryUsed off gen) = do
+  (R _ gen', obj) <- readObjectAtOffset (_buffer file) off
+  unless (gen' == gen) $
+    throwIO (Corrupted "readObjectForEntry" ["object generation missmatch"])
+  return (obj, False)
+
+readObjectForEntry file (EntryCompressed index num) = do
+  objStream@(S dict _) <- do
+    (o, _) <- findObject file (R index 0)
+    sure $ streamValue o `notice` "Compressed entry should be in stream"
+  first <- sure $ (HashMap.lookup "First" dict >>= intValue)
+      `notice` "First should be an integer"
+  raw <- streamContent file objStream
+  decrypted <-
+    readIORef (_decrRef file)
+    >>= maybe (return raw)
+      (\decr -> decr (R index 0) DecryptStream raw)
+  decoded <- decodeStream (_filters file) objStream decrypted
+  obj <- readCompressedObject decoded (fromIntegral first) num
+  return (obj, True)
+
+lookupEntryRec :: File_ -> Ref -> IO Entry
 lookupEntryRec file ref = loop (_lastXRef file)
   where
   loop xref = do
@@ -123,13 +119,13 @@ lookupEntryRec file ref = loop (_lastXRef file)
           Just p -> loop p
           Nothing -> throwIO (NotFound $ "The Ref not found: " ++ show ref)
 
-lookupEntry :: File_ -> Ref -> XRef -> IO (Maybe XRefEntry)
+lookupEntry :: File_ -> Ref -> XRef -> IO (Maybe Entry)
 lookupEntry file ref xref@(XRefTable _) =
-  fmap XRefTableEntry <$> lookupTableEntry (_buffer file) xref ref
+  lookupTableEntry (_buffer file) xref ref
 lookupEntry file ref (XRefStream _ s@(S dict _)) = do
   raw <- streamContent file s
   decoded <- decodeStream (_filters file) s raw
-  fmap XRefStreamEntry <$> lookupStreamEntry dict decoded ref
+  lookupStreamEntry dict decoded ref
 
 data NotFound = NotFound String
   deriving (Show, Typeable)

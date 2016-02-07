@@ -121,7 +121,7 @@ spec = describe "XRef" $ do
         \0000000044 00000 n\r\n\
         \trailer"
       lookupTableEntry buf (XRefTable 5) (R 4 0)
-      ) `shouldReturn` Just (TableEntry 44 0 False)
+      ) `shouldReturn` Just (EntryUsed 44 0)
 
     it "should return Nothing when not found" $ (do
       buf <- Buffer.fromBytes "helloxref\n\
@@ -147,17 +147,17 @@ spec = describe "XRef" $ do
     it "should handle free objects" $ (do
       is <- Streams.fromByteString bytes
       lookupStreamEntry dict is (R 6 0)
-      ) `shouldReturn` Just (StreamEntryFree 4 0)
+      ) `shouldReturn` Just (EntryFree 4 0)
 
     it "should handle used objects" $ (do
       is <- Streams.fromByteString bytes
       lookupStreamEntry dict is (R 4 0)
-      ) `shouldReturn` Just (StreamEntryUsed 2 3)
+      ) `shouldReturn` Just (EntryUsed 2 3)
 
     it "should handle compressed objects" $ (do
       is <- Streams.fromByteString bytes
       lookupStreamEntry dict is (R 5 0)
-      ) `shouldReturn` Just (StreamEntryCompressed 3 4)
+      ) `shouldReturn` Just (EntryCompressed 3 4)
 
     it "should return Nothing when object to found" $ (do
       is <- Streams.fromByteString bytes
@@ -172,4 +172,4 @@ spec = describe "XRef" $ do
             ]
       is <- Streams.fromByteString bytes
       lookupStreamEntry dict' is (R 11 0)
-      ) `shouldReturn` Just (StreamEntryFree 4 0)
+      ) `shouldReturn` Just (EntryFree 4 0)
