@@ -48,7 +48,7 @@ library
                        Pdf.Toolbox.Core.Util
                        Pdf.Toolbox.Core.Writer
   other-modules:       Prelude
-  build-depends:       base >= 4.6 && < 5,
+  build-depends:       base >= 4.5 && < 5,
                        bytestring,
                        io-streams,
                        attoparsec >= 0.10,

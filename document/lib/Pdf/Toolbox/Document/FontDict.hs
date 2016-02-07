@@ -48,7 +48,7 @@ fontDictLoadInfo :: (MonadPdf m, MonadIO m) => FontDict -> PdfE m FontInfo
 fontDictLoadInfo fd@(FontDict fontDict) = do
   subtype <- fontDictSubtype fd
   case subtype of
-    FontType0 -> FontInfoComposite <$> loadFontInfoComposite fontDict
+    FontType0 -> FontInfoComposite `liftM` loadFontInfoComposite fontDict
     FontType3 -> do
       fi <- loadFontInfoSimple fontDict
       Array arr <- lookupDict "FontMatrix" fontDict >>= deref >>= fromObject
@@ -66,7 +66,7 @@ fontDictLoadInfo fd@(FontDict fontDict) = do
       return $ FontInfoSimple fi {
         fiSimpleFontMatrix = fontMatrix
         }
-    _ -> FontInfoSimple <$> loadFontInfoSimple fontDict
+    _ -> FontInfoSimple `liftM` loadFontInfoSimple fontDict
 
 loadFontInfoComposite :: (MonadPdf m, MonadIO m) => Dict -> PdfE m FIComposite
 loadFontInfoComposite fontDict = do
@@ -151,7 +151,7 @@ loadEncodingDifferences dict = do
       case arr of
         [] -> return []
         (ONumber n : rest) -> do
-          n' <- fromIntegral <$> intValue n
+          n' <- fromIntegral `liftM` intValue n
           go [] n' rest
         _ -> throwE $ UnexpectedError "Differences array: the first object should be a number"
   where
@@ -159,7 +159,7 @@ loadEncodingDifferences dict = do
   go res n (o:rest) =
     case o of
       (ONumber n') -> do
-        n'' <- fromIntegral <$> intValue n'
+        n'' <- fromIntegral `liftM` intValue n'
         go res n'' rest
       (OName (Name bs)) -> go (((n, bs)) : res) (n + 1) rest
       _ -> throwE $ UnexpectedError $ "Differences array: unexpected object: " ++ show o
@@ -174,7 +174,7 @@ loadUnicodeCMap fontDict =
       case toUnicode of
         OStream s -> do
           Stream _ is <- streamContent ref s
-          content <- mconcat <$> liftIO (Streams.toList is)
+          content <- mconcat `liftM` liftIO (Streams.toList is)
           case parseUnicodeCMap content of
             Left e -> throwE $ UnexpectedError $ "can't parse cmap: " ++ show e
             Right cmap -> return $ Just cmap

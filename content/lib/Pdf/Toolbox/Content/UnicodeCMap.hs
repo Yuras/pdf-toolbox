@@ -12,7 +12,6 @@ module Pdf.Toolbox.Content.UnicodeCMap
 where
 
 import Data.Monoid
-import Data.Functor
 import Data.Char
 import qualified Data.List as List
 import Data.Map (Map)
@@ -128,7 +127,7 @@ rangesParser' = do
     n <- P.decimal
     P.skipSpace
     void $ P.string "beginbfrange"
-    return n
+    return (n :: Int)
 
   let go 0 rs cs = return (rs, cs)
       go count rs cs = do

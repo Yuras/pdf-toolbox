@@ -22,7 +22,6 @@ import qualified Data.ByteString.Lazy as Lazy.ByteString
 import Data.Text (Text)
 import qualified Data.Text.Lazy as TextL
 import qualified Data.Text.Lazy.Builder as TextB
-import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad
 import qualified System.IO.Streams as Streams
@@ -111,9 +110,9 @@ pageXObjects (Page _ dict) =
       resDict <- deref res >>= fromObject
       case lookupDict' "XObject" resDict of
         Nothing -> return []
-        Just xo -> do
-          Dict xosDict <- deref xo >>= fromObject
-          fmap catMaybes $ forM xosDict $ \(name, o) -> do
+        Just xo' -> do
+          Dict xosDict <- deref xo' >>= fromObject
+          liftM catMaybes $ forM xosDict $ \(name, o) -> do
             ref <- fromObject o
             xo <- lookupObject ref >>= toStream
 
@@ -129,10 +128,10 @@ mkXObject s ref = do
   Stream dict is <- streamContent ref s
   cont <- liftIO $ Lazy.ByteString.fromChunks <$> Streams.toList is
 
-  fontDicts <- Map.fromList <$> pageFontDicts (Page undefined dict)
+  fontDicts <- Map.fromList `liftM` pageFontDicts (Page undefined dict)
 
   glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
-    fontInfoDecodeGlyphs <$> fontDictLoadInfo fontDict
+    fontInfoDecodeGlyphs `liftM` fontDictLoadInfo fontDict
   let glyphDecoder fontName = \str ->
         case Map.lookup fontName glyphDecoders of
           Nothing -> []
@@ -147,15 +146,15 @@ mkXObject s ref = do
 pageExtractText :: (MonadPdf m, MonadIO m) => Page -> PdfE m Text
 pageExtractText page = do
   -- load fonts and create glyph decoder
-  fontDicts <- Map.fromList <$> pageFontDicts page
+  fontDicts <- Map.fromList `liftM` pageFontDicts page
   glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
-    fontInfoDecodeGlyphs <$> fontDictLoadInfo fontDict
+    fontInfoDecodeGlyphs `liftM` fontDictLoadInfo fontDict
   let glyphDecoder fontName = \str ->
         case Map.lookup fontName glyphDecoders of
           Nothing -> []
           Just decode -> decode str
 
-  xobjects <- Map.fromList <$> pageXObjects page
+  xobjects <- Map.fromList `liftM` pageXObjects page
 
   -- prepare content streams
   contents <- pageContents page
@@ -179,7 +178,7 @@ pageExtractText page = do
   let loop s p = do
         next <- readNextOperator s
         case next of
-          Just op@(Op_Do, [OName xoName]) -> processDo xoName p >>= loop s
+          Just (Op_Do, [OName xoName]) -> processDo xoName p >>= loop s
           Just op -> processOp op p >>= loop s
           Nothing -> return p
 

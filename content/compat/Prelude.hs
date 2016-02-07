@@ -11,11 +11,14 @@ module Prelude
   Monoid(..),
   Applicative(..),
 #endif
-
 )
 where
 
+#if MIN_VERSION_base(4,6,0)
 import "base" Prelude as P
+#else
+import "base" Prelude as P hiding (catch)
+#endif
 
 #if MIN_VERSION_base(4,8,0)
 #else
