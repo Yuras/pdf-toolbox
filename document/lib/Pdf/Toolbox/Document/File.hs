@@ -12,7 +12,6 @@ module Pdf.Toolbox.Document.File
 )
 where
 
-import Data.Int
 import Data.Typeable
 import Data.IORef
 import Data.ByteString (ByteString)
@@ -32,8 +31,8 @@ import Pdf.Toolbox.Document.Encryption
 --
 -- It doesn't perform decryption or decoding
 data File = File
-  { object :: Ref -> IO (Object Int64, Bool)
-  , stream :: Stream Int64 -> IO (InputStream ByteString)
+  { object :: Ref -> IO (Object, Bool)
+  , stream :: Stream -> IO (InputStream ByteString)
   , trailer :: IO Dict
   , setDecryptor :: Decryptor -> IO ()
   }
@@ -63,15 +62,15 @@ withBuffer filters buf = do
     , setDecryptor = writeIORef decrRef . Just
     }
 
-findObject :: File_ -> Ref -> IO (Object Int64, Bool)
+findObject :: File_ -> Ref -> IO (Object, Bool)
 findObject file ref =
   (lookupEntryRec file ref
   >>= readObjectForEntry file)
     -- unknown type should be interpreted as reference to null object
     `catch` \(UnknownXRefStreamEntryType _) -> return (Null, False)
 
-streamContent :: File_ -> Stream Int64 -> IO (InputStream ByteString)
-streamContent file s@(S dict _) = do
+streamContent :: File_ -> Stream -> IO (InputStream ByteString)
+streamContent file (S dict pos) = do
   len <- do
     obj <- sure $ HashMap.lookup "Length" dict `notice` "Length missing in stream"
     case obj of
@@ -80,9 +79,9 @@ streamContent file s@(S dict _) = do
         (o, _) <- findObject file ref
         sure $ intValue o `notice` "Length should be an integer"
       _ -> throw $ Corrupted "Length should be an integer" []
-  rawStreamContent (_buffer file) len s
+  rawStreamContent (_buffer file) len pos
 
-readObjectForEntry :: File_-> XRefEntry -> IO (Object Int64, Bool)
+readObjectForEntry :: File_-> XRefEntry -> IO (Object, Bool)
 readObjectForEntry file (XRefTableEntry entry)
   | teIsFree entry = return (Null, False)
   | otherwise = do
@@ -107,19 +106,9 @@ readObjectForEntry file (XRefStreamEntry entry) =
         readIORef (_decrRef file)
         >>= maybe (return raw)
           (\decr -> decr (R index 0) DecryptStream raw)
-      decoded <- decodeStream (_filters file) (S dict decrypted)
+      decoded <- decodeStream (_filters file) objStream decrypted
       obj <- readCompressedObject decoded (fromIntegral first) num
-      return (conv obj, True)
-  where
-  conv (String v) = String v
-  conv (Name v) = Name v
-  conv (Number v) = Number v
-  conv (Array v) = Array v
-  conv (Dict v) = Dict v
-  conv (Bool v) = Bool v
-  conv (Ref v) = Ref v
-  conv Null = Null
-  conv Stream{} = error "conv: impossible: stream"
+      return (obj, True)
 
 lookupEntryRec :: File_ -> Ref -> IO XRefEntry
 lookupEntryRec file ref = loop (_lastXRef file)
@@ -139,8 +128,8 @@ lookupEntry file ref xref@(XRefTable _) =
   fmap XRefTableEntry <$> lookupTableEntry (_buffer file) xref ref
 lookupEntry file ref (XRefStream _ s@(S dict _)) = do
   raw <- streamContent file s
-  decoded <- decodeStream (_filters file) (S dict raw)
-  fmap XRefStreamEntry <$> lookupStreamEntry (S dict decoded) ref
+  decoded <- decodeStream (_filters file) s raw
+  fmap XRefStreamEntry <$> lookupStreamEntry dict decoded ref
 
 data NotFound = NotFound String
   deriving (Show, Typeable)

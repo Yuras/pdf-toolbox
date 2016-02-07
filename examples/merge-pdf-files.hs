@@ -16,7 +16,6 @@ module Main
 )
 where
 
-import Data.Int
 import Data.IORef
 import qualified Data.ByteString.Lazy as Lazy.ByteString
 import qualified Data.Vector as Vector
@@ -100,7 +99,7 @@ writePdfPage writer stateRef page@(Page pdf _ pageDict) = do
   contentRefs' <- forM contentRefs $ \r -> do
     o <- lookupObject pdf r
     case o of
-      Stream s -> writeStream writer stateRef pdf s
+      Stream s -> writeStream' writer stateRef pdf s
       _ -> error "stream expected"
 
   resources <- do
@@ -140,32 +139,31 @@ writeTrailer writer stateRef = do
     , ("Root", Ref catalogRef)
     ])
 
-writeStream :: Writer -> IORef AppState -> Pdf -> Stream Int64 -> IO Ref
-writeStream writer stateRef pdf s@(S dict _) = do
+writeStream' :: Writer -> IORef AppState -> Pdf -> Stream -> IO Ref
+writeStream' writer stateRef pdf s@(S dict _) = do
   cont <- do
-    S _ is <- rawStreamContent pdf s
+    is <- rawStreamContent pdf s
     Lazy.ByteString.fromChunks <$> Streams.toList is
 
   index <- nextFreeIndex stateRef
   let ref = R index 0
 
   Dict dict' <- writeObjectChildren writer stateRef pdf (Dict dict)
-  writeObject writer ref $ Stream $ S dict' cont
+  writeStream writer ref dict' cont
   return ref
 
-writeObjectChildren :: Writer -> IORef AppState -> Pdf -> Object () -> IO (Object ())
+writeObjectChildren :: Writer -> IORef AppState -> Pdf -> Object -> IO Object
 writeObjectChildren writer stateRef pdf (Ref r) = do
   o <- lookupObject pdf r
   case o of
     Stream s -> do
-      ref <- writeStream writer stateRef pdf s
+      ref <- writeStream' writer stateRef pdf s
       return $ Ref ref
     _ -> do
-      let o' = mapObject (error "impossible") o
-      o'' <- writeObjectChildren writer stateRef pdf o'
+      o' <- writeObjectChildren writer stateRef pdf o
       index <- nextFreeIndex stateRef
       let ref = R index 0
-      writeObject writer ref $ mapObject (error "impossible") o''
+      writeObject writer ref o'
       return $ Ref ref
 writeObjectChildren writer stateRef pdf (Dict vals) = do
   vals' <- forM (HashMap.toList vals) $ \(key, val) -> do
@@ -176,14 +174,3 @@ writeObjectChildren writer stateRef pdf (Array vals) = do
   vals' <- Vector.forM vals (writeObjectChildren writer stateRef pdf)
   return $ Array vals'
 writeObjectChildren _ _ _ o = return o
-
-mapObject :: (a -> b) -> Object a -> Object b
-mapObject _ (Dict d) = Dict d
-mapObject _ (Name n) = Name n
-mapObject _ (String s) = String s
-mapObject _ (Number n) = Number n
-mapObject _ (Bool b) = Bool b
-mapObject _ (Array a) = Array a
-mapObject _ (Ref r) = Ref r
-mapObject _ Null = Null
-mapObject f (Stream (S d a)) = Stream (S d (f a))

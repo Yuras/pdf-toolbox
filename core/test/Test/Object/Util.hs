@@ -101,9 +101,9 @@ refValueSpec = describe "refValue" $ do
 streamValueSpec :: Spec
 streamValueSpec = describe "streamValue" $ do
   it "should convert stream value to Stream" $ do
-    let stream = S dict ("hello" :: String)
+    let stream = S dict 42
         dict = HashMap.fromList [("a", String "b")]
     streamValue (Stream stream) `shouldBe` Just stream
 
   it "should return Nothing for any other value" $ do
-    streamValue (Bool True) `shouldBe` (Nothing :: Maybe (Stream String))
+    streamValue (Bool True) `shouldBe` (Nothing :: Maybe Stream)

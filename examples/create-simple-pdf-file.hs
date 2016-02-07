@@ -30,8 +30,10 @@ main = do
         (Dict catalog, catalogRef),
         (Dict rootNode, rootNodeRef),
         (Dict page, pageRef),
-        (Stream content, contentRef),
         (Dict font, fontRef)
+        ]
+      streams = [
+        (contentDict, contentData, contentRef)
         ]
       catalog = HashMap.fromList [
         ("Type", Name "Catalog"),
@@ -64,7 +66,6 @@ main = do
         ("Subtype", Name "Type1"),
         ("BaseFont", Name "Helvetica")
         ]
-      content = S contentDict contentData
       contentDict = HashMap.fromList [
         ("Length", Number $ fromIntegral $ BSL.length contentData)
         ]
@@ -79,4 +80,6 @@ main = do
   writeHeader writer
   forM_ objects $ \(obj, ref) ->
     writeObject writer ref obj
+  forM_ streams $ \(dict, dat, ref) ->
+    writeStream writer ref dict dat
   writeXRefTable writer 0 tr

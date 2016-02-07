@@ -68,8 +68,8 @@ data XRefEntry =
 data XRef =
   -- | Offset
   XRefTable Int64 |
-  -- | Offset and stream with content offset
-  XRefStream Int64 (Stream Int64)
+  -- | Offset and stream
+  XRefStream Int64 Stream
   deriving (Eq, Show)
 
 -- | Check whether the stream starts with \"xref\" keyword.
@@ -96,7 +96,9 @@ readXRef buf off = do
   table <- isTable is
   if table
     then return (XRefTable off)
-    else XRefStream off <$> readStream is off
+    else do
+      s <- readStream is off
+      return (XRefStream off s)
 
 -- | Find prev cross reference
 prevXRef :: Buffer -> XRef -> IO (Maybe XRef)
@@ -183,10 +185,11 @@ lookupTableEntry _ XRefStream{} _ =
 -- See pdf1.7 spec: 7.5.8 Cross-Reference Streams.
 -- May throw 'UnknownXRefStreamEntryType'
 lookupStreamEntry
-  :: Stream (InputStream ByteString)  -- ^ decoded xref stream content
-  -> Ref                              -- ^ indirect object
+  :: Dict                    -- ^ xref stream dictionary
+  -> InputStream ByteString  -- ^ decoded xref stream content
+  -> Ref                     -- ^ indirect object
   -> IO (Maybe StreamEntry)
-lookupStreamEntry (S dict is) (R objNumber _) =
+lookupStreamEntry dict is (R objNumber _) =
   message "lookupStreamEntry" $ do
 
   index <- sure $ do

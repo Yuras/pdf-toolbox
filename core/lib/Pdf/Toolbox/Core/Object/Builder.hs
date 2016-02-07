@@ -3,17 +3,17 @@
 -- | Render 'Object' to bytestring
 
 module Pdf.Toolbox.Core.Object.Builder
-(
-  buildIndirectObject,
-  buildObject,
-  buildNumber,
-  buildBool,
-  buildName,
-  buildDict,
-  buildArray,
-  buildString,
-  buildRef,
-  buildStream
+( buildIndirectObject
+, buildIndirectStream
+, buildObject
+, buildNumber
+, buildBool
+, buildName
+, buildDict
+, buildArray
+, buildString
+, buildRef
+, buildStream
 )
 where
 
@@ -33,24 +33,32 @@ import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Name (Name)
 import qualified Pdf.Toolbox.Core.Name as Name
 
--- | Build indirect object
-buildIndirectObject :: Ref -> Object BSL.ByteString -> Builder
-buildIndirectObject (R i g) object =
+-- | Build indirect object except streams
+buildIndirectObject :: Ref -> Object -> Builder
+buildIndirectObject ref object =
+  buildObjectWith ref $
+    buildObject object
+
+-- | Build indirect stream
+buildIndirectStream :: Ref -> Dict -> BSL.ByteString -> Builder
+buildIndirectStream ref dict dat =
+  buildObjectWith ref $
+    buildStream dict dat
+
+buildObjectWith :: Ref -> Builder -> Builder
+buildObjectWith (R i g) inner =
   char7 '\n' `mappend`
   intDec i `mappend`
   char7 ' ' `mappend`
   intDec g `mappend`
   byteString " obj\n" `mappend`
-  build object `mappend`
+  inner `mappend`
   byteString "\nendobj\n"
-  where
-  build (Stream s) = buildStream s
-  build o = buildObject o
 
 -- | Render inline object (without \"obj/endobj\").
 -- It is 'error' to supply 'Stream', because it could not
 -- be inlined, but should always be an indirect object
-buildObject :: Object a -> Builder
+buildObject :: Object -> Builder
 buildObject (Number n) = buildNumber n
 buildObject (Bool b) = buildBool b
 buildObject (Name n) = buildName n
@@ -64,8 +72,8 @@ buildObject Null = byteString "null"
 -- | Build a stream
 --
 -- The function doesn't try to encode or encrypt the content
-buildStream :: Stream BSL.ByteString -> Builder
-buildStream (S dict content) = mconcat
+buildStream :: Dict -> BSL.ByteString -> Builder
+buildStream dict content = mconcat
   [ buildDict dict
   , byteString "stream\n"
   , lazyByteString content

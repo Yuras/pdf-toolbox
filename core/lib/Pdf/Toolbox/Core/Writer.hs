@@ -17,6 +17,7 @@ module Pdf.Toolbox.Core.Writer
 , makeWriter
 , writeHeader
 , writeObject
+, writeStream
 , deleteObject
 , writeXRefTable
 )
@@ -78,12 +79,20 @@ writeHeader writer = do
   Streams.write (Just "%PDF-1.7\n") (stOutput st)
 
 -- | Write object
-writeObject :: Writer -> Ref -> Object BSL.ByteString -> IO ()
+writeObject :: Writer -> Ref -> Object -> IO ()
 writeObject writer ref@(R index gen) obj = do
   pos <- countWritten writer
   st <- readIORef (toStateRef writer)
   addElem writer $ Elem index gen pos False
   dumpObject (stOutput st) ref obj
+
+-- | Write stream
+writeStream :: Writer -> Ref -> Dict -> BSL.ByteString -> IO ()
+writeStream writer ref@(R index gen) dict dat = do
+  pos <- countWritten writer
+  st <- readIORef (toStateRef writer)
+  addElem writer $ Elem index gen pos False
+  dumpStream (stOutput st) ref dict dat
 
 -- | Delete object
 deleteObject :: Writer -> Ref -> Int64 -> IO ()
@@ -127,8 +136,16 @@ addElem writer e = do
     { stObjects = Set.insert e $ stObjects st
     }
 
-dumpObject :: OutputStream ByteString -> Ref -> Object BSL.ByteString -> IO ()
-dumpObject out ref o = Streams.writeLazyByteString (toLazyByteString $ buildIndirectObject ref o) out
+dumpObject :: OutputStream ByteString -> Ref -> Object -> IO ()
+dumpObject out ref o =
+  Streams.writeLazyByteString
+    (toLazyByteString $ buildIndirectObject ref o)
+    out
+
+dumpStream :: OutputStream ByteString -> Ref -> Dict -> BSL.ByteString -> IO ()
+dumpStream out ref dict dat =
+  Streams.writeLazyByteString
+    (toLazyByteString $ buildIndirectStream ref dict dat) out
 
 buildXRefTable :: [Elem] -> Builder
 buildXRefTable entries =

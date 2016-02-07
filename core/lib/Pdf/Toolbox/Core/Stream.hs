@@ -29,7 +29,7 @@ import Data.ByteString (ByteString)
 import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
-import Control.Exception
+import Control.Exception hiding (throw)
 import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 import qualified System.IO.Streams.Attoparsec as Streams
@@ -37,14 +37,16 @@ import qualified System.IO.Streams.Attoparsec as Streams
 -- | Read 'Stream' from stream
 --
 -- We need to pass current position here to calculate stream data offset
-readStream :: InputStream ByteString -> Int64 -> IO (Stream Int64)
+readStream :: InputStream ByteString -> Int64 -> IO Stream
 readStream is off = do
   (is', counter) <- Streams.countInput is
   (_, obj) <- Streams.parseFromStream parseIndirectObject is'
     `catch` \(Streams.ParseException msg) -> throwIO (Corrupted msg [])
   case obj of
-    Stream (S dict _) -> S dict . (+off) . fromIntegral <$> counter
-    _ -> throw $ Streams.ParseException ("stream expected, but got: "
+    Stream (S dict _) -> do
+      off' <- counter
+      return (S dict (off + off'))
+    _ -> throwIO $ Streams.ParseException ("stream expected, but got: "
                                           ++ show obj)
 
 -- | All stream filters implemented by the toolbox
@@ -62,10 +64,10 @@ knownFilters = [flateDecode]
 -- to read indirect objects here. So we require length to be provided
 rawStreamContent :: Buffer
                  -> Int           -- ^ stream length
-                 -> Stream Int64  -- ^ stream object to read content for.
+                 -> Int64         -- ^ stream offset
                                   -- The payload is offset of stream data
                  -> IO (InputStream ByteString)
-rawStreamContent buf len (S _ off) = do
+rawStreamContent buf len off = do
   Buffer.seek buf off
   Streams.takeBytes (fromIntegral len) (Buffer.toInputStream buf)
 
@@ -75,9 +77,9 @@ rawStreamContent buf len (S _ off) = do
 --
 -- The 'InputStream' is valid only until the next 'bufferSeek'
 decodeStream :: [StreamFilter]
-             -> Stream (InputStream ByteString)
+             -> Stream -> InputStream ByteString
              -> IO (InputStream ByteString)
-decodeStream filters (S dict istream) =
+decodeStream filters (S dict _) istream =
   buildFilterList dict >>= foldM decode istream
   where
   decode is (name, params) = do
@@ -85,7 +87,7 @@ decodeStream filters (S dict istream) =
     filterDecode f params is
   findFilter name =
     case filter ((== name) . filterName) filters of
-      [] -> throw $ Corrupted "Filter not found" []
+      [] -> throwIO $ Corrupted "Filter not found" []
       (f : _) -> return f
 
 buildFilterList :: Dict -> IO [(Name, Maybe Dict)]
@@ -103,19 +105,19 @@ buildFilterList dict = do
       fa' <- forM (Vector.toList fa) $ \o ->
         case o of
           Name n -> return n
-          _ -> throw $ Corrupted ("Filter should be a Name") []
+          _ -> throwIO $ Corrupted ("Filter should be a Name") []
       return $ zip fa' (repeat Nothing)
     (Array fa, Array pa) | Vector.length fa == Vector.length pa -> do
       fa' <- forM (Vector.toList fa) $ \o ->
         case o of
           Name n -> return n
-          _ -> throw $ Corrupted ("Filter should be a Name") []
+          _ -> throwIO $ Corrupted ("Filter should be a Name") []
       pa' <- forM (Vector.toList pa) $ \o ->
         case o of
           Dict d -> return d
-          _ -> throw $ Corrupted ("DecodeParams should be a dictionary") []
+          _ -> throwIO $ Corrupted ("DecodeParams should be a dictionary") []
       return $ zip fa' (map Just pa')
-    _ -> throw $ Corrupted ("Can't handle Filter and DecodeParams: ("
+    _ -> throwIO $ Corrupted ("Can't handle Filter and DecodeParams: ("
                             ++ show f ++ ", " ++ show p ++ ")") []
 
 -- | Decoded stream content
@@ -130,10 +132,10 @@ decodedStreamContent :: Buffer
                      -- ^ decryptor
                      -> Int
                      -- ^ stream length
-                     -> Stream Int64
+                     -> Stream
                      -- ^ stream with offset
                      -> IO (InputStream ByteString)
-decodedStreamContent buf filters decryptor len s@(S dict _) =
-  rawStreamContent buf len s >>=
+decodedStreamContent buf filters decryptor len s@(S _ off) =
+  rawStreamContent buf len off >>=
   decryptor >>=
-  decodeStream filters . S dict
+  decodeStream filters s

@@ -50,7 +50,7 @@ parseDict = do
   void $ P.string ">>"
   return $ HashMap.fromList dict
 
-parseKey :: Parser (Name, Object ())
+parseKey :: Parser (Name, Object)
 parseKey = do
   P.skipSpace
   key <- parseName
@@ -192,7 +192,7 @@ parseTillStreamData = do
 --
 -- >>> parseOnly parseObject "/Name"
 -- Right (OName (Name "Name"))
-parseObject :: Parser (Object ())
+parseObject :: Parser Object
 parseObject = do
   P.skipSpace
   P.choice [
@@ -212,7 +212,7 @@ parseObject = do
 --
 -- >>> parseOnly parseIndirectObject "1 2 obj\n12"
 -- Right (Ref 1 2,ONumber (NumInt 12))
-parseIndirectObject :: Parser (Ref, Object ())
+parseIndirectObject :: Parser (Ref, Object)
 parseIndirectObject = do
   P.skipSpace
   index <- P.decimal :: Parser Int
@@ -225,7 +225,7 @@ parseIndirectObject = do
   let ref = R index gen
   case obj of
     Dict d -> P.choice [
-      parseTillStreamData >> return (ref, Stream $ S d ()),
+      parseTillStreamData >> return (ref, Stream (S d 0)),
       return (ref, Dict d)
       ]
     _ -> return (ref, obj)

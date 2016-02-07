@@ -155,7 +155,7 @@ pageXObjects (Page pdf _ dict) =
 
             case HashMap.lookup "Subtype" xoDict of
               Just (Name "Form") -> do
-                S _ is <- streamContent pdf ref s
+                is <- streamContent pdf ref s
                 cont <- Lazy.ByteString.fromChunks <$> Streams.toList is
 
                 fontDicts <- Map.fromList <$>
@@ -238,7 +238,7 @@ combinedContent pdf refs = do
       _ -> throwIO (Corrupted "Page content is not a stream" [])
 
   Streams.fromGenerator $ forM_ allStreams $ \(ref, stream) -> do
-    S _ is <- liftIO $ streamContent pdf ref stream
+    is <- liftIO $ streamContent pdf ref stream
     yield is
   where
   yield is =

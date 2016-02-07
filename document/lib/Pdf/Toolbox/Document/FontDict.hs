@@ -213,7 +213,7 @@ loadUnicodeCMap pdf fontDict =
       toUnicode <- lookupObject pdf ref
       case toUnicode of
         Stream s -> do
-          S _ is <- streamContent pdf ref s
+          is <- streamContent pdf ref s
           content <- mconcat <$> Streams.toList is
           case parseUnicodeCMap content of
             Left e -> throw $ Corrupted ("can't parse cmap: " ++ show e) []

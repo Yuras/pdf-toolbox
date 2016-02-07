@@ -20,7 +20,6 @@ module Pdf.Toolbox.Document.Pdf
 where
 
 import Data.Typeable
-import Data.Int
 import Data.IORef
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
@@ -68,7 +67,7 @@ document pdf = do
   Document pdf <$> File.trailer (file pdf)
 
 -- | Find object by it's reference
-lookupObject :: Pdf -> Ref -> IO (Object Int64)
+lookupObject :: Pdf -> Ref -> IO Object
 lookupObject pdf ref = do
   (obj, decrypted) <- File.object (file pdf) ref
   if decrypted
@@ -80,20 +79,20 @@ lookupObject pdf ref = do
 -- Note: length of the content may differ from the raw one
 streamContent :: Pdf
               -> Ref
-              -> Stream Int64
-              -> IO (Stream (InputStream ByteString))
+              -> Stream
+              -> IO (InputStream ByteString)
 streamContent pdf ref s =
   rawStreamContent pdf s
   >>= decryptStream pdf ref
-  >>= decodeStream pdf
+  >>= decodeStream pdf s
 
 -- | Get stream content without decrypting or decoding it
 rawStreamContent
   :: Pdf
-  -> Stream Int64
-  -> IO (Stream (InputStream ByteString))
-rawStreamContent pdf s@(S dict _) =
-  S dict <$> File.stream (file pdf) s
+  -> Stream
+  -> IO (InputStream ByteString)
+rawStreamContent pdf s =
+  File.stream (file pdf) s
 
 -- | Decrypt stream content
 --
@@ -103,13 +102,13 @@ rawStreamContent pdf s@(S dict _) =
 decryptStream
   :: Pdf
   -> Ref
-  -> Stream (InputStream ByteString)
-  -> IO (Stream (InputStream ByteString))
-decryptStream pdf ref (S dict is) = do
+  -> InputStream ByteString
+  -> IO (InputStream ByteString)
+decryptStream pdf ref is = do
   maybe_decryptor <- readIORef decrRef
   case maybe_decryptor of
-    Nothing -> return (S dict is)
-    Just decryptor -> S dict <$> decryptor ref DecryptStream is
+    Nothing -> return is
+    Just decryptor -> decryptor ref DecryptStream is
   where
   Pdf _ decrRef = pdf
 
@@ -118,24 +117,17 @@ decryptStream pdf ref (S dict is) = do
 -- It should be already decrypted
 decodeStream
   :: Pdf
-  -> Stream (InputStream ByteString)
-  -> IO (Stream (InputStream ByteString))
-decodeStream _pdf s@(S dict _) =
-  S dict <$> Core.decodeStream knownFilters s
+  -> Stream -> InputStream ByteString
+  -> IO (InputStream ByteString)
+decodeStream _pdf s =
+  Core.decodeStream knownFilters s
 
 -- | Recursively load indirect object
-deref :: Pdf -> Object a -> IO (Object ())
+deref :: Pdf -> Object -> IO Object
 deref pdf (Ref ref) = do
   o <- lookupObject pdf ref
   deref pdf o
-deref _ (Number n) = return (Number n)
-deref _ (Name n) = return (Name n)
-deref _ (String str) = return (String str)
-deref _ (Bool b) = return (Bool b)
-deref _ (Dict d) = return (Dict d)
-deref _ (Array a) = return (Array a)
-deref _ (Stream (S dict _)) = return (Stream (S dict ()))
-deref _ Null = return Null
+deref _ o = return o
 
 -- | Whether the PDF document it encrypted
 isEncrypted :: Pdf -> IO Bool
@@ -172,7 +164,7 @@ setUserPassword pdf pass = message "setUserPassword" $ do
       return True
 
 -- | Decrypt PDF object using user password is set
-decrypt :: Pdf -> Ref -> Object a -> IO (Object a)
+decrypt :: Pdf -> Ref -> Object -> IO Object
 decrypt (Pdf _ decr_ref) ref o = do
   maybe_decr <- readIORef decr_ref
   case maybe_decr of

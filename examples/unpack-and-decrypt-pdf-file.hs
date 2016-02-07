@@ -6,7 +6,6 @@ module Main
 )
 where
 
-import Data.Int
 import Data.IORef
 import qualified Data.ByteString.Lazy as Lazy (ByteString)
 import qualified Data.ByteString.Lazy as Lazy.ByteString
@@ -43,11 +42,8 @@ main = do
 
     stateRef <- newIORef IntSet.empty
     let
-        loop :: Object Int64 -> IO ()
-        loop (Dict vals) = Foldable.forM_ vals $ \v ->
-          loop (mapObject (error "impossible") v)
-        loop (Array vals) = Vector.forM_ vals $ \v ->
-          loop (mapObject (error "impossible") v)
+        loop (Dict vals) = Foldable.forM_ vals loop
+        loop (Array vals) = Vector.forM_ vals loop
         loop (Ref r@(R index _)) = do
           -- check that the object is not already written.
           -- necessary to prevent circles
@@ -56,7 +52,11 @@ main = do
             then return ()
             else do
               o <- lookupObject pdf r
-              loadStream pdf r o >>= writeObject writer r
+              case o of
+                Stream s -> do
+                  (d, dat) <- loadStream pdf r s
+                  writeStream writer r d dat
+                _ -> writeObject writer r o
               modifyIORef stateRef $ IntSet.insert index
               loop o
         loop (Stream (S d _)) = loop (Dict d)
@@ -69,37 +69,25 @@ main = do
     -- There are no more xrefs, so clean prev key
     writeXRefTable writer 0 (HashMap.delete "Prev" tr)
 
-mapObject :: (a -> b) -> Object a -> Object b
-mapObject _ (Dict d) = Dict d
-mapObject _ (Name n) = Name n
-mapObject _ (String s) = String s
-mapObject _ (Number n) = Number n
-mapObject _ (Bool b) = Bool b
-mapObject _ (Array a) = Array a
-mapObject _ (Ref r) = Ref r
-mapObject _ Null = Null
-mapObject f (Stream (S d a)) = Stream (S d (f a))
-
-loadStream :: Pdf -> Ref -> Object Int64 -> IO (Object Lazy.ByteString)
-loadStream pdf ref (Stream s) = do
-  s' <- loadDecodedStream pdf ref s
+loadStream :: Pdf -> Ref -> Stream -> IO (Dict, Lazy.ByteString)
+loadStream pdf ref s = do
+  res <- loadDecodedStream pdf ref s
     `catch` \Corrupted{} -> loadRawStream pdf ref s
-  return (Stream s')
-loadStream _ _ o = return (mapObject (error "impossible") o)
+  return res
 
-loadDecodedStream :: Pdf -> Ref -> Stream Int64 -> IO (Stream Lazy.ByteString)
-loadDecodedStream pdf ref s = do
-  S d is <- streamContent pdf ref s
+loadDecodedStream :: Pdf -> Ref -> Stream -> IO (Dict, Lazy.ByteString)
+loadDecodedStream pdf ref s@(S d _) = do
+  is <- streamContent pdf ref s
   cont <- Lazy.ByteString.fromChunks <$> Streams.toList is
   -- update length and remove filter
   let d' = HashMap.insert "Length" (Number len)
          . HashMap.delete "Filter"
          $ d
       len = fromIntegral (Lazy.ByteString.length cont)
-  return (S d' cont)
+  return (d', cont)
 
-loadRawStream :: Pdf -> Ref -> Stream Int64 -> IO (Stream Lazy.ByteString)
-loadRawStream pdf _ s = do
-  S d is <- rawStreamContent pdf s
+loadRawStream :: Pdf -> Ref -> Stream -> IO (Dict, Lazy.ByteString)
+loadRawStream pdf _ s@(S d _) = do
+  is <- rawStreamContent pdf s
   cont <- Lazy.ByteString.fromChunks <$> Streams.toList is
-  return (S d cont)
+  return (d, cont)

@@ -16,7 +16,7 @@ import Data.ByteString (ByteString)
 import Pdf.Toolbox.Core
 
 -- | Operator with arguments
-type Operator = (Op, [Object ()])
+type Operator = (Op, [Object])
 
 -- | Content stream operators
 data Op
@@ -114,7 +114,7 @@ data Op
 
 -- | Expression is a regular objects or an operators
 data Expr
-  = Obj (Object ())
+  = Obj Object
   | Op Op
   deriving (Show, Eq)
 

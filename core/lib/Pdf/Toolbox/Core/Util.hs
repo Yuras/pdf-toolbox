@@ -20,7 +20,7 @@ import Data.ByteString (ByteString)
 import Data.Attoparsec.ByteString.Char8 (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as Parser
 import Control.Monad
-import Control.Exception
+import Control.Exception hiding (throw)
 import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 import qualified System.IO.Streams.Attoparsec as Streams
@@ -36,24 +36,18 @@ notice (Just a) = const (Right a)
 -- will be an offset of stream content
 readObjectAtOffset :: Buffer
                    -> Int64   -- ^ object offset
-                   -> IO (Ref, Object Int64)
+                   -> IO (Ref, Object)
 readObjectAtOffset buf off = message "readObjectAtOffset" $ do
   Buffer.seek buf off
   (ref, o) <- Streams.parseFromStream parseIndirectObject
     (Buffer.toInputStream buf)
-      `catch` \(Streams.ParseException msg) -> throw (Corrupted msg [])
-  o' <-
-    case o of
-      Number val -> return $ Number val
-      Bool val -> return $ Bool val
-      Name val -> return $ Name val
-      Dict val -> return $ Dict val
-      Array val -> return $ Array val
-      String val -> return $ String val
-      Stream (S dict _) -> (Stream . S dict) <$> Buffer.tell buf
-      Ref _ -> throw $ Corrupted "Indirect object can't be a Ref" []
-      Null -> return Null
-  return (ref, o')
+      `catch` \(Streams.ParseException msg) -> throwIO (Corrupted msg [])
+  case o of
+    Stream (S dict _) -> do
+      pos <- Buffer.tell buf
+      return (ref, Stream (S dict pos))
+    Ref _ -> throwIO $ Corrupted "Indirect object can't be a Ref" []
+    _ -> return (ref, o)
 
 -- | Read object from object stream
 --
@@ -65,7 +59,7 @@ readCompressedObject :: InputStream ByteString
                      -- (\"First\" key in dictionary)
                      -> Int
                      -- ^ object number to read
-                     -> IO (Object ())
+                     -> IO Object
 readCompressedObject is first num = do
   (is', counter) <- Streams.countInput is
   off <- do

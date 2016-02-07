@@ -90,7 +90,7 @@ buildRefSpec = describe "buildRef" $ do
 buildStreamSpec :: Spec
 buildStreamSpec = describe "buildStream" $ do
   it "should build a stream" $ do
-    let res = buildStream (S dict "hello")
+    let res = buildStream dict "hello"
         dict = HashMap.fromList [("a", String "b")]
     Builder.toLazyByteString res
       `shouldBe` "<</a (b)>>stream\nhello\nendstream"

@@ -46,7 +46,7 @@ type Decryptor
   -> IO (InputStream ByteString)
 
 -- | Decrypt object with the decryptor
-decryptObject :: Decryptor -> Ref -> Object a -> IO (Object a)
+decryptObject :: Decryptor -> Ref -> Object -> IO Object
 decryptObject decryptor ref (String str)
   = String <$> decryptStr decryptor ref str
 decryptObject decryptor ref (Dict dict)

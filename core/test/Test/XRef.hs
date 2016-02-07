@@ -146,22 +146,22 @@ spec = describe "XRef" $ do
           ]
     it "should handle free objects" $ (do
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (S dict is) (R 6 0)
+      lookupStreamEntry dict is (R 6 0)
       ) `shouldReturn` Just (StreamEntryFree 4 0)
 
     it "should handle used objects" $ (do
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (S dict is) (R 4 0)
+      lookupStreamEntry dict is (R 4 0)
       ) `shouldReturn` Just (StreamEntryUsed 2 3)
 
     it "should handle compressed objects" $ (do
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (S dict is) (R 5 0)
+      lookupStreamEntry dict is (R 5 0)
       ) `shouldReturn` Just (StreamEntryCompressed 3 4)
 
     it "should return Nothing when object to found" $ (do
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (S dict is) (R 7 0)
+      lookupStreamEntry dict is (R 7 0)
       ) `shouldReturn` Nothing
 
     it "should handle multiple sections" $ (do
@@ -171,5 +171,5 @@ spec = describe "XRef" $ do
             , ("Size", Number 4)
             ]
       is <- Streams.fromByteString bytes
-      lookupStreamEntry (S dict' is) (R 11 0)
+      lookupStreamEntry dict' is (R 11 0)
       ) `shouldReturn` Just (StreamEntryFree 4 0)
