@@ -26,7 +26,7 @@ import qualified Data.ByteString as ByteString
 import Data.Text (Text)
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
-import Control.Exception
+import Control.Exception hiding (throw)
 import System.IO (Handle)
 import System.IO.Streams (InputStream)
 
@@ -145,17 +145,17 @@ setUserPassword pdf pass = message "setUserPassword" $ do
   tr <- File.trailer (file pdf)
   enc <-
     case HashMap.lookup "Encrypt" tr of
-      Nothing -> throw (Unexpected "document is not encrypted" [])
+      Nothing -> throwIO (Unexpected "document is not encrypted" [])
       Just o -> do
         o' <- deref pdf o
         case o' of
           Dict d -> return d
-          Null -> throw (Corrupted "encryption encryption dict is null" [])
-          _ -> throw (Corrupted "document Encrypt should be a dictionary" [])
+          Null -> throwIO (Corrupted "encryption encryption dict is null" [])
+          _ -> throwIO (Corrupted "document Encrypt should be a dictionary" [])
   let either_res = mkStandardDecryptor tr enc
         (ByteString.take 32 $ pass `mappend` defaultUserPassword)
   case either_res of
-    Left err -> throw $ Corrupted err []
+    Left err -> throwIO $ Corrupted err []
     Right Nothing -> return False
     Right (Just decr) -> do
       let Pdf _ ref = pdf

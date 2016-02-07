@@ -11,7 +11,7 @@ where
 
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
-import Control.Exception
+import Control.Exception hiding (throw)
 
 import Pdf.Toolbox.Core
 import Pdf.Toolbox.Core.Name (Name)
@@ -21,7 +21,7 @@ ensureType :: Name -> Dict -> IO ()
 ensureType name dict = do
   n <- sure $ dictionaryType dict
   unless (n == name) $
-    throw $ Corrupted ("Expected type: " ++ show name ++
+    throwIO $ Corrupted ("Expected type: " ++ show name ++
                        ", but found: " ++ show n) []
 
 -- | Get dictionary type, name at key \"Type\"

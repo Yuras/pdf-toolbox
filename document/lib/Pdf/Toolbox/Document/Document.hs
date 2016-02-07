@@ -12,7 +12,7 @@ module Pdf.Toolbox.Document.Document
 where
 
 import qualified Data.HashMap.Strict as HashMap
-import Control.Exception
+import Control.Exception hiding (throw)
 
 import Pdf.Toolbox.Core
 import Pdf.Toolbox.Core.Util
@@ -44,7 +44,7 @@ documentInfo doc = do
       obj <- lookupObject (pdf doc) ref
       d <- sure $ dictValue obj `notice` "info should be a dictionary"
       return (Just (Info (pdf doc) ref d))
-    _ -> throw $ Corrupted "document Info should be an indirect reference" []
+    _ -> throwIO $ Corrupted "document Info should be an indirect reference" []
 
 -- | Document encryption dictionary
 documentEncryption :: Document -> IO (Maybe Dict)
@@ -56,4 +56,4 @@ documentEncryption doc = do
       case o' of
         Dict d -> return (Just d)
         Null -> return Nothing
-        _ -> throw (Corrupted "document Encrypt should be a dictionary" [])
+        _ -> throwIO (Corrupted "document Encrypt should be a dictionary" [])

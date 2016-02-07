@@ -12,7 +12,7 @@ import Data.Attoparsec.ByteString.Char8 (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as Parser
 import Control.Applicative
 import Control.Monad
-import Control.Exception
+import Control.Exception hiding (throw)
 import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 import qualified System.IO.Streams.Attoparsec as Streams
@@ -29,11 +29,11 @@ readNextOperator is = message "readNextOperator" $ go []
   go args = do
     expr <- Streams.read is
       -- XXX: it should be handled by stream creator
-      `catch` \(Streams.ParseException msg) -> throw (Corrupted msg [])
+      `catch` \(Streams.ParseException msg) -> throwIO (Corrupted msg [])
     case expr of
       Nothing -> case args of
                    [] -> return Nothing
-                   _ -> throw $ Corrupted ("Args without op: " ++ show args) []
+                   _ -> throwIO $ Corrupted ("Args without op: " ++ show args) []
       Just (Obj o) -> go (o : args)
       Just (Op o) -> return $ Just (o, reverse args)
 

@@ -36,7 +36,7 @@ import qualified Data.ByteString as ByteString
 import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
-import Control.Exception
+import Control.Exception hiding (throw)
 import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 import qualified System.IO.Streams.Attoparsec as Streams
@@ -86,7 +86,7 @@ lastXRef buf = do
   (Streams.parseFromStream startXRef (Buffer.toInputStream buf)
     >>= readXRef buf
     ) `catch` \(Streams.ParseException msg) ->
-                  throw (Corrupted "lastXRef" [msg])
+                  throwIO (Corrupted "lastXRef" [msg])
 
 -- | Read XRef at specified offset
 readXRef :: Buffer -> Int64 -> IO XRef
@@ -118,18 +118,18 @@ trailer buf (XRefTable off) = do
   let is = Buffer.toInputStream buf
   table <- isTable is
   unless table $
-    throw (Unexpected "trailer" ["table not found"])
+    throwIO (Unexpected "trailer" ["table not found"])
   ( skipTable is >>
     Streams.parseFromStream parseTrailerAfterTable is
     ) `catch` \(Streams.ParseException msg) ->
-                  throw (Corrupted "trailer" [msg])
+                  throwIO (Corrupted "trailer" [msg])
 trailer _ (XRefStream _ (S dict _)) = return dict
 
 skipTable :: InputStream ByteString -> IO ()
 skipTable is = message "skipTable" $
   (subsectionHeader is
     `catch` \(Streams.ParseException msg) ->
-      throw (Corrupted msg []))
+      throwIO (Corrupted msg []))
     >>= go . snd
   where
   go count = nextSubsectionHeader is count >>= maybe (return ()) (go . snd)
@@ -156,9 +156,9 @@ lookupTableEntry buf (XRefTable tableOff) (R index gen)
   Buffer.seek buf tableOff
   table <- isTable (Buffer.toInputStream buf)
   unless table $
-    throw $ Unexpected "Not a table" []
+    throwIO $ Unexpected "Not a table" []
   (subsectionHeader (Buffer.toInputStream buf) >>= go)
-    `catch` \(Streams.ParseException err) -> throw (Corrupted err [])
+    `catch` \(Streams.ParseException err) -> throwIO (Corrupted err [])
   where
   go (start, count) = do
     if index >= start && index < start + count
@@ -169,16 +169,16 @@ lookupTableEntry buf (XRefTable tableOff) (R index gen)
         (off, gen', free) <-
           Streams.parseFromStream parseTableEntry (Buffer.toInputStream buf)
             `catch` \(Streams.ParseException msg) ->
-              throw (Corrupted "parseTableEntry failed" [msg])
+              throwIO (Corrupted "parseTableEntry failed" [msg])
         unless (gen == gen') $
-          throw $ Corrupted "Generation mismatch" []
+          throwIO $ Corrupted "Generation mismatch" []
         return $ Just $ TableEntry off gen free
       else
         -- go to the next section if any
         nextSubsectionHeader (Buffer.toInputStream buf) count
         >>= maybe (return Nothing) go
 lookupTableEntry _ XRefStream{} _ =
-  throw $ Unexpected "lookupTableEntry" ["Only xref table allowed"]
+  throwIO $ Unexpected "lookupTableEntry" ["Only xref table allowed"]
 
 -- | Read xref entry for the indirect object from xref stream
 --
@@ -219,7 +219,7 @@ lookupStreamEntry dict is (R objNumber _) =
       `notice` "W should contains integers"
 
   unless (length width == 3) $
-    throw $ Corrupted ("Malformed With array in xref stream: "
+    throwIO $ Corrupted ("Malformed With array in xref stream: "
                         ++ show width) []
 
   values <- do
@@ -254,7 +254,7 @@ lookupStreamEntry dict is (R objNumber _) =
         1 -> return $ Just $ StreamEntryUsed v2 (fromIntegral v3)
         2 -> return $ Just $ StreamEntryCompressed (fromIntegral v2)
                                                    (fromIntegral v3)
-        _ -> throw $ UnknownXRefStreamEntryType (fromIntegral v1)
+        _ -> throwIO $ UnknownXRefStreamEntryType (fromIntegral v1)
 
 -- | Unknown entry type should be interpreted as reference to null object
 data UnknownXRefStreamEntryType = UnknownXRefStreamEntryType Int

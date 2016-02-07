@@ -17,7 +17,7 @@ import Data.IORef
 import Data.ByteString (ByteString)
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
-import Control.Exception
+import Control.Exception hiding (throw)
 import System.IO.Streams (InputStream)
 
 import Pdf.Toolbox.Core hiding (trailer)
@@ -78,7 +78,7 @@ streamContent file (S dict pos) = do
       Ref ref -> do
         (o, _) <- findObject file ref
         sure $ intValue o `notice` "Length should be an integer"
-      _ -> throw $ Corrupted "Length should be an integer" []
+      _ -> throwIO $ Corrupted "Length should be an integer" []
   rawStreamContent (_buffer file) len pos
 
 readObjectForEntry :: File_-> XRefEntry -> IO (Object, Bool)
@@ -87,7 +87,7 @@ readObjectForEntry file (XRefTableEntry entry)
   | otherwise = do
     (R _ gen, obj) <- readObjectAtOffset (_buffer file) (teOffset entry)
     unless (gen == teGen entry) $
-      throw (Corrupted "readObjectForEntry" ["object generation missmatch"])
+      throwIO (Corrupted "readObjectForEntry" ["object generation missmatch"])
     return (obj, False)
 readObjectForEntry file (XRefStreamEntry entry) =
   case entry of
@@ -121,7 +121,7 @@ lookupEntryRec file ref = loop (_lastXRef file)
         prev <- prevXRef (_buffer file) xref
         case prev of
           Just p -> loop p
-          Nothing -> throw (NotFound $ "The Ref not found: " ++ show ref)
+          Nothing -> throwIO (NotFound $ "The Ref not found: " ++ show ref)
 
 lookupEntry :: File_ -> Ref -> XRef -> IO (Maybe XRefEntry)
 lookupEntry file ref xref@(XRefTable _) =

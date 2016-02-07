@@ -17,7 +17,7 @@ where
 import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
-import Control.Exception
+import Control.Exception hiding (throw)
 
 import Pdf.Toolbox.Core
 import Pdf.Toolbox.Core.Util
@@ -42,7 +42,7 @@ pageNodeParent (PageNode pdf _ dict) =
       node <- sure $ dictValue obj `notice` "Parent should be a dictionary"
       ensureType "Pages" node
       return $ Just (PageNode pdf ref node)
-    _ -> throw (Corrupted "Parent should be an indirect ref" [])
+    _ -> throwIO (Corrupted "Parent should be an indirect ref" [])
 
 -- | Referencies to all kids
 pageNodeKids :: PageNode -> IO [Ref]
@@ -64,7 +64,7 @@ loadPageNode pdf ref = do
   case nodeType of
     "Pages" -> return $ PageTreeNode (PageNode pdf ref node)
     "Page" -> return $ PageTreeLeaf (Page pdf ref node)
-    _ -> throw $ Corrupted ("Unexpected page tree node type: "
+    _ -> throwIO $ Corrupted ("Unexpected page tree node type: "
                               ++ show nodeType) []
 
 -- | Find page by it's number
@@ -78,7 +78,7 @@ pageNodePageByNum node@(PageNode pdf nodeRef _) num =
   message ("page #" ++ show num ++ " for node: " ++ show nodeRef) $ do
   pageNodeKids node >>= loop num
   where
-  loop _ [] = throw $ Corrupted "Page not found" []
+  loop _ [] = throwIO $ Corrupted "Page not found" []
   loop i (x:xs) = do
     kid <- loadPageNode pdf x
     case kid  of

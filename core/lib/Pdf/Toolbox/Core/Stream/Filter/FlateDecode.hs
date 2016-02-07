@@ -14,7 +14,7 @@ import Data.Word
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import qualified Data.HashMap.Strict as HashMap
-import Control.Exception
+import Control.Exception hiding (throw)
 import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 
@@ -37,7 +37,7 @@ decode (Just dict) is =
     Nothing -> Streams.decompress is
     Just o | Just val <- intValue o ->
       Streams.decompress is >>= unpredict dict val
-    _ -> throw $ Corrupted "Predictor should be an integer" []
+    _ -> throwIO $ Corrupted "Predictor should be an integer" []
 
 unpredict :: Dict
           -> Int
@@ -46,12 +46,12 @@ unpredict :: Dict
 unpredict _ 1 is = return is
 unpredict dict 12 is = message "unpredict" $
   case HashMap.lookup "Columns" dict of
-    Nothing -> throw $ Corrupted "Column is missing" []
+    Nothing -> throwIO $ Corrupted "Column is missing" []
     Just o
       | Just cols <- intValue o
       -> unpredict12 (cols + 1) is
-    _ -> throw $ Corrupted "Column should be an integer" []
-unpredict _ p _ = throw $ Unexpected ("Unsupported predictor: " ++ show p) []
+    _ -> throwIO $ Corrupted "Column should be an integer" []
+unpredict _ p _ = throwIO $ Unexpected ("Unsupported predictor: " ++ show p) []
 
 -- | PGN-UP prediction
 --

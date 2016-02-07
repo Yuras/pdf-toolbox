@@ -16,7 +16,7 @@ import Data.ByteString (ByteString)
 import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
-import Control.Exception
+import Control.Exception hiding (throw)
 import qualified System.IO.Streams as Streams
 
 import Pdf.Toolbox.Core
@@ -49,7 +49,7 @@ fontDictSubtype (FontDict pdf dict) = do
     "MMType1" -> return FontMMType1
     "Type3" -> return FontType3
     "TrueType" -> return FontTrueType
-    _ -> throw $ Unexpected ("Unexpected font subtype: " ++ show str) []
+    _ -> throwIO $ Unexpected ("Unexpected font subtype: " ++ show str) []
 
 -- | Load font info for the font
 fontDictLoadInfo :: FontDict -> IO FontInfo
@@ -68,8 +68,8 @@ fontDictLoadInfo fd@(FontDict pdf fontDict) = do
         case mapM realValue (Vector.toList arr) of
           Just [a, b, c, d, e, f] -> do
             return $ Transform a b c d e f
-          Nothing -> throw $ Corrupted "FontMatrics should contain numbers" []
-          _ -> throw $ Corrupted "FontMatrix: wrong number of elements" []
+          Nothing -> throwIO $ Corrupted "FontMatrics should contain numbers" []
+          _ -> throwIO $ Corrupted "FontMatrix: wrong number of elements" []
       return $ FontInfoSimple fi {
         fiSimpleFontMatrix = fontMatrix
         }
@@ -90,7 +90,7 @@ loadFontInfoComposite pdf fontDict = do
         o' <- deref pdf o
         sure $ dictValue o'
                 `notice` "DescendantFonts element should be a dictionary"
-      _ -> throw $ Corrupted
+      _ -> throwIO $ Corrupted
             "Unexpected value of DescendantFonts key in font dictionary" []
 
   defaultWidth <-
@@ -200,7 +200,7 @@ loadEncodingDifferences pdf dict = do
           `notice` "Differences: elements should be integers")
         go res n' rest
       (Name name) -> go (((n, Name.toByteString name)) : res) (n + 1) rest
-      _ -> throw $ Corrupted
+      _ -> throwIO $ Corrupted
         ("Differences array: unexpected object: " ++ show o) []
 
 loadUnicodeCMap :: Pdf -> Dict -> IO (Maybe UnicodeCMap)
@@ -216,6 +216,6 @@ loadUnicodeCMap pdf fontDict =
           is <- streamContent pdf ref s
           content <- mconcat <$> Streams.toList is
           case parseUnicodeCMap content of
-            Left e -> throw $ Corrupted ("can't parse cmap: " ++ show e) []
+            Left e -> throwIO $ Corrupted ("can't parse cmap: " ++ show e) []
             Right cmap -> return $ Just cmap
-        _ -> throw $ Corrupted "ToUnicode: not a stream" []
+        _ -> throwIO $ Corrupted "ToUnicode: not a stream" []

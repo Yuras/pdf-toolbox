@@ -29,7 +29,7 @@ import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
 import Control.Monad.IO.Class
-import Control.Exception
+import Control.Exception hiding (throw)
 import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 import qualified System.IO.Streams.Attoparsec as Streams
@@ -54,7 +54,7 @@ pageParentNode (Page pdf _ dict) = do
   node <- loadPageNode pdf ref
   case node of
     PageTreeNode n -> return n
-    PageTreeLeaf _ -> throw $ Corrupted
+    PageTreeLeaf _ -> throwIO $ Corrupted
       "page parent should be a note, but leaf found" []
 
 -- | List of references to page's content streams
@@ -71,11 +71,11 @@ pageContents (Page pdf pageRef dict) =
         Stream _ -> return [ref]
         Array objs -> forM (Vector.toList objs) $ \obj ->
           sure $ refValue obj `notice` "Content should be a reference"
-        _ -> throw $ Corrupted
+        _ -> throwIO $ Corrupted
           ("Unexpected value in page content ref: " ++ show o) []
     Just (Array objs) -> forM (Vector.toList objs) $ \obj ->
       sure $ refValue obj `notice` "Content should be a reference"
-    _ -> throw $ Corrupted "Unexpected value in page contents" []
+    _ -> throwIO $ Corrupted "Unexpected value in page contents" []
 
 -- | Media box, inheritable
 pageMediaBox :: Page -> IO (Rectangle Double)
@@ -99,7 +99,7 @@ mediaBoxRec tree = do
           PageTreeNode node -> do
             parent <- pageNodeParent node
             case parent of
-              Nothing -> throw $ Corrupted "Media box not found" []
+              Nothing -> throwIO $ Corrupted "Media box not found" []
               Just p -> return (PageTreeNode p)
           PageTreeLeaf page -> PageTreeNode <$> pageParentNode page
       mediaBoxRec parent

@@ -11,7 +11,7 @@ module Pdf.Toolbox.Core.Exception
 where
 
 import Data.Typeable
-import Control.Exception
+import Control.Exception hiding (throw)
 
 -- | File is corrupted
 --
@@ -30,12 +30,12 @@ instance Exception Unexpected where
 -- | We are sure it is 'Right'. Otherwise 'Corripted' is thrown
 sure :: Either String a -> IO a
 sure (Right a) = return a
-sure (Left err) = throw (Corrupted err [])
+sure (Left err) = throwIO (Corrupted err [])
 
 -- | Catch 'Corrupted' and 'Unexpected'
 -- and add a message to it before rethrowing
 message :: String -> IO a -> IO a
 message msg a = a `catches`
-  [ Handler $ \(Corrupted err msgs) -> throw (Corrupted msg (err : msgs))
-  , Handler $ \(Unexpected err msgs) -> throw (Unexpected msg (err : msgs))
+  [ Handler $ \(Corrupted err msgs) -> throwIO (Corrupted msg (err : msgs))
+  , Handler $ \(Unexpected err msgs) -> throwIO (Unexpected msg (err : msgs))
   ]
