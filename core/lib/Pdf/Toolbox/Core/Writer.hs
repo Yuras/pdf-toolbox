@@ -6,11 +6,11 @@
 -- It could be used to generate new PDF file
 -- or to incrementally update the existent one
 --
--- To generate new file, first call 'writePdfHeader',
+-- To generate new file, first call 'writeHeader',
 -- then a number of 'writeObject' and finally 'writeXRefTable'
 --
--- To incrementally update PDF file just ommit the
--- `writePdfHeader` and append the result to the existent file
+-- To incrementally update PDF file just omit the
+-- `writeHeader` and append the result to the existent file
 
 module Pdf.Toolbox.Core.Writer
 ( Writer
@@ -38,12 +38,12 @@ import qualified System.IO.Streams as Streams
 import Pdf.Toolbox.Core.Object.Types
 import Pdf.Toolbox.Core.Object.Builder
 
-newtype Writer = Writer {toStateRef :: IORef PdfState}
+newtype Writer = Writer {toStateRef :: IORef State}
 
 makeWriter :: OutputStream ByteString -> IO Writer
 makeWriter output = do
   (out, count) <- Streams.countOutput output
-  let emptyState = PdfState {
+  let emptyState = State {
         stOutput = out,
         stObjects = Set.empty,
         stCount = count,
@@ -64,7 +64,7 @@ instance Eq Elem where
 instance Ord Elem where
   compare = compare `on` elemIndex
 
-data PdfState = PdfState {
+data State = State {
   stOutput :: OutputStream ByteString,
   stObjects :: !(Set Elem),
   stCount :: IO Int64,
@@ -103,21 +103,23 @@ deleteObject writer (R index gen) nextFree =
 -- Used for generating and incremental updates.
 writeXRefTable
   :: Writer
-  -> Int64           -- ^ size of the original PDF file. Should be 0 for new file
-  -> Dict            -- ^ trailer
+  -> Int64    -- ^ size of the original PDF file. Should be 0 for new file
+  -> Dict     -- ^ trailer
   -> IO ()
 writeXRefTable writer offset tr = do
   off <- (+ offset) <$> countWritten writer
   st <- readIORef (toStateRef writer)
   let elems = Set.mapMonotonic (\e -> e {elemOffset = elemOffset e + offset})
             $ stObjects st
-      content = byteString "xref\n" `mappend`
-                buildXRefTable (Set.toAscList elems) `mappend`
-                byteString "trailer\n" `mappend`
-                buildDict tr `mappend`
-                byteString "\nstartxref\n" `mappend`
-                int64Dec off `mappend`
-                byteString "\n%%EOF\n"
+      content = mconcat
+        [ byteString "xref\n"
+        , buildXRefTable (Set.toAscList elems)
+        , byteString "trailer\n"
+        , buildDict tr
+        , byteString "\nstartxref\n"
+        , int64Dec off
+        , byteString "\n%%EOF\n"
+        ]
   Streams.writeLazyByteString (toLazyByteString content) (stOutput st)
 
 countWritten :: Writer -> IO Int64
@@ -131,7 +133,7 @@ addElem :: Writer -> Elem -> IO ()
 addElem writer e = do
   st <- readIORef (toStateRef writer)
   when (Set.member e $ stObjects st) $
-    error $ "PdfWriter: attempt to write object with the same index: " ++ show (elemIndex e)
+    error $ "Writer: attempt to write object with the same index: " ++ show (elemIndex e)
   writeIORef (toStateRef writer) $ st
     { stObjects = Set.insert e $ stObjects st
     }
@@ -165,21 +167,22 @@ buildXRefTable entries =
 
 buildXRefSection :: [Elem] -> Builder
 buildXRefSection [] = error "impossible"
-buildXRefSection s@(e:_) =
-  intDec (elemIndex e) `mappend`
-  char7 ' ' `mappend`
-  intDec (length s) `mappend`
-  char7 '\n' `mappend`
-  loop s
+buildXRefSection s@(e:_) = mconcat
+  [ intDec (elemIndex e)
+  , char7 ' '
+  , intDec (length s)
+  , char7 '\n'
+  , loop s
+  ]
   where
-  loop (x:xs) =
-    buildFixed 10 '0' (elemOffset x) `mappend`
-    char7 ' ' `mappend`
-    buildFixed 5 '0' (elemGen x) `mappend`
-    char7 ' ' `mappend`
-    char7 (if elemFree x then 'f' else 'n') `mappend`
-    string7 "\r\n" `mappend`
-    loop xs
+  loop (x:xs) = mconcat
+    [ buildFixed 10 '0' (elemOffset x)
+    , char7 ' '
+    , buildFixed 5 '0' (elemGen x)
+    , char7 ' '
+    , char7 (if elemFree x then 'f' else 'n')
+    , string7 "\r\n"
+    ] `mappend` loop xs
   loop [] = mempty
 
 buildFixed :: Show a => Int -> Char -> a -> Builder
