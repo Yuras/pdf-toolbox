@@ -123,6 +123,15 @@ spec = describe "XRef" $ do
       lookupTableEntry buf (XRefTable 5) (R 4 0)
       ) `shouldReturn` Just (EntryUsed 44 0)
 
+    it "should return free entry" $ (do
+      buf <- Buffer.fromBytes "helloxref\n\
+        \1 2\n\
+        \0000000011 00000 n\r\n\
+        \0000000022 00001 f\r\n\
+        \trailer"
+      lookupTableEntry buf (XRefTable 5) (R 2 0)
+      ) `shouldReturn` Just (EntryFree 22 0)
+
     it "should return Nothing when not found" $ (do
       buf <- Buffer.fromBytes "helloxref\n\
         \1 2\n\

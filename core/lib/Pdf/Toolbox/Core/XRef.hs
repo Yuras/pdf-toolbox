@@ -155,7 +155,8 @@ lookupTableEntry buf (XRefTable tableOff) (R index gen)
           Streams.parseFromStream parseTableEntry (Buffer.toInputStream buf)
             `catch` \(Streams.ParseException msg) ->
               throwIO (Corrupted "parseTableEntry failed" [msg])
-        unless (gen == gen') $
+        unless (free || gen == gen') $ do
+          print (index, gen, off, gen', free)
           throwIO $ Corrupted "Generation mismatch" []
         let entry = if free
               then EntryFree (fromIntegral off) gen
