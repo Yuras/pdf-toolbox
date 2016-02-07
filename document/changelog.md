@@ -1,5 +1,6 @@
-unreleased
+0.0.7.1
 
+* fix compilation on ghc 7.4, 7.6 and 7.8
 * fix xobject handling in text extraction
 
 0.0.7.0

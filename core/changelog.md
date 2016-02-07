@@ -1,3 +1,7 @@
+0.0.4.1
+
+* fix compilation on ghc 7.4, 7.6 and 7.8
+
 0.0.4.0
 
 * switch to errors-2.0

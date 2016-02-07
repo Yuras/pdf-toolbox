@@ -1,3 +1,7 @@
+0.0.5.1
+
+* fix compilation on ghc 7.4, 7.6 and 7.8
+
 0.0.5.0
 
 * add support for multiple bfrange and bfchars sections in CMap
