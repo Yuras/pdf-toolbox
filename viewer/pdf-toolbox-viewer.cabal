@@ -19,7 +19,10 @@ source-repository head
 
 executable pdf-toolbox-viewer
   main-is:             viewer.hs
-  build-depends:       base >= 4.6 && < 4.8,
+  other-modules:       Prelude
+  hs-source-dirs:      .
+                       compat
+  build-depends:       base >= 4.5 && < 5,
                        bytestring,
                        text,
                        transformers,
@@ -31,5 +34,5 @@ executable pdf-toolbox-viewer
                        io-streams,
                        cairo,
                        gtk,
-                       pdf-toolbox-document ==0.0.4.*,
-                       pdf-toolbox-content ==0.0.3.*
+                       pdf-toolbox-document ==0.1.*,
+                       pdf-toolbox-content ==0.1.*
