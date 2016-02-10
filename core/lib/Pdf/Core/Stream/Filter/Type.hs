@@ -10,8 +10,7 @@ where
 import Data.ByteString (ByteString)
 import System.IO.Streams (InputStream)
 
-import Pdf.Core.Object.Types
-import Pdf.Core.Name (Name)
+import Pdf.Core.Object
 
 -- | Stream filter
 data StreamFilter = StreamFilter {

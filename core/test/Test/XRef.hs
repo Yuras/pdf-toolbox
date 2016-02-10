@@ -1,12 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Test.XRef
-(
-  spec
+( spec
 )
 where
 
-import Pdf.Core.Object.Types
+import Pdf.Core.Object
 import Pdf.Core.XRef
 import Pdf.Core.Exception
 import qualified Pdf.Core.IO.Buffer as Buffer

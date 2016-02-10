@@ -17,7 +17,6 @@ where
 
 import Pdf.Core
 import Pdf.Core.Util
-import Pdf.Core.Name (Name)
 import Pdf.Content
 
 import Pdf.Document.Pdf

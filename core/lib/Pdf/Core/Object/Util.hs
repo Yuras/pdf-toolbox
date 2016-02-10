@@ -2,21 +2,19 @@
 -- | Utils relayted to pdf objects
 
 module Pdf.Core.Object.Util
-(
-  intValue,
-  boolValue,
-  realValue,
-  nameValue,
-  stringValue,
-  arrayValue,
-  streamValue,
-  refValue,
-  dictValue
+( intValue
+, boolValue
+, realValue
+, nameValue
+, stringValue
+, arrayValue
+, streamValue
+, refValue
+, dictValue
 )
 where
 
-import Pdf.Core.Object.Types
-import Pdf.Core.Name (Name)
+import Pdf.Core.Object
 
 import Data.ByteString (ByteString)
 import Data.Scientific (Scientific)

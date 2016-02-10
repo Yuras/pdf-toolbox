@@ -15,8 +15,7 @@ module Pdf.Core.Stream
 where
 
 import Pdf.Core.Exception
-import Pdf.Core.Object.Types
-import Pdf.Core.Name (Name)
+import Pdf.Core.Object
 import Pdf.Core.Parsers.Object
 import Pdf.Core.Stream.Filter.Type
 import Pdf.Core.Stream.Filter.FlateDecode

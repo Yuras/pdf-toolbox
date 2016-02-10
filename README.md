@@ -55,7 +55,7 @@ Inspect high level structure:
 	    catalog <- documentCatalog doc
 	    rootNode <- catalogPageNode catalog
 	    count <- pageNodeNKids rootNode
-	    liftIO $ print count
+	    print count
 	    -- the first page of the document
 	    page <- pageNodePageByNum rootNode 0
 	    ...

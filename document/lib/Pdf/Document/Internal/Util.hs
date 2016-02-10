@@ -10,7 +10,6 @@ module Pdf.Document.Internal.Util
 where
 
 import Pdf.Core
-import Pdf.Core.Name (Name)
 
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad

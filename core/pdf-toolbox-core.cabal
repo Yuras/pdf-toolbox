@@ -35,7 +35,7 @@ library
                        Pdf.Core.IO.Buffer
                        Pdf.Core.Exception
                        Pdf.Core.Name
-                       Pdf.Core.Object.Types
+                       Pdf.Core.Object
                        Pdf.Core.Object.Builder
                        Pdf.Core.Object.Util
                        Pdf.Core.Parsers.Object

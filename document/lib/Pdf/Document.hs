@@ -16,21 +16,20 @@
 -- @
 
 module Pdf.Document
-(
-  module Pdf.Document.Types,
-  module Pdf.Document.Pdf,
-  module Pdf.Document.Document,
-  module Pdf.Document.Catalog,
-  module Pdf.Document.PageNode,
-  module Pdf.Document.Page,
-  module Pdf.Document.Info,
-  module Pdf.Document.FontDict,
-  module Pdf.Core.Object.Types,
-  module Pdf.Core.Object.Util
+( module Pdf.Document.Types
+, module Pdf.Document.Pdf
+, module Pdf.Document.Document
+, module Pdf.Document.Catalog
+, module Pdf.Document.PageNode
+, module Pdf.Document.Page
+, module Pdf.Document.Info
+, module Pdf.Document.FontDict
+, module Pdf.Core.Object
+, module Pdf.Core.Object.Util
 )
 where
 
-import Pdf.Core.Object.Types
+import Pdf.Core.Object
 import Pdf.Core.Object.Util
 
 import Pdf.Document.Types

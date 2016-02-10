@@ -6,7 +6,7 @@ module Test.Parsers.Object
 )
 where
 
-import Pdf.Core.Object.Types
+import Pdf.Core.Object
 import Pdf.Core.Parsers.Object
 
 import Data.Attoparsec.ByteString

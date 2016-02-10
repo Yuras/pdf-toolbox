@@ -2,17 +2,16 @@
 -- | Unclassified tools
 
 module Pdf.Core.Util
-(
-  notice,
-  readObjectAtOffset,
-  readCompressedObject
+( notice
+, readObjectAtOffset
+, readCompressedObject
 )
 where
 
 import Pdf.Core.IO.Buffer (Buffer)
 import qualified Pdf.Core.IO.Buffer as Buffer
 import Pdf.Core.Exception
-import Pdf.Core.Object.Types
+import Pdf.Core.Object
 import Pdf.Core.Parsers.Object
 
 import Data.Int

@@ -3,23 +3,22 @@
 -- | Parsers for XRef
 
 module Pdf.Core.Parsers.XRef
-(
-  startXRef,
-  tableXRef,
-  parseSubsectionHeader,
-  parseTrailerAfterTable,
-  parseTableEntry
+( startXRef
+, tableXRef
+, parseSubsectionHeader
+, parseTrailerAfterTable
+, parseTableEntry
 )
 where
+
+import Pdf.Core.Object
+import Pdf.Core.Parsers.Object
+import Pdf.Core.Parsers.Util
 
 import Data.Int
 import Data.Attoparsec.ByteString (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
 import Control.Applicative (many)
-
-import Pdf.Core.Object.Types
-import Pdf.Core.Parsers.Object
-import Pdf.Core.Parsers.Util
 
 -- for doctest
 -- $setup

@@ -3,24 +3,27 @@
 -- | This module contains parsers for pdf objects
 
 module Pdf.Core.Parsers.Object
-(
-  -- * Parse any object
-  parseObject,
+( -- * Parse any object
+  parseObject
   -- * Parse object of specific type
-  parseDict,
-  parseArray,
-  parseName,
-  parseString,
-  parseHexString,
-  parseRef,
-  parseNumber,
-  parseBool,
+, parseDict
+, parseArray
+, parseName
+, parseString
+, parseHexString
+, parseRef
+, parseNumber
+, parseBool
   -- * Other
-  parseTillStreamData,
-  parseIndirectObject,
-  isRegularChar
+, parseTillStreamData
+, parseIndirectObject
+, isRegularChar
 )
 where
+
+import Pdf.Core.Object
+import qualified Pdf.Core.Name as Name
+import Pdf.Core.Parsers.Util
 
 import Data.Char
 import Data.List
@@ -35,11 +38,6 @@ import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap
 import Control.Applicative
 import Control.Monad
-
-import Pdf.Core.Name (Name)
-import qualified Pdf.Core.Name as Name
-import Pdf.Core.Object.Types
-import Pdf.Core.Parsers.Util
 
 -- | Parse a dictionary
 parseDict :: Parser Dict

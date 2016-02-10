@@ -19,7 +19,7 @@ import System.IO.Streams (InputStream)
 import qualified System.IO.Streams as Streams
 
 import Pdf.Core.Exception
-import Pdf.Core.Object.Types
+import Pdf.Core.Object
 import Pdf.Core.Object.Util
 import Pdf.Core.Stream.Filter.Type
 

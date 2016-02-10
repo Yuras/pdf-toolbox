@@ -2,13 +2,12 @@
 -- | Low level tools for processing PDF page content stream.
 
 module Pdf.Content
-(
-  module Pdf.Content.Ops,
-  module Pdf.Content.Parser,
-  module Pdf.Content.UnicodeCMap,
-  module Pdf.Content.Processor,
-  module Pdf.Content.Transform,
-  module Pdf.Content.FontInfo
+( module Pdf.Content.Ops
+, module Pdf.Content.Parser
+, module Pdf.Content.UnicodeCMap
+, module Pdf.Content.Processor
+, module Pdf.Content.Transform
+, module Pdf.Content.FontInfo
 )
 where
 

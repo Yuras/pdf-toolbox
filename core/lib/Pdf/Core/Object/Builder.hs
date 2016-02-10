@@ -29,8 +29,7 @@ import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap
 import Text.Printf
 
-import Pdf.Core.Object.Types
-import Pdf.Core.Name (Name)
+import Pdf.Core.Object
 import qualified Pdf.Core.Name as Name
 
 -- | Build indirect object except streams

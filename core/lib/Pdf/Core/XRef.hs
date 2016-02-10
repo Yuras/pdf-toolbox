@@ -18,7 +18,7 @@ module Pdf.Core.XRef
 )
 where
 
-import Pdf.Core.Object.Types
+import Pdf.Core.Object
 import Pdf.Core.Object.Util
 import Pdf.Core.Parsers.XRef
 import Pdf.Core.Stream

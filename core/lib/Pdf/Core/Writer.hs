@@ -23,7 +23,7 @@ module Pdf.Core.Writer
 )
 where
 
-import Pdf.Core.Object.Types
+import Pdf.Core.Object
 import Pdf.Core.Object.Builder
 
 import Data.IORef

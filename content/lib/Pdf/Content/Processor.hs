@@ -18,7 +18,6 @@ where
 
 import Pdf.Core
 import Pdf.Core.Util
-import Pdf.Core.Name (Name)
 
 import Pdf.Content.Ops
 import Pdf.Content.Transform

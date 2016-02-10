@@ -4,13 +4,13 @@
 --
 -- See PDF1.7:7.3
 
-module Pdf.Core.Object.Types
-(
-  Object(..),
-  Dict,
-  Array,
-  Stream(..),
-  Ref(..)
+module Pdf.Core.Object
+( Object(..)
+, Dict
+, Array
+, Stream(..)
+, Ref(..)
+, Name
 )
 where
 

@@ -6,7 +6,7 @@ module Test.Object.Builder
 )
 where
 
-import Pdf.Core.Object.Types
+import Pdf.Core.Object
 import Pdf.Core.Object.Builder
 
 import qualified Data.ByteString.Builder as Builder

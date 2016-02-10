@@ -6,7 +6,7 @@ module Test.Object.Util
 )
 where
 
-import Pdf.Core.Object.Types
+import Pdf.Core.Object
 import Pdf.Core.Object.Util
 
 import qualified Data.Vector as Vector
