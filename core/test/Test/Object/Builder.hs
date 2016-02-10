@@ -6,8 +6,8 @@ module Test.Object.Builder
 )
 where
 
-import Pdf.Toolbox.Core.Object.Types
-import Pdf.Toolbox.Core.Object.Builder
+import Pdf.Core.Object.Types
+import Pdf.Core.Object.Builder
 
 import qualified Data.ByteString.Builder as Builder
 import qualified Data.Vector as Vector

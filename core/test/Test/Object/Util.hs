@@ -6,8 +6,8 @@ module Test.Object.Util
 )
 where
 
-import Pdf.Toolbox.Core.Object.Types
-import Pdf.Toolbox.Core.Object.Util
+import Pdf.Core.Object.Types
+import Pdf.Core.Object.Util
 
 import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap

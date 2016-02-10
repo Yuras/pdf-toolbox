@@ -6,8 +6,8 @@ module Test.Parsers.Object
 )
 where
 
-import Pdf.Toolbox.Core.Object.Types
-import Pdf.Toolbox.Core.Parsers.Object
+import Pdf.Core.Object.Types
+import Pdf.Core.Parsers.Object
 
 import Data.Attoparsec.ByteString
 import qualified Data.Vector as Vector

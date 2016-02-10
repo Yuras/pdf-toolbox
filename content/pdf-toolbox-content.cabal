@@ -22,17 +22,17 @@ library
   hs-source-dirs:      lib
                        compat
   exposed-modules:
-                       Pdf.Toolbox.Content
-                       Pdf.Toolbox.Content.Parser
-                       Pdf.Toolbox.Content.Ops
-                       Pdf.Toolbox.Content.Processor
-                       Pdf.Toolbox.Content.Transform
-                       Pdf.Toolbox.Content.UnicodeCMap
-                       Pdf.Toolbox.Content.FontInfo
-                       Pdf.Toolbox.Content.GlyphList
-                       Pdf.Toolbox.Content.TexGlyphList
-                       Pdf.Toolbox.Content.Encoding.WinAnsi
-                       Pdf.Toolbox.Content.Encoding.MacRoman
+                       Pdf.Content
+                       Pdf.Content.Parser
+                       Pdf.Content.Ops
+                       Pdf.Content.Processor
+                       Pdf.Content.Transform
+                       Pdf.Content.UnicodeCMap
+                       Pdf.Content.FontInfo
+                       Pdf.Content.GlyphList
+                       Pdf.Content.TexGlyphList
+                       Pdf.Content.Encoding.WinAnsi
+                       Pdf.Content.Encoding.MacRoman
   other-modules:       Prelude
                        Data.Either
   build-depends:       base >= 4.5 && < 5,

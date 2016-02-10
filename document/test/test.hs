@@ -6,15 +6,15 @@ module Main
 )
 where
 
+import Pdf.Core
+import Pdf.Document
+
 import qualified Data.HashMap.Strict as HashMap
 import Control.Exception (bracket, finally)
 import Control.Monad
 import System.IO
 import qualified System.IO.Streams as Streams
 import System.Directory (getTemporaryDirectory, removeFile)
-
-import Pdf.Toolbox.Core
-import Pdf.Toolbox.Document
 
 import Test.Hspec
 

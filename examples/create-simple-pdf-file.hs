@@ -18,7 +18,7 @@ import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
 import qualified System.IO.Streams as Streams
 
-import Pdf.Toolbox.Core
+import Pdf.Core
 
 main :: IO ()
 main = do

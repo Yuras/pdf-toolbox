@@ -6,10 +6,10 @@ module Test.XRef
 )
 where
 
-import Pdf.Toolbox.Core.Object.Types
-import Pdf.Toolbox.Core.XRef
-import Pdf.Toolbox.Core.Exception
-import qualified Pdf.Toolbox.Core.IO.Buffer as Buffer
+import Pdf.Core.Object.Types
+import Pdf.Core.XRef
+import Pdf.Core.Exception
+import qualified Pdf.Core.IO.Buffer as Buffer
 
 import qualified Data.ByteString as ByteString
 import qualified Data.Vector as Vector

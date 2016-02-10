@@ -10,21 +10,21 @@ module Main
 )
 where
 
+import Pdf.Core
+import qualified Pdf.Core.IO.Buffer as Buffer
+import Pdf.Document
+import qualified Pdf.Document.File as File
+
+-- Using the internals to switch from 'pdf-toolbox-document' level
+-- to 'pdf-toolbox-core'
+import Pdf.Document.Internal.Types
+
 import Data.String
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
 import System.IO
 import qualified System.IO.Streams as Streams
 import System.Environment
-
-import Pdf.Toolbox.Core
-import qualified Pdf.Toolbox.Core.IO.Buffer as Buffer
-import Pdf.Toolbox.Document
-import qualified Pdf.Toolbox.Document.File as File
-
--- Using the internals to switch from 'pdf-toolbox-document' level
--- to 'pdf-toolbox-core'
-import Pdf.Toolbox.Document.Internal.Types
 
 main :: IO ()
 main = do

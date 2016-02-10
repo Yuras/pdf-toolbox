@@ -46,7 +46,7 @@ Examples
 Inspect high level structure:
 
 	import System.IO
-	import Pdf.Toolbox.Document
+	import Pdf.Document
 
 	main =
 	  withBinaryFile "input.pdf" ReadMode $ \handle ->

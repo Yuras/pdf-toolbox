@@ -6,6 +6,11 @@ module Main
 )
 where
 
+import Pdf.Core hiding (rawStreamContent)
+import Pdf.Document
+import Pdf.Document.Encryption
+import Pdf.Document.Internal.Types
+
 import Data.IORef
 import qualified Data.ByteString.Lazy as Lazy (ByteString)
 import qualified Data.ByteString.Lazy as Lazy.ByteString
@@ -18,11 +23,6 @@ import Control.Exception
 import System.Environment
 import System.IO
 import qualified System.IO.Streams as Streams
-
-import Pdf.Toolbox.Core hiding (rawStreamContent)
-import Pdf.Toolbox.Document
-import Pdf.Toolbox.Document.Encryption
-import Pdf.Toolbox.Document.Internal.Types
 
 main :: IO ()
 main = do

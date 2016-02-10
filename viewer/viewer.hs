@@ -6,6 +6,9 @@ module Main
 )
 where
 
+import Pdf.Content
+import Pdf.Document
+
 import qualified Data.ByteString.Char8 as ByteString.Char8
 import qualified Data.Text as Text
 import Data.IORef
@@ -19,9 +22,6 @@ import System.Process
 import System.Exit
 import Graphics.UI.Gtk hiding (Rectangle, rectangle, FontMap)
 import Graphics.Rendering.Cairo hiding (transform, Glyph)
-
-import Pdf.Toolbox.Document
-import Pdf.Toolbox.Content
 
 data ViewerState = ViewerState {
   viewerPage :: Page,

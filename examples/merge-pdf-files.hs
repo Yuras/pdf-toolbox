@@ -16,6 +16,11 @@ module Main
 )
 where
 
+import Pdf.Core hiding (rawStreamContent)
+import Pdf.Document
+import Pdf.Document.Encryption
+import Pdf.Document.Internal.Types
+
 import Data.IORef
 import qualified Data.ByteString.Lazy as Lazy.ByteString
 import qualified Data.Vector as Vector
@@ -24,11 +29,6 @@ import Control.Monad
 import System.IO
 import qualified System.IO.Streams as Streams
 import System.Environment
-
-import Pdf.Toolbox.Core hiding (rawStreamContent)
-import Pdf.Toolbox.Document
-import Pdf.Toolbox.Document.Encryption
-import Pdf.Toolbox.Document.Internal.Types
 
 data AppState = AppState {
   stNextFree :: Int,

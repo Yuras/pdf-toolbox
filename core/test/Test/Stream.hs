@@ -10,7 +10,7 @@ import Control.Monad
 import qualified System.IO.Streams as Streams
 import qualified System.IO.Streams.Attoparsec as Streams
 
-import Pdf.Toolbox.Core.Stream
+import Pdf.Core.Stream
 
 import Test.Hspec
 

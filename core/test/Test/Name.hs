@@ -6,7 +6,7 @@ module Test.Name
 )
 where
 
-import qualified Pdf.Toolbox.Core.Name as Name
+import qualified Pdf.Core.Name as Name
 
 import Data.Either
 import Test.Hspec

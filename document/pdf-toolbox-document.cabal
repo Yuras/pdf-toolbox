@@ -23,19 +23,19 @@ source-repository head
 library
   hs-source-dirs:      lib
                        compat
-  exposed-modules:     Pdf.Toolbox.Document
-                       Pdf.Toolbox.Document.Types
-                       Pdf.Toolbox.Document.File
-                       Pdf.Toolbox.Document.Pdf
-                       Pdf.Toolbox.Document.Document
-                       Pdf.Toolbox.Document.Info
-                       Pdf.Toolbox.Document.Catalog
-                       Pdf.Toolbox.Document.PageNode
-                       Pdf.Toolbox.Document.Page
-                       Pdf.Toolbox.Document.FontDict
-                       Pdf.Toolbox.Document.Encryption
-                       Pdf.Toolbox.Document.Internal.Types
-                       Pdf.Toolbox.Document.Internal.Util
+  exposed-modules:     Pdf.Document
+                       Pdf.Document.Types
+                       Pdf.Document.File
+                       Pdf.Document.Pdf
+                       Pdf.Document.Document
+                       Pdf.Document.Info
+                       Pdf.Document.Catalog
+                       Pdf.Document.PageNode
+                       Pdf.Document.Page
+                       Pdf.Document.FontDict
+                       Pdf.Document.Encryption
+                       Pdf.Document.Internal.Types
+                       Pdf.Document.Internal.Util
   other-modules:       Prelude
   build-depends:       base >= 4.5 && < 5,
                        transformers,

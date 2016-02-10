@@ -6,7 +6,7 @@ module Test.UnicodeCMap
 )
 where
 
-import Pdf.Toolbox.Content.UnicodeCMap
+import Pdf.Content.UnicodeCMap
 
 import Data.Either
 import qualified Data.List as List

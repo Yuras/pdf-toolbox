@@ -6,9 +6,9 @@ module Test.Parser
 )
 where
 
-import Pdf.Toolbox.Core
-import Pdf.Toolbox.Content.Parser
-import Pdf.Toolbox.Content.Ops
+import Pdf.Core
+import Pdf.Content.Parser
+import Pdf.Content.Ops
 
 import qualified Data.Attoparsec.ByteString as Parser
 import qualified System.IO.Streams as Streams
