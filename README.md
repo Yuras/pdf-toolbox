@@ -45,17 +45,19 @@ Examples
 
 Inspect high level structure:
 
-	import System.IO
-	import Pdf.Document
+```haskell
+import System.IO
+import Pdf.Document
 
-	main =
-	  withBinaryFile "input.pdf" ReadMode $ \handle ->
-            pdf <- pdfWithHandle handle
-	    doc <- document pdf
-	    catalog <- documentCatalog doc
-	    rootNode <- catalogPageNode catalog
-	    count <- pageNodeNKids rootNode
-	    print count
-	    -- the first page of the document
-	    page <- pageNodePageByNum rootNode 0
-	    ...
+main =
+  withBinaryFile "input.pdf" ReadMode $ \handle ->
+          pdf <- pdfWithHandle handle
+    doc <- document pdf
+    catalog <- documentCatalog doc
+    rootNode <- catalogPageNode catalog
+    count <- pageNodeNKids rootNode
+    print count
+    -- the first page of the document
+    page <- pageNodePageByNum rootNode 0
+    ...
+```
