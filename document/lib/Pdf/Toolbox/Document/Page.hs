@@ -132,8 +132,8 @@ mkXObject s ref = do
 
   glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
     fontInfoDecodeGlyphs `liftM` fontDictLoadInfo fontDict
-  let glyphDecoder fontName = \str ->
-        case Map.lookup fontName glyphDecoders of
+  let glyphDecoder fontId = \str ->
+        case Map.lookup fontId glyphDecoders of
           Nothing -> []
           Just decode -> decode str
 
@@ -149,8 +149,8 @@ pageExtractText page = do
   fontDicts <- Map.fromList `liftM` pageFontDicts page
   glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
     fontInfoDecodeGlyphs `liftM` fontDictLoadInfo fontDict
-  let glyphDecoder fontName = \str ->
-        case Map.lookup fontName glyphDecoders of
+  let glyphDecoder fontId = \str ->
+        case Map.lookup fontId glyphDecoders of
           Nothing -> []
           Just decode -> decode str
 

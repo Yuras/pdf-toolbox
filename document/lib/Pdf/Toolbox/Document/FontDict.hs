@@ -7,7 +7,8 @@ module Pdf.Toolbox.Document.FontDict
   FontDict,
   FontSubtype(..),
   fontDictSubtype,
-  fontDictLoadInfo
+  fontDictLoadInfo,
+  fontName
 )
 where
 
@@ -30,6 +31,14 @@ data FontSubtype
   | FontType3
   | FontTrueType
   deriving (Show, Eq)
+
+-- | Get font name
+--
+-- It is a value of "BaseFont" field of the font dictionary
+fontName :: Monad m => FontDict -> PdfE m ByteString
+fontName (FontDict dict) = do
+  Name name <- lookupDict "BaseFont" dict >>= fromObject
+  return name
 
 -- | Get font subtype
 fontDictSubtype :: Monad m => FontDict -> PdfE m FontSubtype
