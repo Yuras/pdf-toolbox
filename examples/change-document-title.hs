@@ -55,7 +55,7 @@ main = do
       seek ris 0
       inputStream ris
     liftIO $ Streams.withFileAsOutput output $ \ostream -> do
-      Streams.connect is ostream
+      Streams.supply is ostream
       runPdfWriter ostream $ do
         writeObject infoRef (ODict newInfo)
         writeXRefTable fileSize newTr
