@@ -51,7 +51,7 @@ import Pdf.Document
 
 main =
   withBinaryFile "input.pdf" ReadMode $ \handle ->
-          pdf <- pdfWithHandle handle
+    pdf <- pdfWithHandle handle
     doc <- document pdf
     catalog <- documentCatalog doc
     rootNode <- catalogPageNode catalog
