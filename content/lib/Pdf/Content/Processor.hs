@@ -10,6 +10,7 @@ module Pdf.Content.Processor
   GraphicsState(..),
   GlyphDecoder,
   Glyph(..),
+  Span(..),
   initialGraphicsState,
   mkProcessor,
   processOp
@@ -83,12 +84,18 @@ initialGraphicsState = GraphicsState {
   gsTextWordSpacing = 0
   }
 
+-- | Glyphs drawn in one shot
+data Span = Span
+  { spGlyphs :: [Glyph]
+  , spFontName :: Name
+  }
+
 -- | Processor maintains graphics state
 data Processor = Processor {
   prState :: GraphicsState,
   prStateStack :: [GraphicsState],
   prGlyphDecoder :: GlyphDecoder,
-  prGlyphs :: [[Glyph]]
+  prSpans :: [Span]
   -- ^ Each element is a list of glyphs, drawn in one shot
   }
 
@@ -98,7 +105,7 @@ mkProcessor = Processor {
   prState = initialGraphicsState,
   prStateStack = [],
   prGlyphDecoder = \_ _ -> [],
-  prGlyphs = mempty
+  prSpans = mempty
   }
 
 -- | Process one operation
@@ -232,8 +239,12 @@ processOp (Op_Tj, [String str]) p = do
                        (gsTextCharSpacing gstate)
                        (gsTextWordSpacing gstate)
                        (prGlyphDecoder p fontName str)
+  let sp = Span
+        { spGlyphs = glyphs
+        , spFontName = fontName
+        }
   return p {
-    prGlyphs = prGlyphs p ++ [glyphs],
+    prSpans = sp : prSpans p,
     prState = gstate {
       gsTextMatrix = tm
       }
@@ -267,8 +278,13 @@ processOp (Op_TJ, [Array array]) p = do
           let d = Scientific.toRealFloat n
           in loop (translate (-d * fontSize / 1000) 0 tm) res rest
         loop tm res (_:rest) = loop tm res rest
+
+  let mkSpan gs = Span
+        { spGlyphs = gs
+        , spFontName = fontName
+        }
   return p {
-    prGlyphs = prGlyphs p ++ glyphs,
+    prSpans = map mkSpan glyphs ++ prSpans p,
     prState = gstate {
       gsTextMatrix = textMatrix
       }

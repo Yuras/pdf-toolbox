@@ -197,7 +197,7 @@ onDraw file viewerState = do
   closePath
   stroke
 
-  glyphs <- liftIO $ concat <$> pageExtractGlyphs pg
+  glyphs <- liftIO $ (concat . map spGlyphs) <$> pageExtractGlyphs pg
   forM_ glyphs $ \glyph -> do
     let Vector x1 y1 = glyphTopLeft glyph
         Vector x2 y2 = glyphBottomRight glyph

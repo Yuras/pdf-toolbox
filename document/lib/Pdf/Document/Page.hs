@@ -182,7 +182,7 @@ pageXObjects (Page pdf _ dict) =
 pageExtractText :: Page -> IO Text
 pageExtractText page = glyphsToText <$> pageExtractGlyphs page
 
-pageExtractGlyphs :: Page -> IO [[Glyph]]
+pageExtractGlyphs :: Page -> IO [Span]
 pageExtractGlyphs page = do
   fontDicts <- Map.fromList <$> pageFontDicts page
   glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
@@ -226,7 +226,7 @@ pageExtractGlyphs page = do
   p <- loop is $ mkProcessor {
     prGlyphDecoder = glyphDecoder
     }
-  return (prGlyphs p)
+  return (prSpans p)
 
 combinedContent :: Pdf -> [Ref] -> IO (InputStream ByteString)
 combinedContent pdf refs = do
@@ -248,8 +248,13 @@ combinedContent pdf refs = do
 --
 -- It takes list of spans. Each span is a list of glyphs that are outputed in one shot.
 -- So we don't need to add space inside span, only between them.
-glyphsToText :: [[Glyph]] -> Text
-glyphsToText = Lazy.Text.toStrict . Text.Builder.toLazyText . snd . foldl step ((Vector 0 0, False), mempty)
+glyphsToText :: [Span] -> Text
+glyphsToText
+  = Lazy.Text.toStrict
+  . Text.Builder.toLazyText
+  . snd
+  . foldl step ((Vector 0 0, False), mempty)
+  . List.map spGlyphs
   where
   step acc [] = acc
   step ((Vector lx2 ly2, wasSpace), res) sp =
