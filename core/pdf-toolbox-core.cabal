@@ -72,6 +72,8 @@ test-suite test
                        Test.Object.Builder
                        Test.Object.Util
                        Test.Name
+                       Prelude
+                       Data.Either
   build-depends:       base,
                        pdf-toolbox-core,
                        bytestring,

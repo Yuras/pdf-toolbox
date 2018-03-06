@@ -53,6 +53,8 @@ test-suite test
   main-is:             test.hs
   other-modules:       Test.UnicodeCMap
                        Test.Parser
+                       Prelude
+                       Data.Either
   build-depends:       base,
                        containers,
                        bytestring,
