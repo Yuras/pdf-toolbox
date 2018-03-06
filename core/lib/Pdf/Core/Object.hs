@@ -20,6 +20,7 @@ import Data.Int
 import Data.ByteString (ByteString)
 import Data.Scientific (Scientific)
 import Data.Vector (Vector)
+import Data.Hashable
 import Data.HashMap.Strict as HashMap
 
 -- | Dictionary
@@ -35,6 +36,9 @@ data Stream = S Dict Int64
 -- | Object reference, contains object index and generation
 data Ref = R Int Int
   deriving (Eq, Show, Ord)
+
+instance Hashable Ref where
+  hashWithSalt salt (R a b) = hashWithSalt salt (a, b)
 
 -- | Any pdf object
 data Object =
