@@ -6,7 +6,7 @@
 -- @
 --  import Pdf.Document
 --
---  withBinaryFile \"input.pdf\" ReadMode $ \handle ->
+--  withBinaryFile \"input.pdf\" ReadMode $ \\handle ->
 --    pdf <- 'pdfWithHandle' handle
 --    doc <- 'document' pdf
 --    catalog <- 'documentCatalog' doc
