@@ -98,6 +98,9 @@ instance Monoid CIDFontWidths where
         `mappend` cidFontWidthsRanges w2
     }
 
+instance Semigroup CIDFontWidths where
+  (<>) = mappend
+
 simpleFontEncodingDecode :: SimpleFontEncoding -> Word8 -> Maybe Text
 simpleFontEncodingDecode enc code =
   case lookup code (simpleFontDifferences enc) of
