@@ -11,7 +11,6 @@ module Pdf.Content.UnicodeCMap
 )
 where
 
-import Data.Monoid
 import Data.Char
 import qualified Data.List as List
 import Data.Map (Map)

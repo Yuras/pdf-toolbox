@@ -21,7 +21,7 @@ import Data.Hashable (Hashable)
 --
 -- Byte 0 is not allowed inside names
 newtype Name = Name ByteString
-  deriving (Eq, Show, Ord, Monoid, Hashable)
+  deriving (Eq, Show, Ord, Monoid, Semigroup, Hashable)
 
 -- | Make a name.
 --
