@@ -76,6 +76,7 @@ parseSubsectionHeader = do
 -- Input position should point to the \"trailer\" keyword
 parseTrailerAfterTable :: Parser Dict
 parseTrailerAfterTable = do
+  P.skipSpace
   _ <- P.string "trailer"
   endOfLine
   P.skipSpace
