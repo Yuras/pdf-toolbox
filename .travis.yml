@@ -20,5 +20,6 @@ before_cache:
   - ghc-pkg unregister pdf-toolbox-content
   - ghc-pkg unregister pdf-toolbox-core
   - rm -rf $HOME/.cabal/lib/x86_64-linux-ghc-$TRAVIS_HASKELL_VERSION/*pdf-toolbox*
+  - rm -rf $HOME/.cabal/share/doc/x86_64-linux-ghc-$TRAVIS_HASKELL_VERSION/*pdf-toolbox*
   - rm -f $HOME/.cabal/logs/build.log
 script: ./travis.sh
