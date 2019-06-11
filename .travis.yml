@@ -2,14 +2,6 @@ sudo: true
 language: haskell
 matrix:
   include:
-  - ghc: '7.4'
-    env: GHC_VERSION=7.4
-  - ghc: '7.6'
-    env: GHC_VERSION=7.6
-  - ghc: '7.8'
-    env: GHC_VERSION=7.8
-  - ghc: '7.10'
-    env: GHC_VERSION=7.10
   - ghc: '8.0'
     env: GHC_VERSION=8.0
   - ghc: '8.2'
