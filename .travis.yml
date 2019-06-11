@@ -2,20 +2,14 @@ sudo: true
 language: haskell
 matrix:
   include:
-  - ghc: '7.4'
-    env: GHC_VERSION=7.4
-  - ghc: '7.6'
-    env: GHC_VERSION=7.6
-  - ghc: '7.8'
-    env: GHC_VERSION=7.8
-  - ghc: '7.10'
-    env: GHC_VERSION=7.10
   - ghc: '8.0'
     env: GHC_VERSION=8.0
   - ghc: '8.2'
     env: GHC_VERSION=8.2
   - ghc: '8.4'
     env: GHC_VERSION=8.4
+  - ghc: '8.6'
+    env: GHC_VERSION=8.6
 install: true
 cache:
   directories:
@@ -26,5 +20,6 @@ before_cache:
   - ghc-pkg unregister pdf-toolbox-content
   - ghc-pkg unregister pdf-toolbox-core
   - rm -rf $HOME/.cabal/lib/x86_64-linux-ghc-$TRAVIS_HASKELL_VERSION/*pdf-toolbox*
+  - rm -rf $HOME/.cabal/share/doc/x86_64-linux-ghc-$TRAVIS_HASKELL_VERSION/*pdf-toolbox*
   - rm -f $HOME/.cabal/logs/build.log
 script: ./travis.sh
