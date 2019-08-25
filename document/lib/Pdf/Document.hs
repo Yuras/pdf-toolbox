@@ -6,13 +6,15 @@
 -- @
 --  import Pdf.Document
 --
---  withBinaryFile \"input.pdf\" ReadMode $ \\handle ->
---    pdf <- 'pdfWithHandle' handle
+--  withPdfFile \"input.pdf\" $ \\pdf ->
 --    doc <- 'document' pdf
 --    catalog <- 'documentCatalog' doc
 --    rootNode <- 'catalogPageNode' catalog
 --    count <- 'pageNodeNKids' rootNode
 --    print count
+--    page <- 'loadPageByNum' rootNode 1
+--    text <- 'pageExtractText' page
+--    print text
 -- @
 
 module Pdf.Document
@@ -24,13 +26,8 @@ module Pdf.Document
 , module Pdf.Document.Page
 , module Pdf.Document.Info
 , module Pdf.Document.FontDict
-, module Pdf.Core.Object
-, module Pdf.Core.Object.Util
 )
 where
-
-import Pdf.Core.Object
-import Pdf.Core.Object.Util
 
 import Pdf.Document.Types
 import Pdf.Document.Pdf

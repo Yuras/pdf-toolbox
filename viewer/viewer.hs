@@ -14,7 +14,6 @@ import qualified Data.Text as Text
 import Data.IORef
 import Control.Monad
 import Control.Monad.IO.Class
-import System.IO
 import System.Directory
 import System.FilePath
 import System.Random (randomIO)
@@ -35,9 +34,7 @@ main :: IO ()
 main = do
   [file] <- initGUI
 
-  withBinaryFile file ReadMode $ \h -> do
-    pdf <- pdfWithHandle h
-
+  withPdfFile file $ \pdf -> do
     (rootNode, totalPages, title) <- do
       encrypted <- isEncrypted pdf
       when encrypted $ do

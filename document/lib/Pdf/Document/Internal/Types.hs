@@ -17,15 +17,12 @@ where
 
 import Pdf.Core
 
-import Pdf.Document.File
-import Pdf.Document.Encryption (Decryptor)
-
 import Data.HashMap.Strict as HashMap
 import Data.IORef
 
 type ObjectCache = (Bool, HashMap Ref Object)
 
-data Pdf = Pdf File (IORef (Maybe Decryptor)) (IORef ObjectCache)
+data Pdf = Pdf File (IORef ObjectCache)
 
 -- | PDF document
 --

@@ -16,9 +16,9 @@ module Main
 )
 where
 
-import Pdf.Core hiding (rawStreamContent)
+import Pdf.Core.Object
+import Pdf.Core.Writer
 import Pdf.Document
-import Pdf.Document.Encryption
 import Pdf.Document.Internal.Types
 
 import Data.IORef
@@ -26,7 +26,6 @@ import qualified Data.ByteString.Lazy as Lazy.ByteString
 import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
-import System.IO
 import qualified System.IO.Streams as Streams
 import System.Environment
 
@@ -68,7 +67,20 @@ main = do
   writeTrailer writer stateRef
 
 writePdfFile :: Writer -> IORef AppState -> FilePath -> IO ()
-writePdfFile writer stateRef path = do
+writePdfFile writer stateRef path = withPdfFile path $ \pdf -> do
+  encrypted <- isEncrypted pdf
+  when encrypted $ do
+    ok <- setUserPassword pdf defaultUserPassword
+    unless ok $
+      error "Wrong password"
+
+  root <- document pdf >>= documentCatalog >>= catalogPageNode
+  count <- pageNodeNKids root
+  forM_ [0..count-1] $ \i -> do
+    page <- pageNodePageByNum root i
+    writePdfPage writer stateRef page
+
+  {-
   handle <- openBinaryFile path ReadMode
 
   pdf <- do
@@ -88,6 +100,7 @@ writePdfFile writer stateRef path = do
     writePdfPage writer stateRef page
 
   hClose handle
+  -}
 
 writePdfPage :: Writer -> IORef AppState -> Page -> IO ()
 writePdfPage writer stateRef page@(Page pdf _ pageDict) = do
@@ -99,7 +112,7 @@ writePdfPage writer stateRef page@(Page pdf _ pageDict) = do
   contentRefs' <- forM contentRefs $ \r -> do
     o <- lookupObject pdf r
     case o of
-      Stream s -> writeStream' writer stateRef pdf s
+      Stream s -> writeStream' writer stateRef pdf r s
       _ -> error "stream expected"
 
   resources <- do
@@ -139,25 +152,25 @@ writeTrailer writer stateRef = do
     , ("Root", Ref catalogRef)
     ])
 
-writeStream' :: Writer -> IORef AppState -> Pdf -> Stream -> IO Ref
-writeStream' writer stateRef pdf s@(S dict _) = do
+writeStream' :: Writer -> IORef AppState -> Pdf -> Ref -> Stream -> IO Ref
+writeStream' writer stateRef pdf ref s@(S dict _) = do
   cont <- do
-    is <- rawStreamContent pdf s
+    is <- rawStreamContent pdf ref s
     Lazy.ByteString.fromChunks <$> Streams.toList is
 
-  index <- nextFreeIndex stateRef
-  let ref = R index 0
-
   Dict dict' <- writeObjectChildren writer stateRef pdf (Dict dict)
-  writeStream writer ref dict' cont
-  return ref
+
+  index <- nextFreeIndex stateRef
+  let r = R index 0
+  writeStream writer r dict' cont
+  return r
 
 writeObjectChildren :: Writer -> IORef AppState -> Pdf -> Object -> IO Object
 writeObjectChildren writer stateRef pdf (Ref r) = do
   o <- lookupObject pdf r
   case o of
     Stream s -> do
-      ref <- writeStream' writer stateRef pdf s
+      ref <- writeStream' writer stateRef pdf r s
       return $ Ref ref
     _ -> do
       o' <- writeObjectChildren writer stateRef pdf o

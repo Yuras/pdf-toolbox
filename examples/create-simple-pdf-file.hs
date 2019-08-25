@@ -19,6 +19,7 @@ import Control.Monad
 import qualified System.IO.Streams as Streams
 
 import Pdf.Core
+import Pdf.Core.Writer
 
 main :: IO ()
 main = do

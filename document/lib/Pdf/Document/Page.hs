@@ -15,7 +15,9 @@ module Pdf.Document.Page
 )
 where
 
-import Pdf.Core
+import Pdf.Core.Object
+import Pdf.Core.Object.Util
+import Pdf.Core.Exception
 import Pdf.Core.Util
 import Pdf.Content
 
@@ -158,7 +160,7 @@ pageXObjects (Page pdf _ dict) =
                 cont <- Lazy.ByteString.fromChunks <$> Streams.toList is
 
                 fontDicts <- Map.fromList <$>
-                  pageFontDicts (Page pdf undefined xoDict)
+                  pageFontDicts (Page pdf ref xoDict)
 
                 glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
                   fontInfoDecodeGlyphs <$> fontDictLoadInfo fontDict
@@ -171,9 +173,9 @@ pageXObjects (Page pdf _ dict) =
 
               _ -> return (name, Nothing)
 
-          let step l (_, Nothing) = l
-              step l (name, Just o) = (name, o) : l
-          return (List.foldl' step [] result)
+          return $ flip mapMaybe result $ \(n, mo) -> do
+            o <- mo
+            return (n, o)
 
 -- | Extract text from the page
 --
@@ -240,9 +242,13 @@ combinedContent pdf refs = do
     is <- liftIO $ streamContent pdf ref stream
     yield is
   where
-  yield is =
-    liftIO (Streams.read is)
-    >>= maybe (return ()) (\c -> Streams.yield c >> yield is)
+  yield is = do
+    chunk <- liftIO $ Streams.read is
+    case chunk of
+      Nothing -> return ()
+      Just c -> do
+        Streams.yield c
+        yield is
 
 -- | Convert glyphs to text, trying to add spaces and newlines
 --

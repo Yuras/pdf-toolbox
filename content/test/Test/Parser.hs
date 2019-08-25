@@ -7,6 +7,7 @@ module Test.Parser
 where
 
 import Pdf.Core
+import Pdf.Core.Exception
 import Pdf.Content.Parser
 import Pdf.Content.Ops
 

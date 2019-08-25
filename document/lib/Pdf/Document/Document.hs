@@ -11,7 +11,9 @@ module Pdf.Document.Document
 )
 where
 
-import Pdf.Core
+import Pdf.Core.Object
+import Pdf.Core.Object.Util
+import Pdf.Core.Exception
 import Pdf.Core.Util
 
 import Pdf.Document.Pdf
