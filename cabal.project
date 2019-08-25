@@ -1,0 +1,6 @@
+packages:
+  core/
+  content/
+  document/
+  viewer/
+  examples/
