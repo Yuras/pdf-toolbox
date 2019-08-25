@@ -4,3 +4,5 @@ dist/
 tmp/
 .cabal-sandbox/
 cabal.sandbox.config
+dist-newstyle/
+.ghc.environment.*

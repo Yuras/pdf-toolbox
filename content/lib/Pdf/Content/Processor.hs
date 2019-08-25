@@ -284,7 +284,7 @@ processOp (Op_TJ, [Array array]) p = do
         , spFontName = fontName
         }
   return p {
-    prSpans = map mkSpan glyphs ++ prSpans p,
+    prSpans = reverse (map mkSpan glyphs) ++ prSpans p,
     prState = gstate {
       gsTextMatrix = textMatrix
       }

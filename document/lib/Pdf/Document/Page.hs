@@ -226,7 +226,7 @@ pageExtractGlyphs page = do
   p <- loop is $ mkProcessor {
     prGlyphDecoder = glyphDecoder
     }
-  return (prSpans p)
+  return (List.reverse (prSpans p))
 
 combinedContent :: Pdf -> [Ref] -> IO (InputStream ByteString)
 combinedContent pdf refs = do
