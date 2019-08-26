@@ -37,6 +37,7 @@ import qualified Data.ByteString.Lazy as Lazy.ByteString
 import Data.Text (Text)
 import qualified Data.Text.Lazy as Lazy.Text
 import qualified Data.Text.Lazy.Builder as Text.Builder
+import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 import qualified Data.HashMap.Strict as HashMap
@@ -127,12 +128,22 @@ pageFontDicts (Page pdf _ dict) =
             ensureType "Font" fontDict
             return (name, FontDict pdf fontDict)
 
-data XObject = XObject Lazy.ByteString GlyphDecoder
+data XObject = XObject
+  { xobjectContent :: Lazy.ByteString
+  , xobjectGlyphDecoder :: GlyphDecoder
+  , xobjectChildren :: Map Name XObject
+  }
 
-pageXObjects :: Page -> IO [(Name, XObject)]
-pageXObjects (Page pdf _ dict) =
+instance Show XObject where
+  show xobj = show (xobjectContent xobj, xobjectChildren xobj)
+
+pageXObjects :: Page -> IO (Map Name XObject)
+pageXObjects (Page pdf _ dict) = dictXObjects pdf dict
+
+dictXObjects :: Pdf -> Dict -> IO (Map Name XObject)
+dictXObjects pdf dict =
   case HashMap.lookup "Resources" dict of
-    Nothing -> return []
+    Nothing -> return Map.empty
     Just res -> do
       resDict <- do
         v <- deref pdf res
@@ -140,7 +151,7 @@ pageXObjects (Page pdf _ dict) =
           `notice` "Resources should be a dict"
 
       case HashMap.lookup "XObject" resDict of
-        Nothing -> return []
+        Nothing -> return Map.empty
         Just xo -> do
           xosDict <- do
             v <- deref pdf xo
@@ -169,11 +180,18 @@ pageXObjects (Page pdf _ dict) =
                         Nothing -> []
                         Just decode -> decode str
 
-                return (name, Just (XObject cont glyphDecoder))
+                children <- dictXObjects pdf xoDict
+
+                let xobj = XObject
+                      { xobjectContent = cont
+                      , xobjectGlyphDecoder = glyphDecoder
+                      , xobjectChildren = children
+                      }
+                return (name, Just xobj)
 
               _ -> return (name, Nothing)
 
-          return $ flip mapMaybe result $ \(n, mo) -> do
+          return $ Map.fromList $ flip mapMaybe result $ \(n, mo) -> do
             o <- mo
             return (n, o)
 
@@ -194,7 +212,7 @@ pageExtractGlyphs page = do
           Nothing -> []
           Just decode -> decode str
 
-  xobjects <- Map.fromList <$> pageXObjects page
+  xobjects <- pageXObjects page
 
   is <- do
     contents <- pageContents page
@@ -203,29 +221,30 @@ pageExtractGlyphs page = do
     Streams.parserToInputStream parseContent is
 
   -- use content stream processor to extract text
-  let loop s p = do
+  let loop xobjs s p = do
         next <- readNextOperator s
         case next of
-          Just (Op_Do, [Name name]) -> processDo name p >>= loop s
+          Just (Op_Do, [Name name]) -> processDo xobjs name p >>= loop xobjs s
           Just op ->
             case processOp op p of
               Left err -> throwIO (Unexpected err [])
-              Right  p' -> loop s p'
+              Right  p' -> loop xobjs s p'
           Nothing -> return p
 
-      processDo name p = do
-        case Map.lookup name xobjects of
+      processDo xobjs name p = do
+        case Map.lookup name xobjs of
           Nothing -> return p
-          Just (XObject cont gdec) -> do
+          Just xobj -> do
             s <- do
-              s <- Streams.fromLazyByteString cont
+              s <- Streams.fromLazyByteString (xobjectContent xobj)
               Streams.parserToInputStream parseContent s
 
             let gdec' = prGlyphDecoder p
-            p' <- loop s (p {prGlyphDecoder = gdec})
+            p' <- loop (xobjectChildren xobj) s
+              (p {prGlyphDecoder = xobjectGlyphDecoder xobj})
             return (p' {prGlyphDecoder = gdec'})
 
-  p <- loop is $ mkProcessor {
+  p <- loop xobjects is $ mkProcessor {
     prGlyphDecoder = glyphDecoder
     }
   return (List.reverse (prSpans p))

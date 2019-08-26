@@ -16,6 +16,7 @@ import Control.Monad
 import System.IO
 import qualified System.IO.Streams as Streams
 import System.Directory (getTemporaryDirectory, removeFile)
+import System.Timeout
 
 import Test.Hspec
 
@@ -32,6 +33,18 @@ main = hspec $ do
             Nothing -> return Nothing
             Just info -> infoTitle info
         title `shouldBe` Just "simple PDF file"
+
+  describe "nested_xobject" $ do
+    it "should have correct text" $ do
+      withPdfFile "test/files/nested_xobject.pdf" $ \pdf -> do
+        doc <- document pdf
+        catalog <- documentCatalog doc
+        root <- catalogPageNode catalog
+        page <- pageNodePageByNum root 0
+        -- here timeout breaks infinite loop in case of a bug
+        txt <- timeout 5000000 $ pageExtractText page
+        txt `shouldBe` Just
+          "\nHello World!!!\nXObject is here\nnested XObject is here"
 
 -- | Generate simple PDF file for tests
 withSimpleFile :: (Handle -> IO ()) -> IO ()
