@@ -46,12 +46,15 @@ Examples
 Inspect high level structure:
 
 ```haskell
-import System.IO
 import Pdf.Document
 
 main =
-  withBinaryFile "input.pdf" ReadMode $ \handle ->
-    pdf <- pdfWithHandle handle
+  withPdfFile "input.pdf" $ \pdf ->
+    encrypted <- isEncrypted pdf
+    when encrypted $ do
+      ok <- setUserPassword pdf defaultUserPassword
+      unless ok $
+        fail "need password"
     doc <- document pdf
     catalog <- documentCatalog doc
     rootNode <- catalogPageNode catalog
@@ -59,5 +62,8 @@ main =
     print count
     -- the first page of the document
     page <- pageNodePageByNum rootNode 0
+    -- extract text
+    txt <- pageExtractText page
+    print txt
     ...
 ```
