@@ -10,6 +10,7 @@ where
 
 import Pdf.Core
 import Pdf.Core.Util
+import Pdf.Core.Object.Util
 
 import qualified Data.Vector as Vector
 

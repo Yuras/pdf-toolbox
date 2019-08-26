@@ -1,21 +1,28 @@
 
--- | Low level tools for processing PDF file
+-- | Low level API for parsing PDF file.
+--
+-- See "Pdf.Core.Writer" for basic API for writing new PDF file or
+-- incrementally updating existing one.
 
 module Pdf.Core
-( module Pdf.Core.Exception
-, module Pdf.Core.Object
-, module Pdf.Core.Object.Builder
-, module Pdf.Core.Object.Util
-, module Pdf.Core.Stream
-, module Pdf.Core.XRef
-, module Pdf.Core.Writer
+( File
+, withPdfFile
+, lastTrailer
+, findObject
+, Object(..)
+, Name
+, Dict
+, Array
+, Ref(..)
+, Stream(..)
+, streamContent
+, EncryptionStatus(..)
+, encryptionStatus
+, setUserPassword
+, defaultUserPassword
 )
 where
 
-import Pdf.Core.Exception
 import Pdf.Core.Object
-import Pdf.Core.Object.Builder
-import Pdf.Core.Object.Util
-import Pdf.Core.Stream
-import Pdf.Core.XRef
-import Pdf.Core.Writer
+import Pdf.Core.File
+import Pdf.Core.Encryption

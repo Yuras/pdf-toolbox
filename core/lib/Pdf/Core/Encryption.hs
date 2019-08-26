@@ -1,18 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Basic support for encrypted PDF documents
+-- | Basic support for encrypted PDF files
 
-module Pdf.Document.Encryption
-(
-  Decryptor,
-  DecryptorScope(..),
-  defaultUserPassword,
-  mkStandardDecryptor,
-  decryptObject
+module Pdf.Core.Encryption
+( Decryptor
+, DecryptorScope(..)
+, defaultUserPassword
+, mkStandardDecryptor
+, decryptObject
 )
 where
 
-import Pdf.Core
+import Pdf.Core.Object
+import Pdf.Core.Object.Util
 import Pdf.Core.Util
 
 import qualified Data.Traversable as Traversable

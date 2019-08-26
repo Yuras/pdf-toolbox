@@ -18,6 +18,7 @@ module Pdf.Content.Processor
 where
 
 import Pdf.Core
+import Pdf.Core.Object.Util
 import Pdf.Core.Util
 
 import Pdf.Content.Ops

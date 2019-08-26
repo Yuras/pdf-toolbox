@@ -8,7 +8,7 @@ module Pdf.Content.Parser
 )
 where
 
-import Pdf.Core
+import Pdf.Core.Exception
 import Pdf.Core.Parsers.Object
 
 import Pdf.Content.Ops

@@ -10,10 +10,13 @@ module Main
 )
 where
 
-import Pdf.Core
+import Pdf.Core.Object
+import Pdf.Core.XRef
+import Pdf.Core.Stream (knownFilters)
 import qualified Pdf.Core.IO.Buffer as Buffer
+import qualified Pdf.Core.File as File
+import Pdf.Core.Writer
 import Pdf.Document
-import qualified Pdf.Document.File as File
 
 -- Using the internals to switch from 'pdf-toolbox-document' level
 -- to 'pdf-toolbox-core'
@@ -39,8 +42,8 @@ main = do
 
   withBinaryFile input ReadMode $ \h -> do
     buf <- Buffer.fromHandle h
-    file <- File.withBuffer knownFilters buf
-    pdf <- pdfWithFile file
+    file <- File.fromBuffer knownFilters buf
+    pdf <- fromFile file
     doc <- document pdf
 
     infoDict <- do

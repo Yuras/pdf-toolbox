@@ -9,7 +9,8 @@ module Pdf.Document.Catalog
 )
 where
 
-import Pdf.Core
+import Pdf.Core.Object.Util
+import Pdf.Core.Exception
 import Pdf.Core.Util
 
 import Pdf.Document.Pdf

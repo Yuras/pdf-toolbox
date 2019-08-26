@@ -11,7 +11,9 @@ module Pdf.Document.FontDict
 )
 where
 
-import Pdf.Core
+import Pdf.Core.Object
+import Pdf.Core.Object.Util
+import Pdf.Core.Exception
 import Pdf.Core.Util
 import qualified Pdf.Core.Name as Name
 import Pdf.Content

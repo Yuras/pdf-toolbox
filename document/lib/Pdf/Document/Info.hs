@@ -13,8 +13,9 @@ module Pdf.Document.Info
 )
 where
 
-import Pdf.Core
+import Pdf.Core.Exception
 import Pdf.Core.Util
+import Pdf.Core.Object.Util
 
 import Pdf.Document.Pdf
 import Pdf.Document.Internal.Types

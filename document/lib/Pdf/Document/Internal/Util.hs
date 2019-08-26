@@ -10,6 +10,7 @@ module Pdf.Document.Internal.Util
 where
 
 import Pdf.Core
+import Pdf.Core.Exception
 
 import qualified Data.HashMap.Strict as HashMap
 import Control.Monad

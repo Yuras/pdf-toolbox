@@ -6,7 +6,8 @@ module Main
 )
 where
 
-import Pdf.Core
+import Pdf.Core.Object
+import Pdf.Core.Writer
 import Pdf.Document
 
 import qualified Data.HashMap.Strict as HashMap
@@ -23,14 +24,14 @@ main = hspec $ do
   describe "simple.pdf" $ do
     it "should have title" $
       withSimpleFile $ \h -> do
-      pdf <- pdfWithHandle h
-      doc <- document pdf
-      maybe_info <- documentInfo doc
-      title <-
-        case maybe_info of
-          Nothing -> return Nothing
-          Just info -> infoTitle info
-      title `shouldBe` Just "simple PDF file"
+        pdf <- fromHandle h
+        doc <- document pdf
+        maybe_info <- documentInfo doc
+        title <-
+          case maybe_info of
+            Nothing -> return Nothing
+            Just info -> infoTitle info
+        title `shouldBe` Just "simple PDF file"
 
 -- | Generate simple PDF file for tests
 withSimpleFile :: (Handle -> IO ()) -> IO ()

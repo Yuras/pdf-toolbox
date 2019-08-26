@@ -32,7 +32,9 @@ library
   hs-source-dirs:      lib
                        compat
   exposed-modules:     Pdf.Core
+                       Pdf.Core.File
                        Pdf.Core.IO.Buffer
+                       Pdf.Core.Encryption
                        Pdf.Core.Exception
                        Pdf.Core.Name
                        Pdf.Core.Object
@@ -60,7 +62,11 @@ library
                        hashable,
                        unordered-containers,
                        transformers,
-                       containers
+                       containers,
+                       cipher-rc4,
+                       cipher-aes,
+                       crypto-api,
+                       cryptohash
 
 test-suite test
   type:                exitcode-stdio-1.0

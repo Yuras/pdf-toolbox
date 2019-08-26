@@ -25,7 +25,6 @@ library
                        compat
   exposed-modules:     Pdf.Document
                        Pdf.Document.Types
-                       Pdf.Document.File
                        Pdf.Document.Pdf
                        Pdf.Document.Document
                        Pdf.Document.Info
@@ -33,7 +32,6 @@ library
                        Pdf.Document.PageNode
                        Pdf.Document.Page
                        Pdf.Document.FontDict
-                       Pdf.Document.Encryption
                        Pdf.Document.Internal.Types
                        Pdf.Document.Internal.Util
   other-modules:       Prelude

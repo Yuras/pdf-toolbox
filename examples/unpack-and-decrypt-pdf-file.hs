@@ -6,9 +6,10 @@ module Main
 )
 where
 
-import Pdf.Core hiding (rawStreamContent)
+import Pdf.Core.Object
+import Pdf.Core.Exception
+import Pdf.Core.Writer
 import Pdf.Document
-import Pdf.Document.Encryption
 import Pdf.Document.Internal.Types
 
 import Data.IORef
@@ -21,15 +22,12 @@ import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
 import Control.Exception
 import System.Environment
-import System.IO
 import qualified System.IO.Streams as Streams
 
 main :: IO ()
 main = do
   [input] <- getArgs
-  withBinaryFile input ReadMode $ \h -> do
-    pdf <- pdfWithHandle h
-
+  withPdfFile input $ \pdf -> do
     encrypted <- isEncrypted pdf
     when encrypted $ do
       ok <- setUserPassword pdf defaultUserPassword
@@ -87,7 +85,7 @@ loadDecodedStream pdf ref s@(S d _) = do
   return (d', cont)
 
 loadRawStream :: Pdf -> Ref -> Stream -> IO (Dict, Lazy.ByteString)
-loadRawStream pdf _ s@(S d _) = do
-  is <- rawStreamContent pdf s
+loadRawStream pdf r s@(S d _) = do
+  is <- rawStreamContent pdf r s
   cont <- Lazy.ByteString.fromChunks <$> Streams.toList is
   return (d, cont)
