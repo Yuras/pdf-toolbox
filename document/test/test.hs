@@ -10,6 +10,8 @@ import Pdf.Core.Object
 import Pdf.Core.Writer
 import Pdf.Document
 
+import qualified Test.Internal.Util as Internal.Util
+
 import qualified Data.HashMap.Strict as HashMap
 import Control.Exception (bracket, finally)
 import Control.Monad
@@ -22,6 +24,8 @@ import Test.Hspec
 
 main :: IO ()
 main = hspec $ do
+  Internal.Util.spec
+
   describe "simple.pdf" $ do
     it "should have title" $
       withSimpleFile $ \h -> do
