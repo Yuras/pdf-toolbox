@@ -9,9 +9,9 @@ where
 import Pdf.Content
 import Pdf.Document
 
-import qualified Data.ByteString.Char8 as ByteString.Char8
 import qualified Data.Text as Text
 import Data.IORef
+import Data.Maybe
 import Control.Monad
 import Control.Monad.IO.Class
 import System.Directory
@@ -65,7 +65,7 @@ main = do
       viewerRenderGlyphs = False
       }
 
-    let winTitle = maybe "Untitled" ByteString.Char8.unpack title
+    let winTitle = fromMaybe "Untitled" title
 
     window <- windowNew
     set window [

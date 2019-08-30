@@ -33,6 +33,7 @@ library
                        Pdf.Content.TexGlyphList
                        Pdf.Content.Encoding.WinAnsi
                        Pdf.Content.Encoding.MacRoman
+                       Pdf.Content.Encoding.PdfDoc
   other-modules:       Prelude
                        Data.Either
   build-depends:       base >= 4.5 && < 5,

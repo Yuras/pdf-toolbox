@@ -54,6 +54,7 @@ test-suite test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             test.hs
+  other-modules:       Test.Internal.Util
   build-depends:       base,
                        bytestring == 0.10.*,
                        directory,
