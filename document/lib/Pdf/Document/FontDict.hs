@@ -108,6 +108,7 @@ loadFontInfoComposite pdf fontDict = do
       Just o -> do
         o' <- deref pdf o
         arr <- sure (arrayValue o' `notice` "W should be an array")
+          >>= Vector.mapM (deref pdf)
         sure $ makeCIDFontWidths arr
 
   return $ FIComposite {
