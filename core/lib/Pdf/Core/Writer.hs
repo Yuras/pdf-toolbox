@@ -8,9 +8,12 @@
 --
 -- To generate new file, first call 'writeHeader',
 -- then a number of 'writeObject' and finally 'writeXRefTable'
+-- or `writeXRefStream`.
 --
 -- To incrementally update PDF file just omit the
--- `writeHeader` and append the result to the existent file
+-- `writeHeader` and append the result to the existent file.
+-- Make sure to use `writeXRefTable` if the original file uses xref table,
+-- or use `writeXRefStream` if it uses xref stream.
 
 module Pdf.Core.Writer
 ( Writer
@@ -20,6 +23,7 @@ module Pdf.Core.Writer
 , writeStream
 , deleteObject
 , writeXRefTable
+, writeXRefStream
 )
 where
 
@@ -28,8 +32,10 @@ import Pdf.Core.Object.Builder
 
 import Data.IORef
 import Data.Int
+import qualified Data.Vector as Vector
 import Data.Set (Set)
 import qualified Data.Set as Set
+import qualified Data.HashMap.Strict as HashMap
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Builder
@@ -101,6 +107,10 @@ deleteObject writer (R index gen) nextFree =
 
 -- | Write xref table. Should be the last call.
 -- Used for generating and incremental updates.
+--
+-- Note that when doing incremental update you should use this function
+-- only if the original PDF file has xref table. If it has xref stream,
+-- then use `writeXRefStream`.
 writeXRefTable
   :: Writer
   -> Int64    -- ^ size of the original PDF file. Should be 0 for new file
@@ -121,6 +131,47 @@ writeXRefTable writer offset tr = do
         , byteString "\n%%EOF\n"
         ]
   Streams.writeLazyByteString (toLazyByteString content) (stOutput st)
+
+-- | Write xref stream. Should be the last call.
+-- Used for generating and incremental updates.
+--
+-- Note that when doing incremental update you should use this function
+-- only if the original PDF file has xref stream. If it has xref table,
+-- then use `writeXRefTable`.
+--
+-- This function will update/delete the following keys in the trailer:
+-- Type, W, Index, Filter, Length.
+writeXRefStream
+  :: Writer
+  -> Int64    -- ^ size of the original PDF file. Should be 0 for new file
+  -> Ref
+  -> Dict     -- ^ trailer
+  -> IO ()
+writeXRefStream writer offset ref@(R index gen) tr = do
+  pos <- countWritten writer
+  addElem writer $ Elem index gen pos False
+  st <- readIORef (toStateRef writer)
+  let elems = Set.mapMonotonic (\e -> e {elemOffset = elemOffset e + offset})
+            $ stObjects st
+      off = pos + offset
+      content = toLazyByteString $ buildXRefStream (Set.toAscList elems)
+      dict
+        = HashMap.insert "Type" (Name "XRef")
+        . HashMap.insert "W" (Array $ Vector.fromList $ map Number [1, 8, 8])
+        . HashMap.insert "Index" (Array $ Vector.fromList $ map Number trIndex)
+        . HashMap.insert "Length" (Number $ fromIntegral $ BSL.length content)
+        . HashMap.delete "Filter"
+        $ tr
+      trIndex = concatMap sectionIndex (xrefSections (Set.toAscList elems))
+      sectionIndex [] = error "impossible"
+      sectionIndex s@(e:_) = map fromIntegral [elemIndex e, length s]
+      end = mconcat
+        [ "\nstartxref\n"
+        , int64Dec off
+        , "\n%%EOF\n"
+        ]
+  dumpStream (stOutput st) ref dict content
+  Streams.writeLazyByteString (toLazyByteString end) (stOutput st)
 
 countWritten :: Writer -> IO Int64
 countWritten writer = do
@@ -151,23 +202,25 @@ dumpStream out ref dict dat =
 
 buildXRefTable :: [Elem] -> Builder
 buildXRefTable entries =
-  mconcat (map buildXRefSection $ sections entries)
-  where
-  sections :: [Elem] -> [[Elem]]
-  sections [] = []
-  sections xs = let (s, rest) = section xs in s : sections rest
-  section [] = error "impossible"
-  section (x:xs) = go (elemIndex x + 1) [x] xs
-    where
-    go _ res [] = (reverse res, [])
-    go i res (y:ys) =
-      if i == elemIndex y
-        then go (i + 1) (y : res) ys
-        else (reverse res, y:ys)
+  mconcat (map buildXRefTableSection $ xrefSections entries)
 
-buildXRefSection :: [Elem] -> Builder
-buildXRefSection [] = error "impossible"
-buildXRefSection s@(e:_) = mconcat
+xrefSections :: [Elem] -> [[Elem]]
+xrefSections [] = []
+xrefSections xs = let (s, rest) = xrefSection xs in s : xrefSections rest
+
+xrefSection :: [Elem] -> ([Elem], [Elem])
+xrefSection [] = error "impossible"
+xrefSection (x:xs) = go (elemIndex x + 1) [x] xs
+  where
+  go _ res [] = (reverse res, [])
+  go i res (y:ys) =
+    if i == elemIndex y
+      then go (i + 1) (y : res) ys
+      else (reverse res, y:ys)
+
+buildXRefTableSection :: [Elem] -> Builder
+buildXRefTableSection [] = error "impossible"
+buildXRefTableSection s@(e:_) = mconcat
   [ intDec (elemIndex e)
   , char7 ' '
   , intDec (length s)
@@ -184,6 +237,23 @@ buildXRefSection s@(e:_) = mconcat
     , string7 "\r\n"
     ] `mappend` loop xs
   loop [] = mempty
+
+buildXRefStream :: [Elem] -> Builder
+buildXRefStream entries =
+  mconcat (map buildXRefStreamSection $ xrefSections entries)
+
+buildXRefStreamSection :: [Elem] -> Builder
+buildXRefStreamSection = mconcat . map buildOne
+  where
+  buildOne e =
+    let (tp, field1, field2) = if elemFree e
+          then (0, 0, succ (elemGen e))
+          else (1, elemOffset e, elemGen e)
+    in mconcat
+      [ int8 tp
+      , int64BE field1
+      , int64BE (fromIntegral field2)
+      ]
 
 buildFixed :: Show a => Int -> Char -> a -> Builder
 buildFixed len c i =
