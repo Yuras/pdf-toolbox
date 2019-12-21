@@ -24,6 +24,7 @@ import qualified Data.Text.Encoding as Text
 import Data.Attoparsec.ByteString.Char8 (Parser, parseOnly)
 import qualified Data.Attoparsec.ByteString.Char8 as P
 import Control.Monad
+import qualified Control.Monad.Fail as Fail
 
 -- | Unicode character map
 --
@@ -182,7 +183,7 @@ parseHexArray = do
   return res
 
 -- XXX: wtf?!
-fromHex :: Monad m => ByteString -> m ByteString
+fromHex :: Fail.MonadFail m => ByteString -> m ByteString
 fromHex hex = do
   let (str, rest) = Base16.decode $ bsToLower hex
   unless (ByteString.null rest) $

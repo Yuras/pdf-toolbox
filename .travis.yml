@@ -10,6 +10,8 @@ matrix:
     env: GHC_VERSION=8.4
   - ghc: '8.6'
     env: GHC_VERSION=8.6
+  - ghc: '8.8'
+    env: GHC_VERSION=8.8
 install: true
 cache:
   directories:
