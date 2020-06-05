@@ -148,29 +148,19 @@ cidFontGetWidth w code =
 -- | Decode string into list of glyphs and their widths
 fontInfoDecodeGlyphs :: FontInfo -> ByteString -> [(Glyph, Double)]
 fontInfoDecodeGlyphs (FontInfoSimple fi) = \bs ->
-  flip map (BS.unpack bs) $ \c ->
-    let code = fromIntegral c
-        txt =
-          case fiSimpleUnicodeCMap fi of
-            Nothing ->
-              case fiSimpleEncoding fi of
-                Nothing ->
-                  case Text.decodeUtf8' (BS.pack [c]) of
-                    Right t -> Just t
-                    _ -> Nothing
-                Just enc ->
-                  case simpleFontEncodingDecode enc c of
-                    Just t -> Just t
+  case fiSimpleUnicodeCMap fi of
+    Just toUnicode -> cmapDecodeString getWidth toUnicode bs
+                      -- this only fails on corrupted PDFs
+    Nothing ->
+      -- read byte by byte
+      flip map (BS.unpack bs) $ \c ->
+        let code = fromIntegral c
+            width = getWidth code
+            txt = case fiSimpleEncoding fi of
                     Nothing ->
                       case Text.decodeUtf8' (BS.pack [c]) of
                         Right t -> Just t
                         _ -> Nothing
-            Just toUnicode ->
-              case unicodeCMapDecodeGlyph toUnicode code of
-                Just t -> Just t
-                Nothing ->
-                  case fiSimpleEncoding fi of
-                    Nothing -> Nothing
                     Just enc ->
                       case simpleFontEncodingDecode enc c of
                         Just t -> Just t
@@ -178,22 +168,23 @@ fontInfoDecodeGlyphs (FontInfoSimple fi) = \bs ->
                           case Text.decodeUtf8' (BS.pack [c]) of
                             Right t -> Just t
                             _ -> Nothing
-        width =
-          case fiSimpleWidths fi of
-            Nothing -> 0
-            Just (firstChar, lastChar, widths) ->
-              if code >= firstChar && code <= lastChar
-                  && (code - firstChar) < length widths
-                 then let Vector w _ = transform (fiSimpleFontMatrix fi) $
-                            Vector (widths !! (code - firstChar)) 0
-                      in w
-                 else 0
-    in (Glyph {
-      glyphCode = code,
-      glyphTopLeft = Vector 0 0,
-      glyphBottomRight = Vector width 1,
-      glyphText = txt
-      }, width)
+        in (Glyph {
+               glyphCode = code,
+               glyphTopLeft = Vector 0 0,
+               glyphBottomRight = Vector width 1,
+               glyphText = txt
+               }, width)
+  where
+    getWidth = \code ->
+      case fiSimpleWidths fi of
+        Nothing -> 0
+        Just (firstChar, lastChar, widths) ->
+          if code >= firstChar && code <= lastChar
+             && (code - firstChar) < length widths
+          then let Vector w _ = transform (fiSimpleFontMatrix fi) $
+                                Vector (widths !! (code - firstChar)) 0
+               in w
+          else 0
 fontInfoDecodeGlyphs (FontInfoComposite fi) = \bs ->
   case fiCompositeUnicodeCMap fi of
     Nothing ->  -- XXX: use encoding here
@@ -201,7 +192,7 @@ fontInfoDecodeGlyphs (FontInfoComposite fi) = \bs ->
     Just toUnicode ->
       let getWidth = fromMaybe (fiCompositeDefaultWidth fi)
                    . cidFontGetWidth (fiCompositeWidths fi)
-      in cmapDecodeString getWidth toUnicode bs
+      in cmapDecodeString ((/1000) . getWidth) toUnicode bs
   where
   -- Most of the time composite fonts have 2-byte encoding,
   -- so lets try that for now.
@@ -223,7 +214,9 @@ fontInfoDecodeGlyphs (FontInfoComposite fi) = \bs ->
   tryDecode2byte _ = []
 
 cmapDecodeString
-  :: (Int -> Double)
+  :: (Int -> Double)  -- ^ function for getting the width for a glyph
+                      -- code. A scaling factor must be put in here,
+                      -- too, e.g. @((/1000) . myGetWidth)@.
   -> UnicodeCMap
   -> ByteString
   -> [(Glyph, Double)]
@@ -235,7 +228,7 @@ cmapDecodeString getWidth cmap str = go str
         Nothing -> []
         Just (g, rest) ->
           let i = toCode g
-              width = getWidth i / 1000
+              width = getWidth i -- / 1000
               glyph = Glyph {
                 glyphCode = i,
                 glyphTopLeft = Vector 0 0,
