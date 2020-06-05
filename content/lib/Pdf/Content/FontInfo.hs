@@ -229,15 +229,17 @@ cmapDecodeString
   -> [(Glyph, Double)]
 cmapDecodeString getWidth cmap str = go str
   where
-  go s =
-    case unicodeCMapNextGlyph cmap s of
-      Nothing -> []
-      Just (g, rest) ->
-        let width = getWidth g / 1000
-            glyph = Glyph {
-          glyphCode = g,
-          glyphTopLeft = Vector 0 0,
-          glyphBottomRight = Vector width 1,
-          glyphText = unicodeCMapDecodeGlyph cmap g
-          }
-        in (glyph, width) : go rest
+    (eatNext, decodeFun) = unicodeCMapNextGlyph cmap
+    go s =
+      case eatNext s of
+        Nothing -> []
+        Just (g, rest) ->
+          let i = toCode g
+              width = getWidth i / 1000
+              glyph = Glyph {
+                glyphCode = i,
+                glyphTopLeft = Vector 0 0,
+                glyphBottomRight = Vector width 1,
+                glyphText = unicodeCMapDecodeGlyphWith cmap decodeFun g
+                }
+          in (glyph, width) : go rest
