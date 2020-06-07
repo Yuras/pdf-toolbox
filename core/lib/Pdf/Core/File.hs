@@ -6,6 +6,7 @@ module Pdf.Core.File
 ( File(..)
 , withPdfFile
 , fromHandle
+, fromBytes
 , fromBuffer
 , lastTrailer
 , findObject
@@ -168,6 +169,14 @@ fromBuffer filters buffer = do
 fromHandle :: [StreamFilter] -> Handle -> IO File
 fromHandle filters handle = do
   buffer <- Buffer.fromHandle handle
+  fromBuffer filters buffer
+
+-- | Create file from a ByteString.
+--
+-- You may use 'Stream.knownFilters' as the first argument.
+fromBytes :: [StreamFilter] -> ByteString -> IO File
+fromBytes filters bytes = do
+  buffer <- Buffer.fromBytes bytes
   fromBuffer filters buffer
 
 -- | Open Pdf file

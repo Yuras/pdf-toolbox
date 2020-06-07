@@ -7,6 +7,7 @@ module Pdf.Document.Pdf
   withPdfFile,
   fromFile,
   fromHandle,
+  fromBytes,
   document,
   lookupObject,
   streamContent,
@@ -53,6 +54,11 @@ fromFile f = Pdf f
 fromHandle :: Handle -> IO Pdf
 fromHandle h = do
   File.fromHandle knownFilters h >>= fromFile
+
+-- | Make Pdf from a ByteString
+fromBytes :: ByteString -> IO Pdf
+fromBytes h = do
+  File.fromBytes knownFilters h >>= fromFile
 
 file :: Pdf -> File
 file (Pdf f _) = f
