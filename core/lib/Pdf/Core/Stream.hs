@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE  OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 
@@ -18,7 +19,9 @@ import Pdf.Core.Exception
 import Pdf.Core.Object
 import Pdf.Core.Parsers.Object
 import Pdf.Core.Stream.Filter.Type
+#ifdef ENABLE_ZLIB
 import Pdf.Core.Stream.Filter.FlateDecode
+#endif
 import Pdf.Core.IO.Buffer (Buffer)
 import qualified Pdf.Core.IO.Buffer as Buffer
 
@@ -50,9 +53,18 @@ readStream is off = do
 
 -- | All stream filters implemented by the toolbox
 --
+#ifdef ENABLE_ZLIB
 -- Right now it contains only FlateDecode filter
+#else
+-- Right now it contains no filters
+#endif
 knownFilters :: [StreamFilter]
-knownFilters = [flateDecode]
+knownFilters =
+#ifdef ENABLE_ZLIB
+  [flateDecode]
+#else
+  []
+#endif
 
 -- | Raw stream content.
 -- Filters are not applyed

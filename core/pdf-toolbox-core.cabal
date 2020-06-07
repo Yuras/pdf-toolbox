@@ -28,6 +28,11 @@ source-repository head
   type:                git
   location:            git://github.com/Yuras/pdf-toolbox.git
 
+flag zlib
+  description: Enable deflate support via zlib; requires that the Zlib flag be set on io-streams
+  default: True
+  manual: True
+
 library
   hs-source-dirs:      lib
                        compat
@@ -45,7 +50,6 @@ library
                        Pdf.Core.Parsers.Util
                        Pdf.Core.Stream
                        Pdf.Core.Stream.Filter.Type
-                       Pdf.Core.Stream.Filter.FlateDecode
                        Pdf.Core.XRef
                        Pdf.Core.Util
                        Pdf.Core.Writer
@@ -67,6 +71,8 @@ library
                        cipher-aes,
                        crypto-api,
                        cryptohash
+  if flag(zlib)
+    exposed-modules:   Pdf.Core.Stream.Filter.FlateDecode
 
 test-suite test
   type:                exitcode-stdio-1.0
