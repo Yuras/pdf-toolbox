@@ -50,7 +50,7 @@ parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
           ]
         res = parseUnicodeCMap input
     fmap unicodeCMapChars res `shouldBe`
-      Right (Map.fromList [(14871,"\131134")])
+      Right (Map.fromList [(14929,"\131134")])
 
   it "should parse multiple chars" $ do
     let input = ByteString.concat
