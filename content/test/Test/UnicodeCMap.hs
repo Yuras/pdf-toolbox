@@ -18,6 +18,7 @@ spec :: Spec
 spec = describe "UnicodeCMap" $ do
   parseUnicodeCMapSpec
   unicodeCMapDecodeGlyphSpec
+  unicodeCMapNextGlyphSpec
 
 parseUnicodeCMapSpec :: Spec
 parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
@@ -50,7 +51,7 @@ parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
           ]
         res = parseUnicodeCMap input
     fmap unicodeCMapChars res `shouldBe`
-      Right (Map.fromList [(14871,"\131134")])
+      Right (Map.fromList [(14929,"\131134")])
 
   it "should parse multiple chars" $ do
     let input = ByteString.concat
@@ -153,3 +154,11 @@ unicodeCMapDecodeGlyphSpec = describe "unicodeCMapDecodeGlyph" $ do
 
     let res = unicodeCMapDecodeGlyph cmap 16
     res `shouldBe` Nothing
+
+unicodeCMapNextGlyphSpec :: Spec
+unicodeCMapNextGlyphSpec = describe "unicodeCMapNextGlyph" $ do
+  it "correctly handles multibyte ranges" $ do
+    let cmap = UnicodeCMap [("\0\0", "\1\1")] mempty []
+    let Just (code, rest) = unicodeCMapNextGlyph cmap "\1\0rest"
+    rest `shouldBe` rest
+    code `shouldBe` 256
