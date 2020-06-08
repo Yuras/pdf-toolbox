@@ -18,6 +18,7 @@ spec :: Spec
 spec = describe "UnicodeCMap" $ do
   parseUnicodeCMapSpec
   unicodeCMapDecodeGlyphSpec
+  unicodeCMapNextGlyphSpec
 
 parseUnicodeCMapSpec :: Spec
 parseUnicodeCMapSpec = describe "parseUnicodeCMap" $ do
@@ -153,3 +154,11 @@ unicodeCMapDecodeGlyphSpec = describe "unicodeCMapDecodeGlyph" $ do
 
     let res = unicodeCMapDecodeGlyph cmap 16
     res `shouldBe` Nothing
+
+unicodeCMapNextGlyphSpec :: Spec
+unicodeCMapNextGlyphSpec = describe "unicodeCMapNextGlyph" $ do
+  it "correctly handles multibyte ranges" $ do
+    let cmap = UnicodeCMap [("\0\0", "\1\1")] mempty []
+    let Just (code, rest) = unicodeCMapNextGlyph cmap "\1\0rest"
+    rest `shouldBe` rest
+    code `shouldBe` 256
