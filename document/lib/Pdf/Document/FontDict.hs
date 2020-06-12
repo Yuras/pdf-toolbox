@@ -244,7 +244,7 @@ loadFontDescriptor pdf fontDict = do
             lookupObject pdf ref
 
       fontName <- required "FontName" nameValue' fd
-      fontFamily <- optional "FontFamily" nameValue' fd
+      fontFamily <- optional "FontFamily" (fmap decodeUtf8 . stringValue) fd
       fontStretch <- optional "FontStretch" nameValue' fd
       fontWeight <- optional "FontWeight" intValue fd
       flags <- required "Flags" int64Value fd
@@ -261,7 +261,7 @@ loadFontDescriptor pdf fontDict = do
       avgWidth <- optional "AvgWidth" realValue fd
       maxWidth <- optional "MaxWidth" realValue fd
       missingWidth <- optional "MissingWidth" realValue fd
-      charSet <- optional "CharSet" nameValue' fd
+      charSet <- optional "CharSet" (fmap decodeUtf8 . stringValue) fd
 
       return $ Just $ FontDescriptor
         { fdFontName = fontName
