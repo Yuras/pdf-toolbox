@@ -46,6 +46,7 @@ library
                        Pdf.Core.Stream
                        Pdf.Core.Stream.Filter.Type
                        Pdf.Core.Stream.Filter.FlateDecode
+                       Pdf.Core.Types
                        Pdf.Core.XRef
                        Pdf.Core.Util
                        Pdf.Core.Writer

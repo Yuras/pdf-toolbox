@@ -19,12 +19,14 @@ where
 import Pdf.Core
 import Pdf.Core.Util
 import Pdf.Core.Object.Util
+import Pdf.Core.Types
 
 import Pdf.Content.UnicodeCMap
 import Pdf.Content.Transform
 import Pdf.Content.Processor (Glyph(..))
 import Pdf.Content.GlyphList
 import Pdf.Content.TexGlyphList
+import Pdf.Content.FontDescriptor
 import qualified Pdf.Content.Encoding.WinAnsi as WinAnsi
 import qualified Pdf.Content.Encoding.MacRoman as MacRoman
 
@@ -53,7 +55,10 @@ data FISimple = FISimple {
   fiSimpleEncoding :: Maybe SimpleFontEncoding,
   fiSimpleWidths :: Maybe (Int, Int, [Double]),
   -- ^ FirstChar, LastChar, list of widths
-  fiSimpleFontMatrix :: Transform Double
+  fiSimpleFontMatrix :: Transform Double,
+  -- FIXME: no Maybe as soon as this library provides metrics for the
+  -- 14 standard fonts
+  fiSimpleFontDescriptor :: Maybe FontDescriptor
   }
   deriving (Show)
 
@@ -76,7 +81,10 @@ data SimpleFontEncoding = SimpleFontEncoding {
 data FIComposite = FIComposite {
   fiCompositeUnicodeCMap :: Maybe UnicodeCMap,
   fiCompositeWidths :: CIDFontWidths,
-  fiCompositeDefaultWidth :: Double
+  fiCompositeDefaultWidth :: Double,
+  -- FontDescriptor is present in CIDFonts, but according to specs
+  -- shall not be used with Type0 fonts
+  fiCompositeFontDescriptor :: Maybe FontDescriptor
   }
   deriving (Show)
 
@@ -101,6 +109,28 @@ instance Monoid CIDFontWidths where
 
 instance Semigroup CIDFontWidths where
   (<>) = mappend
+
+-- | Returns the Y coordinates for a bbox of a glyph of a font, in
+-- text space units. Defaults to (0,1) if no FontDescriptor is
+-- present.
+--
+-- Maybe for vertical scripts, there are individual heights for the
+-- glyphs, so this takes a glyph code as second argument.
+getGlyphYCoordinates :: FontInfo -> Int -> (Double, Double)
+getGlyphYCoordinates (FontInfoComposite fi) =
+  const $ fromMaybe (0,1) $ join $ fmap (fdYCoordinates 1000) $ fiCompositeFontDescriptor fi
+getGlyphYCoordinates (FontInfoSimple fi) =
+  const $ fromMaybe (0,1) $ join $ fmap (fdYCoordinates 1000) $ fiSimpleFontDescriptor fi
+
+fdYCoordinates :: Double -> FontDescriptor -> Maybe (Double, Double)
+fdYCoordinates scaling fd =
+  maybe cap Just $          -- third: try CapHeight
+  maybe descAsc Just $      -- second: try Descent and Ascent
+  fmap bbox $ fdFontBBox fd -- first: try FontBBox
+  where
+    bbox (Rectangle _ b _ t) = (b / scaling, t / scaling)
+    descAsc = (,) <$> (fmap (/scaling) $ fdDescent fd) <*> (fmap (/scaling) $ fdAscent fd)
+    cap = (,) <$> (Just 0.0) <*> (fmap (/scaling) $ fdCapHeight fd)
 
 simpleFontEncodingDecode :: SimpleFontEncoding -> Word8 -> Maybe Text
 simpleFontEncodingDecode enc code =
@@ -147,7 +177,7 @@ cidFontGetWidth w code =
 
 -- | Decode string into list of glyphs and their widths
 fontInfoDecodeGlyphs :: FontInfo -> ByteString -> [(Glyph, Double)]
-fontInfoDecodeGlyphs (FontInfoSimple fi) = \bs ->
+fontInfoDecodeGlyphs fInfo@(FontInfoSimple fi) = \bs ->
   flip map (BS.unpack bs) $ \c ->
     let code = fromIntegral c
         txt =
@@ -188,20 +218,21 @@ fontInfoDecodeGlyphs (FontInfoSimple fi) = \bs ->
                             Vector (widths !! (code - firstChar)) 0
                       in w
                  else 0
+        (yBottom, yTop) = getGlyphYCoordinates fInfo code
     in (Glyph {
       glyphCode = code,
-      glyphTopLeft = Vector 0 0,
-      glyphBottomRight = Vector width 1,
+      glyphTopLeft = Vector 0 yBottom,
+      glyphBottomRight = Vector width yTop,
       glyphText = txt
       }, width)
-fontInfoDecodeGlyphs (FontInfoComposite fi) = \bs ->
+fontInfoDecodeGlyphs fInfo@(FontInfoComposite fi) = \bs ->
   case fiCompositeUnicodeCMap fi of
     Nothing ->  -- XXX: use encoding here
       tryDecode2byte $ BS.unpack bs
     Just toUnicode ->
       let getWidth = fromMaybe (fiCompositeDefaultWidth fi)
                    . cidFontGetWidth (fiCompositeWidths fi)
-      in cmapDecodeString getWidth toUnicode bs
+      in cmapDecodeString getWidth toUnicode fInfo bs
   where
   -- Most of the time composite fonts have 2-byte encoding,
   -- so lets try that for now.
@@ -213,10 +244,11 @@ fontInfoDecodeGlyphs (FontInfoComposite fi) = \bs ->
           case Text.decodeUtf8' (BS.pack [b1, b2]) of
             Right t -> Just t
             _ -> Nothing
+        (yBottom, yTop) = getGlyphYCoordinates fInfo code
         g = Glyph {
           glyphCode = code,
-          glyphTopLeft = Vector 0 0,
-          glyphBottomRight = Vector width 1,
+          glyphTopLeft = Vector 0 yBottom,
+          glyphBottomRight = Vector width yTop,
           glyphText = txt
           }
     in (g, width) : tryDecode2byte rest
@@ -225,19 +257,21 @@ fontInfoDecodeGlyphs (FontInfoComposite fi) = \bs ->
 cmapDecodeString
   :: (Int -> Double)
   -> UnicodeCMap
+  -> FontInfo
   -> ByteString
   -> [(Glyph, Double)]
-cmapDecodeString getWidth cmap str = go str
+cmapDecodeString getWidth cmap fInfo str = go str
   where
   go s =
     case unicodeCMapNextGlyph cmap s of
       Nothing -> []
       Just (g, rest) ->
         let width = getWidth g / 1000
+            (yBottom, yTop) = getGlyphYCoordinates fInfo g
             glyph = Glyph {
           glyphCode = g,
-          glyphTopLeft = Vector 0 0,
-          glyphBottomRight = Vector width 1,
+          glyphTopLeft = Vector 0 yBottom,
+          glyphBottomRight = Vector width yTop,
           glyphText = unicodeCMapDecodeGlyph cmap g
           }
         in (glyph, width) : go rest
