@@ -6,19 +6,18 @@ module Pdf.Content.FontDescriptor
   ( FontDescriptor(..)
   , FontDescriptorFlag(..)
   , flagSet
-  , flagSet'
   )
 where
 
 import Pdf.Core.Types
 
-import Data.Text (Text)
 import Data.Int
+import Data.ByteString (ByteString)
 
 data FontDescriptor = FontDescriptor {
-  fdFontName :: Text,
-  fdFontFamily :: Maybe Text,
-  fdFontStretch :: Maybe Text,
+  fdFontName :: ByteString,
+  fdFontFamily :: Maybe ByteString,
+  fdFontStretch :: Maybe ByteString,
   fdFontWeight :: Maybe Int,
   fdFlags :: Int64, -- must hold at least 32 bit unsigned integers
   fdFontBBox :: Maybe (Rectangle Double),
@@ -34,7 +33,7 @@ data FontDescriptor = FontDescriptor {
   fdMaxWidth :: Maybe Double,
   fdMissingWidth :: Maybe Double,
   -- FIXME: add FontFile*
-  fdCharSet :: Maybe Text
+  fdCharSet :: Maybe ByteString
   -- FIXME: add special fields for CIDFonts
   } deriving (Show)
 
@@ -55,7 +54,7 @@ flagSet fd SmallCap = flagSet' 18 (fdFlags fd) 0
 flagSet fd ForceBold = flagSet' 19 (fdFlags fd) 0
 
 flagSet' :: Int -> Int64 -> Int -> Bool
-flagSet' pos val exp
-  | exp == pos - 1 = val `mod` 2 == 1
+flagSet' pos val expnt
+  | expnt == pos - 1 = val `mod` 2 == 1
   | val == 0 = False
-  | otherwise = flagSet' pos (val `div` 2) (exp+1)
+  | otherwise = flagSet' pos (val `div` 2) (expnt+1)

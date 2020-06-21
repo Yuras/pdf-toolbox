@@ -60,10 +60,14 @@ testFlagSet = describe "flagSet" $ do
     res `shouldSatisfy` (==False)
 
   it "should return True when testing ForceBold on (2^32)-1" $ do
-    let res = flagSet (defFD {fdFlags = ((2^32)::Int64)-1})  ForceBold
+    let res = flagSet (defFD {fdFlags = (power64 2 32)-1})  ForceBold
     res `shouldSatisfy` (==True)
 
   it "should return False when testing ForceBold on 0" $ do
     let res = flagSet (defFD {fdFlags = 0}) ForceBold
     res `shouldSatisfy` (==False)
 
+  where
+    power64 :: Int64 -> Int64 -> Int64
+    power64 _ 0 = 1
+    power64 b e = b * power64 b (e-1)

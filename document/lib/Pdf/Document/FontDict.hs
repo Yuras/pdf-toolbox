@@ -29,7 +29,8 @@ import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
 import Control.Exception hiding (throw)
 import qualified System.IO.Streams as Streams
-import Data.Text.Encoding (decodeUtf8)
+import Data.Text.Encoding (decodeUtf8With)
+import Data.Text.Encoding.Error (ignore)
 import qualified Data.Text as Text
 
 -- | Font subtypes
@@ -244,7 +245,7 @@ loadFontDescriptor pdf fontDict = do
             lookupObject pdf ref
 
       fontName <- required "FontName" nameValue' fd
-      fontFamily <- optional "FontFamily" (fmap decodeUtf8 . stringValue) fd
+      fontFamily <- optional "FontFamily" stringValue fd
       fontStretch <- optional "FontStretch" nameValue' fd
       fontWeight <- optional "FontWeight" intValue fd
       flags <- required "Flags" int64Value fd
@@ -261,7 +262,7 @@ loadFontDescriptor pdf fontDict = do
       avgWidth <- optional "AvgWidth" realValue fd
       maxWidth <- optional "MaxWidth" realValue fd
       missingWidth <- optional "MissingWidth" realValue fd
-      charSet <- optional "CharSet" (fmap decodeUtf8 . stringValue) fd
+      charSet <- optional "CharSet" nameValue' fd
 
       return $ Just $ FontDescriptor
         { fdFontName = fontName
@@ -286,7 +287,7 @@ loadFontDescriptor pdf fontDict = do
   where
     required = requiredInDict "FontDescriptor"
     optional = optionalInDict "FontDescriptor"
-    nameValue' = fmap (decodeUtf8 . Name.toByteString) . nameValue
+    nameValue' = fmap Name.toByteString . nameValue
 
 -- | Parse a value from a required field of a dictionary. This will
 -- raise an exception if a) the field is not present or b) the field
@@ -302,7 +303,7 @@ requiredInDict context key typeFun =
   fmap (sure . (`notice` (context ++ ": " ++ msg ++ " type failure")) . typeFun) .
   HashMap.lookup key
   where
-    msg = Text.unpack $ decodeUtf8 $ Name.toByteString key
+    msg = Text.unpack $ decodeUtf8With ignore $ Name.toByteString key
 
 -- | Parse a value from an optional field of a dictionary. This will
 -- raise an exception if the field value has a false type.
@@ -312,4 +313,4 @@ optionalInDict context key typeFun =
   fmap (sure . (`notice` (context ++ ": " ++ msg ++ " type failure")) . typeFun) .
   HashMap.lookup key
   where
-    msg = Text.unpack $ decodeUtf8 $ Name.toByteString key
+    msg = Text.unpack $ decodeUtf8With ignore $ Name.toByteString key
