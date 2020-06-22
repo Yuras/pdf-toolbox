@@ -262,7 +262,7 @@ loadFontDescriptor pdf fontDict = do
       avgWidth <- optional "AvgWidth" realValue fd
       maxWidth <- optional "MaxWidth" realValue fd
       missingWidth <- optional "MissingWidth" realValue fd
-      charSet <- optional "CharSet" nameValue' fd
+      charSet <- optional "CharSet" stringValue fd
 
       return $ Just $ FontDescriptor
         { fdFontName = fontName
