@@ -28,6 +28,7 @@ library
                        Pdf.Content.Processor
                        Pdf.Content.Transform
                        Pdf.Content.UnicodeCMap
+                       Pdf.Content.FontDescriptor
                        Pdf.Content.FontInfo
                        Pdf.Content.GlyphList
                        Pdf.Content.TexGlyphList
@@ -55,6 +56,7 @@ test-suite test
   main-is:             test.hs
   other-modules:       Test.UnicodeCMap
                        Test.Parser
+                       Test.FontDescriptor
                        Prelude
                        Data.Either
   build-depends:       base,

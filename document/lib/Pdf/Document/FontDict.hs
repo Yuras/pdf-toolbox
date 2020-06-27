@@ -15,6 +15,7 @@ import Pdf.Core.Object
 import Pdf.Core.Object.Util
 import Pdf.Core.Exception
 import Pdf.Core.Util
+import Pdf.Core.Types
 import qualified Pdf.Core.Name as Name
 import Pdf.Content
 
@@ -28,6 +29,9 @@ import qualified Data.HashMap.Strict as HashMap
 import Control.Monad
 import Control.Exception hiding (throw)
 import qualified System.IO.Streams as Streams
+import Data.Text.Encoding (decodeUtf8With)
+import Data.Text.Encoding.Error (ignore)
+import qualified Data.Text as Text
 
 -- | Font subtypes
 data FontSubtype
@@ -111,10 +115,13 @@ loadFontInfoComposite pdf fontDict = do
           >>= Vector.mapM (deref pdf)
         sure $ makeCIDFontWidths arr
 
+  fontDescriptor <- loadFontDescriptor pdf descFont
+
   return $ FIComposite {
     fiCompositeUnicodeCMap = toUnicode,
     fiCompositeWidths = widths,
-    fiCompositeDefaultWidth = defaultWidth
+    fiCompositeDefaultWidth = defaultWidth,
+    fiCompositeFontDescriptor = fontDescriptor
     }
 
 loadFontInfoSimple :: Pdf -> Dict -> IO FISimple
@@ -173,11 +180,14 @@ loadFontInfoSimple pdf fontDict = do
                 `notice` "LastChar should be an integer"
         return $ Just (firstChar, lastChar, widths)
 
+  fontDescriptor <- loadFontDescriptor pdf fontDict
+
   return $ FISimple
     { fiSimpleUnicodeCMap = toUnicode
     , fiSimpleEncoding = encoding
     , fiSimpleWidths = widths
     , fiSimpleFontMatrix = scale 0.001 0.001
+    , fiSimpleFontDescriptor = fontDescriptor
     }
 
 loadEncodingDifferences :: Pdf -> Dict -> IO [(Word8, ByteString)]
@@ -222,3 +232,85 @@ loadUnicodeCMap pdf fontDict =
             Left e -> throwIO $ Corrupted ("can't parse cmap: " ++ show e) []
             Right cmap -> return $ Just cmap
         _ -> throwIO $ Corrupted "ToUnicode: not a stream" []
+
+
+loadFontDescriptor :: Pdf -> Dict -> IO (Maybe FontDescriptor)
+loadFontDescriptor pdf fontDict = do
+  case HashMap.lookup "FontDescriptor" fontDict of
+    Nothing -> return Nothing
+    Just o -> do
+      ref <- sure $ refValue o
+             `notice` "FontDescriptor should be a reference"
+      fd <- (sure . (`notice` "FontDescriptor: not a dictionary") . dictValue) =<<
+            lookupObject pdf ref
+
+      fontName <- required "FontName" nameValue' fd
+      fontFamily <- optional "FontFamily" stringValue fd
+      fontStretch <- optional "FontStretch" nameValue' fd
+      fontWeight <- optional "FontWeight" intValue fd
+      flags <- required "Flags" int64Value fd
+      fontBBox <- optional "FontBBox"
+        (join . fmap (either (const Nothing) Just . rectangleFromArray) . arrayValue) fd
+      italicAngle <- required "ItalicAngle" realValue fd
+      ascent <- optional "Ascent" realValue fd
+      descent <- optional "Descent" realValue fd
+      leading <- optional "Leading" realValue fd
+      capHeight <- optional "CapHeight" realValue fd
+      xHeight <- optional "XHeight" realValue fd
+      stemV <- optional "StemV" realValue fd
+      stemH <- optional "StemH" realValue fd
+      avgWidth <- optional "AvgWidth" realValue fd
+      maxWidth <- optional "MaxWidth" realValue fd
+      missingWidth <- optional "MissingWidth" realValue fd
+      charSet <- optional "CharSet" stringValue fd
+
+      return $ Just $ FontDescriptor
+        { fdFontName = fontName
+        , fdFontFamily = fontFamily
+        , fdFontStretch = fontStretch
+        , fdFontWeight = fontWeight
+        , fdFlags = flags
+        , fdFontBBox = fontBBox
+        , fdItalicAngle = italicAngle
+        , fdDescent = descent
+        , fdAscent = ascent
+        , fdLeading = leading
+        , fdCapHeight = capHeight
+        , fdXHeight = xHeight
+        , fdStemV = stemV
+        , fdStemH = stemH
+        , fdAvgWidth = avgWidth
+        , fdMaxWidth = maxWidth
+        , fdMissingWidth = missingWidth
+        , fdCharSet = charSet
+        }
+  where
+    required = requiredInDict "FontDescriptor"
+    optional = optionalInDict "FontDescriptor"
+    nameValue' = fmap Name.toByteString . nameValue
+
+-- | Parse a value from a required field of a dictionary. This will
+-- raise an exception if a) the field is not present or b) the field
+-- value has a false type.
+requiredInDict :: String -- ^ a context for a failure notice
+               -> Name   -- ^ name of dictionary field
+               -> (Object -> Maybe a) -- ^ function for type-casting the object
+               -> Dict                -- ^ the dictionary
+               -> IO a
+requiredInDict context key typeFun =
+  join .
+  sure . (`notice` (context ++ ": " ++ msg ++ " should exist")) .
+  fmap (sure . (`notice` (context ++ ": " ++ msg ++ " type failure")) . typeFun) .
+  HashMap.lookup key
+  where
+    msg = Text.unpack $ decodeUtf8With ignore $ Name.toByteString key
+
+-- | Parse a value from an optional field of a dictionary. This will
+-- raise an exception if the field value has a false type.
+optionalInDict :: String -> Name -> (Object -> Maybe a) -> Dict -> IO (Maybe a)
+optionalInDict context key typeFun =
+  maybe (return Nothing) (liftM Just) .
+  fmap (sure . (`notice` (context ++ ": " ++ msg ++ " type failure")) . typeFun) .
+  HashMap.lookup key
+  where
+    msg = Text.unpack $ decodeUtf8With ignore $ Name.toByteString key

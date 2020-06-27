@@ -3,6 +3,7 @@
 
 module Pdf.Core.Object.Util
 ( intValue
+, int64Value
 , boolValue
 , realValue
 , nameValue
@@ -19,6 +20,7 @@ import Pdf.Core.Object
 import Data.ByteString (ByteString)
 import Data.Scientific (Scientific)
 import qualified Data.Scientific as Scientific
+import Data.Int (Int64)
 
 -- | Try to convert object to 'Int'
 --
@@ -33,6 +35,14 @@ intValue _ = Nothing
 -- | Specialized to prevent defaulting warning
 floatingOrInteger :: Scientific -> Either Double Int
 floatingOrInteger = Scientific.floatingOrInteger
+
+-- | Try to convert object to 'Int64'.
+--
+-- This is for cases, where according to the specs values above 2^29
+-- (Int) have to be expected.
+int64Value :: Object -> Maybe Int64
+int64Value (Number n) = Scientific.toBoundedInteger n
+int64Value _ = Nothing
 
 -- | Try to convert object to 'Bool'
 boolValue :: Object -> Maybe Bool

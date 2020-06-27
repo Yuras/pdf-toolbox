@@ -8,6 +8,7 @@ module Pdf.Content
 , module Pdf.Content.Processor
 , module Pdf.Content.Transform
 , module Pdf.Content.FontInfo
+, module Pdf.Content.FontDescriptor
 )
 where
 
@@ -17,3 +18,4 @@ import Pdf.Content.UnicodeCMap
 import Pdf.Content.Processor
 import Pdf.Content.Transform
 import Pdf.Content.FontInfo
+import Pdf.Content.FontDescriptor
