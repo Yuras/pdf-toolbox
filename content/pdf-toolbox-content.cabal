@@ -36,7 +36,6 @@ library
                        Pdf.Content.Encoding.MacRoman
                        Pdf.Content.Encoding.PdfDoc
   other-modules:       Prelude
-                       Data.Either
   build-depends:       base >= 4.5 && < 5,
                        containers,
                        attoparsec >= 0.10,
@@ -59,7 +58,6 @@ test-suite test
                        Test.Parser
                        Test.FontDescriptor
                        Prelude
-                       Data.Either
   build-depends:       base,
                        containers,
                        bytestring,

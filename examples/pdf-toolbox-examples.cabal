@@ -15,7 +15,6 @@ cabal-version:       >=1.10
 executable unpack-and-decrypt-pdf-file
   main-is:             unpack-and-decrypt-pdf-file.hs
   other-modules:       Prelude
-                       Data.Either
   hs-source-dirs:      .
                        compat
   build-depends:       base
@@ -33,7 +32,6 @@ executable unpack-and-decrypt-pdf-file
 executable create-simple-pdf-file
   main-is:             create-simple-pdf-file.hs
   other-modules:       Prelude
-                       Data.Either
   hs-source-dirs:      .
                        compat
   build-depends:       base
@@ -49,7 +47,6 @@ executable create-simple-pdf-file
 executable change-document-title
   main-is:             change-document-title.hs
   other-modules:       Prelude
-                       Data.Either
   hs-source-dirs:      .
                        compat
   build-depends:       base
@@ -64,7 +61,6 @@ executable change-document-title
 executable merge-pdf-files
   main-is:             merge-pdf-files.hs
   other-modules:       Prelude
-                       Data.Either
   hs-source-dirs:      .
                        compat
   build-depends:       base
