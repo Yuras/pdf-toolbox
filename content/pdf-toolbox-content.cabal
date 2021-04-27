@@ -36,10 +36,8 @@ library
                        Pdf.Content.Encoding.MacRoman
                        Pdf.Content.Encoding.PdfDoc
   other-modules:       Prelude
-                       Data.Either
   build-depends:       base >= 4.5 && < 5,
                        containers,
-                       semigroups,
                        attoparsec >= 0.10,
                        bytestring,
                        base16-bytestring >= 1,
@@ -48,6 +46,8 @@ library
                        vector,
                        io-streams,
                        pdf-toolbox-core ==0.1.0.*
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wunused-packages
 
 test-suite test
   type:                exitcode-stdio-1.0
@@ -58,13 +58,13 @@ test-suite test
                        Test.Parser
                        Test.FontDescriptor
                        Prelude
-                       Data.Either
   build-depends:       base,
                        containers,
                        bytestring,
-                       semigroups,
                        attoparsec,
                        io-streams,
                        pdf-toolbox-content,
                        pdf-toolbox-core,
                        hspec
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wunused-packages

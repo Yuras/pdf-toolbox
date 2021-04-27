@@ -36,3 +36,5 @@ executable pdf-toolbox-viewer
                        gtk,
                        pdf-toolbox-document ==0.1.*,
                        pdf-toolbox-content ==0.1.*
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wunused-packages

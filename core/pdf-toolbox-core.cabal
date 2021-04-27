@@ -51,7 +51,6 @@ library
                        Pdf.Core.Util
                        Pdf.Core.Writer
   other-modules:       Prelude
-                       Data.Either
   build-depends:       base >= 4.5 && < 5,
                        bytestring >= 0.10.4 && < 0.11,
                        base16-bytestring >= 1,
@@ -59,15 +58,15 @@ library
                        attoparsec >= 0.12,
                        scientific,
                        vector,
-                       semigroups,
                        hashable,
                        unordered-containers,
-                       transformers,
                        containers,
                        cipher-rc4,
                        cipher-aes,
                        crypto-api,
                        cryptohash
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wunused-packages
 
 test-suite test
   type:                exitcode-stdio-1.0
@@ -81,13 +80,13 @@ test-suite test
                        Test.Object.Util
                        Test.Name
                        Prelude
-                       Data.Either
   build-depends:       base,
                        pdf-toolbox-core,
                        bytestring,
                        vector,
-                       semigroups,
                        unordered-containers,
                        attoparsec,
                        io-streams,
                        hspec
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wunused-packages
