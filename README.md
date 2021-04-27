@@ -1,7 +1,7 @@
 pdf-toolbox
 ===========
 
-[![Build Status](https://travis-ci.org/Yuras/pdf-toolbox.svg?branch=master)](https://travis-ci.org/Yuras/pdf-toolbox)
+[![Haskell CI](https://github.com/Yuras/pdf-toolbox/actions/workflows/build.yml/badge.svg)](https://github.com/Yuras/pdf-toolbox/actions/workflows/build.yml)
 
 A collection of tools for processing PDF files
 
