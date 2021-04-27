@@ -5,6 +5,7 @@ module Prelude
 (
   module P,
 
+{-
 #if MIN_VERSION_base(4,8,0)
 #else
   (<$>),
@@ -16,9 +17,12 @@ module Prelude
 #else
   Semigroup(..),
 #endif
+-}
 )
 where
 
+import "base" Prelude as P
+{-
 #if MIN_VERSION_base(4,6,0)
 import "base" Prelude as P
 #else
@@ -36,3 +40,4 @@ import Control.Applicative(Applicative(..))
 #else
 import Data.Semigroup(Semigroup(..))
 #endif
+-}
