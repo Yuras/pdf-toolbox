@@ -28,9 +28,18 @@ source-repository head
   type:                git
   location:            git://github.com/Yuras/pdf-toolbox.git
 
+flag zlib
+  description: Enable deflate support via zlib; requires that the Zlib flag be set on io-streams
+  default:             True
+  manual:              True
+
 library
   hs-source-dirs:      lib
                        compat
+  if flag(zlib)
+    hs-source-dirs:    zlib
+  else
+    hs-source-dirs:    no-zlib
   exposed-modules:     Pdf.Core
                        Pdf.Core.File
                        Pdf.Core.IO.Buffer
