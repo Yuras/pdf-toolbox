@@ -54,7 +54,7 @@ library
                        Data.Either
   build-depends:       base >= 4.5 && < 5,
                        bytestring >= 0.10.4 && < 0.11,
-                       base16-bytestring,
+                       base16-bytestring < 1,
                        io-streams,
                        attoparsec >= 0.12,
                        scientific,
