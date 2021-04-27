@@ -36,17 +36,12 @@ library
                        Pdf.Document.Internal.Util
   other-modules:       Prelude
   build-depends:       base >= 4.5 && < 5,
-                       transformers,
                        containers,
                        text,
                        bytestring,
                        vector,
                        unordered-containers,
                        io-streams,
-                       cipher-rc4,
-                       cipher-aes,
-                       cryptohash,
-                       crypto-api,
                        pdf-toolbox-core ==0.1.0.*,
                        pdf-toolbox-content ==0.1.0.*
 
@@ -56,7 +51,6 @@ test-suite test
   main-is:             test.hs
   other-modules:       Test.Internal.Util
   build-depends:       base,
-                       bytestring == 0.10.*,
                        directory,
                        unordered-containers,
                        io-streams,

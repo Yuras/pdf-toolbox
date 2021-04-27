@@ -39,7 +39,6 @@ library
                        Data.Either
   build-depends:       base >= 4.5 && < 5,
                        containers,
-                       semigroups,
                        attoparsec >= 0.10,
                        bytestring,
                        base16-bytestring >= 1,
@@ -62,7 +61,6 @@ test-suite test
   build-depends:       base,
                        containers,
                        bytestring,
-                       semigroups,
                        attoparsec,
                        io-streams,
                        pdf-toolbox-content,
