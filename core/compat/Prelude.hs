@@ -12,12 +12,12 @@ module Prelude
   Monoid(..),
   Applicative(..),
 #endif
+-}
 
 #if MIN_VERSION_base(4,11,0)
 #else
   Semigroup(..),
 #endif
--}
 )
 where
 
@@ -35,9 +35,9 @@ import Data.Functor((<$>))
 import Data.Monoid(Monoid(..))
 import Control.Applicative(Applicative(..))
 #endif
+-}
 
 #if MIN_VERSION_base(4,11,0)
 #else
 import Data.Semigroup(Semigroup(..))
 #endif
--}
