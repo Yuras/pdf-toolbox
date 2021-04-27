@@ -46,9 +46,9 @@ jobs:
 
     - name: Install dependencies
       run: |
-        cabal build --only-dependencies --enable-tests --enable-benchmarks all
+        cabal build --project-file=cabal_no_viewer.project --only-dependencies --enable-tests --enable-benchmarks all
     - name: Build
-      run: cabal build --enable-tests --enable-benchmarks all
+      run: cabal build --project-file=cabal_no_viewer.project --enable-tests --enable-benchmarks all
     - name: Run tests
-      run: cabal test all
+      run: cabal test --project-file=cabal_no_viewer.project all
 
