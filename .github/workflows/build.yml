@@ -41,6 +41,10 @@ jobs:
       with:
         ghc-version: ${{matrix.ghc}}
 
+    - name: Install gtk
+      run: |
+        sudo apt install libgtk2.0-dev
+
     - name: Install dependencies
       run: |
         cabal build --only-dependencies --enable-tests --enable-benchmarks all
