@@ -38,7 +38,7 @@ import qualified Data.Set as Set
 import qualified Data.HashMap.Strict as HashMap
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as BSL
-import Data.ByteString.Lazy.Builder
+import Data.ByteString.Builder
 import Data.Function
 import Control.Monad
 import System.IO.Streams (OutputStream)

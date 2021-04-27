@@ -21,7 +21,7 @@ import Data.Char
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as Char8
 import qualified Data.ByteString.Lazy as BSL
-import Data.ByteString.Lazy.Builder
+import Data.ByteString.Builder
 import qualified Data.ByteString.Base16 as Base16
 import Data.Scientific (Scientific)
 import qualified Data.Scientific as Scientific
