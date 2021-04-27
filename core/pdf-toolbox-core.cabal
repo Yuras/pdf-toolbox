@@ -66,6 +66,8 @@ library
                        cipher-aes,
                        crypto-api,
                        cryptohash
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wunused-packages
 
 test-suite test
   type:                exitcode-stdio-1.0
@@ -88,3 +90,5 @@ test-suite test
                        attoparsec,
                        io-streams,
                        hspec
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wunused-packages

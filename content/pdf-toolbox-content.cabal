@@ -47,6 +47,8 @@ library
                        vector,
                        io-streams,
                        pdf-toolbox-core ==0.1.0.*
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wunused-packages
 
 test-suite test
   type:                exitcode-stdio-1.0
@@ -66,3 +68,5 @@ test-suite test
                        pdf-toolbox-content,
                        pdf-toolbox-core,
                        hspec
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wunused-packages

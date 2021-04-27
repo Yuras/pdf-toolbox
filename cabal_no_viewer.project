@@ -5,13 +5,13 @@ packages:
   examples/
 
 package pdf-toolbox-core
-  ghc-options: -Wall -Werror -Wunused-packages
+  ghc-options: -Wall -Werror
 
 package pdf-toolbox-content
-  ghc-options: -Wall -Werror -Wunused-packages
+  ghc-options: -Wall -Werror
 
 package pdf-toolbox-document
-  ghc-options: -Wall -Werror -Wunused-packages
+  ghc-options: -Wall -Werror
 
 package pdf-toolbox-examples
-  ghc-options: -Wall -Werror -Wunused-packages
+  ghc-options: -Wall -Werror
