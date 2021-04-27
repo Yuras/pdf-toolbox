@@ -40,15 +40,15 @@ jobs:
       with:
         ghc-version: ${{matrix.ghc}}
 
-    - name: Install gtk
-      run: |
-        sudo apt install libgtk2.0-dev
+    #- name: Install gtk
+    #  run: |
+    #    sudo apt install libgtk2.0-dev
 
     - name: Install dependencies
       run: |
-        cabal build --only-dependencies --enable-tests --enable-benchmarks all
+        cabal build --only-dependencies --enable-tests --enable-benchmarks pdf-toolbox-document
     - name: Build
-      run: cabal build --enable-tests --enable-benchmarks all
+      run: cabal build --enable-tests --enable-benchmarks
     - name: Run tests
       run: cabal test all
 

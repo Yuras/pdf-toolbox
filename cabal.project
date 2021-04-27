@@ -2,5 +2,5 @@ packages:
   core/
   content/
   document/
-  viewer/
+  -- viewer/
   examples/
