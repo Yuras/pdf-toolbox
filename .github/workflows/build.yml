@@ -1,0 +1,51 @@
+name: Haskell CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: ghc-${{matrix.ghc}}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ghc:
+          - "9.0.1"
+          - "8.10"
+          - "8.8"
+          - "8.6"
+          - "8.4"
+          - "8.2"
+          - "8.0"
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache
+      uses: actions/cache@v1
+      env:
+        cache-name: cache-cabal
+      with:
+        path: ~/.cabal
+        key: ${{ runner.os }}-build-${{ matrix.ghc }}-${{ env.cache-name }}-${{ hashFiles('**/*.cabal', '/.github/workflows/*.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ matrix.ghc }}-${{ env.cache-name }}-
+          ${{ runner.os }}-build-${{ matrix.ghc }}-
+
+    - uses: actions/setup-haskell@v1
+      with:
+        ghc-version: ${{matrix.ghc}}
+
+    - name: Install dependencies
+      run: |
+        cabal build --only-dependencies --enable-tests --enable-benchmarks
+    - name: Build
+      run: cabal build --enable-tests --enable-benchmarks all
+    - name: Run tests
+      run: cabal test all
+
