@@ -187,10 +187,9 @@ parseHexArray = do
 -- XXX: wtf?!
 fromHex :: Fail.MonadFail m => ByteString -> m ByteString
 fromHex hex = do
-  let (str, rest) = Base16.decode $ bsToLower hex
-  unless (ByteString.null rest) $
-    fail $ "Can't decode hex" ++ show rest
-  return str
+  case Base16.decode (bsToLower hex) of
+    Left err -> fail err
+    Right str -> return str
   where
   bsToLower = ByteString.map $ fromIntegral
                      . fromEnum
