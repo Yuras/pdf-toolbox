@@ -42,7 +42,7 @@ library
                        semigroups,
                        attoparsec >= 0.10,
                        bytestring,
-                       base16-bytestring < 1,
+                       base16-bytestring >= 1,
                        text,
                        scientific,
                        vector,
