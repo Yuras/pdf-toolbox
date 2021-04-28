@@ -24,8 +24,10 @@ import Pdf.Core.Object.Util
 import Pdf.Core.Stream.Filter.Type
 
 -- | Vary basic implementation. Only PNG-UP prediction is implemented
-flateDecode :: StreamFilter
-flateDecode = StreamFilter
+--
+-- Nothing when zlib is disabled via cabal flag
+flateDecode :: Maybe StreamFilter
+flateDecode = Just StreamFilter
   { filterName = "FlateDecode"
   , filterDecode = decode
   }

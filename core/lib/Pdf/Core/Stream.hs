@@ -52,7 +52,7 @@ readStream is off = do
 --
 -- Right now it contains only FlateDecode filter
 knownFilters :: [StreamFilter]
-knownFilters = [flateDecode]
+knownFilters = catMaybes [flateDecode]
 
 -- | Raw stream content.
 -- Filters are not applyed
