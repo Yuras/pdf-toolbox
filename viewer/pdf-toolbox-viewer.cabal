@@ -23,15 +23,11 @@ executable pdf-toolbox-viewer
   hs-source-dirs:      .
                        compat
   build-depends:       base >= 4.5 && < 5,
-                       bytestring,
                        text,
-                       transformers,
-                       containers,
                        process,
                        directory,
                        filepath,
                        random,
-                       io-streams,
                        cairo,
                        gtk,
                        pdf-toolbox-document ==0.1.*,
