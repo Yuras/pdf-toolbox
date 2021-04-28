@@ -1,5 +1,5 @@
 name:                pdf-toolbox-core
-version:             0.1.0
+version:             0.1.1
 synopsis:            A collection of tools for processing PDF files.
 license:             BSD3
 license-file:        LICENSE

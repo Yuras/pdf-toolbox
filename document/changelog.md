@@ -1,7 +1,10 @@
 unreleased
 
-* support ghc-7.10
+0.1.1
+
 * rework API
+* support ghc from 8.0 to 8.10 and drop older versions
+* lots of improvements to text extraction
 * interpret unknown xref stream entry type as reference to null object
 * support crypto handler version 4 (V2 and AESV2)
 

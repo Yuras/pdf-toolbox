@@ -1,9 +1,11 @@
 unreleased
 
-* support ghc-7.10
+0.1.1
+
+* rework API
+* support ghc from 8.0 to 8.10 and drop older versions
 * interpret unknown xref stream entry type as reference to null object
 * support 1- and 2-digit escapes sequence in literal string
-* rework API
 
 0.0.3.0
 
