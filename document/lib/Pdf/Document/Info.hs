@@ -4,6 +4,7 @@
 
 module Pdf.Document.Info
 (
+  Info,
   infoTitle,
   infoAuthor,
   infoSubject,
