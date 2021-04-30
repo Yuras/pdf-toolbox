@@ -60,7 +60,7 @@ library
                        Pdf.Core.Util
                        Pdf.Core.Writer
   other-modules:       Prelude
-  build-depends:       base >= 4.5 && < 5,
+  build-depends:       base >= 4.9 && < 5,
                        bytestring >= 0.10.4 && < 0.12,
                        base16-bytestring >= 1,
                        io-streams,
