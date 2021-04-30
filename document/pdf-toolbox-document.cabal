@@ -11,6 +11,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 homepage:            https://github.com/Yuras/pdf-toolbox
 extra-source-files:  changelog.md
+                     test/files/nested_xobject.pdf
 description:
   Mid level tools for processing PDF files.
   .

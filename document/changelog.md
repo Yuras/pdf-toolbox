@@ -1,5 +1,7 @@
 unreleased
 
+* add missing file in test suite (#71)
+
 0.1.1
 
 * rework API
