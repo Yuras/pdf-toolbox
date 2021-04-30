@@ -1,6 +1,9 @@
 unreleased
 
+0.1.2
+
 * add missing file in test suite (#71)
+* reexport Info from Pdf.Document.Info (#73)
 
 0.1.1
 
