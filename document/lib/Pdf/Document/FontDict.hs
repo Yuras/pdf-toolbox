@@ -285,35 +285,40 @@ loadFontDescriptor pdf fontDict = do
         , fdCharSet = charSet
         }
   where
-    required = requiredInDict "FontDescriptor"
-    optional = optionalInDict "FontDescriptor"
+    required = requiredInDict pdf "FontDescriptor"
+    optional = optionalInDict pdf "FontDescriptor"
     nameValue' = fmap Name.toByteString . nameValue
 
 -- | Parse a value from a required field of a dictionary. This will
 -- raise an exception if a) the field is not present or b) the field
 -- value has a false type.
-requiredInDict :: String -- ^ a context for a failure notice
+requiredInDict :: Pdf    -- ^ in case the field is a reference
+               -> String -- ^ a context for a failure notice
                -> Name   -- ^ name of dictionary field
                -> (Object -> Maybe a) -- ^ function for type-casting the object
                -> Dict                -- ^ the dictionary
                -> IO a
-requiredInDict context key typeFun dict = do
+requiredInDict pdf context key typeFun dict = do
   case HashMap.lookup key dict of
     Nothing -> throwIO $ Corrupted (context ++ ": " ++ msg ++ " should exist") []
-    Just o -> case typeFun o of
-      Nothing -> throwIO $ Corrupted (context ++ ": " ++ msg ++ " type failure") []
-      Just v -> return v
+    Just oIn -> do
+      o <- deref pdf oIn
+      case typeFun o of
+        Nothing -> throwIO $ Corrupted (context ++ ": " ++ msg ++ " type failure") []
+        Just v -> return v
   where
     msg = Text.unpack $ decodeUtf8With ignore $ Name.toByteString key
 
 -- | Parse a value from an optional field of a dictionary. This will
 -- raise an exception if the field value has a false type.
-optionalInDict :: String -> Name -> (Object -> Maybe a) -> Dict -> IO (Maybe a)
-optionalInDict context key typeFun dict =
+optionalInDict :: Pdf -> String -> Name -> (Object -> Maybe a) -> Dict -> IO (Maybe a)
+optionalInDict pdf context key typeFun dict =
   case HashMap.lookup key dict of
     Nothing -> return Nothing
-    Just o -> case typeFun o of
-      Nothing -> throwIO $ Corrupted (context ++ ": " ++ msg ++ " type failure") []
-      Just v -> return $ Just v
+    Just oIn -> do
+      o <- deref pdf oIn
+      case typeFun o of
+        Nothing -> throwIO $ Corrupted (context ++ ": " ++ msg ++ " type failure") []
+        Just v -> return $ Just v
   where
     msg = Text.unpack $ decodeUtf8With ignore $ Name.toByteString key
