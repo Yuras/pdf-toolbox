@@ -297,20 +297,23 @@ requiredInDict :: String -- ^ a context for a failure notice
                -> (Object -> Maybe a) -- ^ function for type-casting the object
                -> Dict                -- ^ the dictionary
                -> IO a
-requiredInDict context key typeFun =
-  join .
-  sure . (`notice` (context ++ ": " ++ msg ++ " should exist")) .
-  fmap (sure . (`notice` (context ++ ": " ++ msg ++ " type failure")) . typeFun) .
-  HashMap.lookup key
+requiredInDict context key typeFun dict = do
+  case HashMap.lookup key dict of
+    Nothing -> throwIO $ Corrupted (context ++ ": " ++ msg ++ " should exist") []
+    Just o -> case typeFun o of
+      Nothing -> throwIO $ Corrupted (context ++ ": " ++ msg ++ " type failure") []
+      Just v -> return v
   where
     msg = Text.unpack $ decodeUtf8With ignore $ Name.toByteString key
 
 -- | Parse a value from an optional field of a dictionary. This will
 -- raise an exception if the field value has a false type.
 optionalInDict :: String -> Name -> (Object -> Maybe a) -> Dict -> IO (Maybe a)
-optionalInDict context key typeFun =
-  maybe (return Nothing) (liftM Just) .
-  fmap (sure . (`notice` (context ++ ": " ++ msg ++ " type failure")) . typeFun) .
-  HashMap.lookup key
+optionalInDict context key typeFun dict =
+  case HashMap.lookup key dict of
+    Nothing -> return Nothing
+    Just o -> case typeFun o of
+      Nothing -> throwIO $ Corrupted (context ++ ": " ++ msg ++ " type failure") []
+      Just v -> return $ Just v
   where
     msg = Text.unpack $ decodeUtf8With ignore $ Name.toByteString key
