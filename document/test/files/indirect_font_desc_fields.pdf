@@ -1,0 +1,59 @@
+%PDF-1.7
+
+1 0 obj
+<</Pages 2 0 R /Type /Catalog>>
+endobj
+
+2 0 obj
+<</Count 1 /Kids [3 0 R] /Type /Pages>>
+endobj
+
+3 0 obj
+<</Parent 2 0 R /Resources <</Font <</F1 5 0 R>> /XObject <</X1 8 0 R>>>> /MediaBox [0 0 200 200] /Contents 4 0 R /Type /Page>>
+endobj
+
+5 0 obj
+<</BaseFont /Helvetica /Subtype /Type1 /FontDescriptor 6 0 R /Type /Font>>
+endobj
+
+6 0 obj
+<</Flags 7 0 R /Rectangle [0 0 10 10] /ItalicAngle -10 /FontName /Helvetica /Descent 2 /Type /FontDescriptor /Ascent 8>>
+endobj
+
+7 0 obj
+0
+endobj
+
+4 0 obj
+<</Length 53>>stream
+BT /F1 12 Tf 100 100 TD (Hello World!!!) Tj ET /X1 Do
+endstream
+endobj
+
+8 0 obj
+<</Length 52 /Resources <</Font <</F1 5 0 R>> /XObject <</X1 9 0 R>>>> /BBox [0 0 200 200] /Subtype /Form /Type /XObject>>stream
+BT /F1 12 Tf 10 10 TD (XObject is here) Tj ET /X1 Do
+endstream
+endobj
+
+9 0 obj
+<</Length 52 /Resources <</Font <</F1 5 0 R>>>> /BBox [0 0 200 200] /Subtype /Form /Type /XObject>>stream
+BT /F1 12 Tf 50 50 TD (nested XObject is here) Tj ET
+endstream
+endobj
+xref
+1 9
+0000000009 00000 n
+0000000057 00000 n
+0000000113 00000 n
+0000000503 00000 n
+0000000257 00000 n
+0000000348 00000 n
+0000000485 00000 n
+0000000604 00000 n
+0000000812 00000 n
+trailer
+<</Root 1 0 R /Size 6>>
+startxref
+997
+%%EOF

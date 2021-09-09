@@ -4,10 +4,12 @@
 module Pdf.Core.Types
 (
   Rectangle(..),
-  rectangleFromArray
+  rectangleFromArray,
+  rectangleToArray
 )
 where
 
+import qualified Data.Scientific as Scientific
 import Pdf.Core
 import Pdf.Core.Util
 import Pdf.Core.Object.Util
@@ -26,3 +28,7 @@ rectangleFromArray arr = do
   case res of
     [a, b, c, d] -> return $ Rectangle a b c d
     _ -> Left ("rectangleFromArray: " ++ show arr)
+
+rectangleToArray :: Rectangle Double -> Array
+rectangleToArray (Rectangle a b c d) =
+  Vector.fromList . map (Number . Scientific.fromFloatDigits) $ [a, b, c, d]
