@@ -50,6 +50,18 @@ main = hspec $ do
         txt `shouldBe` Just
           "\nHello World!!!\nXObject is here\nnested XObject is here"
 
+  describe "FontDescription with indirect fields" $ do
+    it "should have correct text" $ do
+      withPdfFile "test/files/indirect_font_desc_fields.pdf" $ \pdf -> do
+        doc <- document pdf
+        catalog <- documentCatalog doc
+        root <- catalogPageNode catalog
+        page <- pageNodePageByNum root 0
+        -- here timeout breaks infinite loop in case of a bug
+        txt <- timeout 5000000 $ pageExtractText page
+        txt `shouldBe` Just
+          "\nHello World!!!\nXObject is here\nnested XObject is here"
+
 -- | Generate simple PDF file for tests
 withSimpleFile :: (Handle -> IO ()) -> IO ()
 withSimpleFile action = do
