@@ -1,5 +1,7 @@
 unreleased
 
+* fix handling of indirect objects in Font Descriptor (#76)
+
 0.1.2
 
 * add missing file in test suite (#71)
