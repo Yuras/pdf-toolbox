@@ -4,12 +4,13 @@
 module Pdf.Core.Parsers.Util
 (
   endOfLine
+, skipSpacesAndComments
 )
 where
 
 import Data.Attoparsec.ByteString (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
-import Control.Applicative (many)
+import Control.Applicative (many, (*>))
 
 -- | In pdf file EOL could be \"\\n\", \"\\r\" or \"\\n\\r\"
 --
@@ -21,3 +22,19 @@ endOfLine = do
     P.endOfLine, -- it already handles both the \n and \n\r
     P.char '\r' >>= const (return ())
     ]
+
+skipSpacesAndComments :: Parser ()
+skipSpacesAndComments = do
+  P.skipSpace
+  _ <- many (skipComment *> skipSpacesAndComments)
+  return ()
+ where
+   skipComment :: Parser ()
+   skipComment = do
+     P.char '%'
+     P.skipWhile notEndOfLine
+     endOfLine
+   notEndOfLine '\r' = False
+   notEndOfLine '\n' = False
+   notEndOfLine _    = True
+                    

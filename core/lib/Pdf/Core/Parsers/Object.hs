@@ -44,13 +44,13 @@ parseDict :: Parser Dict
 parseDict = do
   void $ P.string "<<"
   dict <- many parseKey
-  P.skipSpace
+  skipSpacesAndComments
   void $ P.string ">>"
   return $ HashMap.fromList dict
 
 parseKey :: Parser (Name, Object)
 parseKey = do
-  P.skipSpace
+  skipSpacesAndComments
   key <- parseName
   val <- parseObject
   return (key, val)
@@ -60,7 +60,7 @@ parseArray :: Parser Array
 parseArray = do
   void $ P.char '['
   array <- many parseObject
-  P.skipSpace
+  skipSpacesAndComments
   void $ P.char ']'
   return $ Vector.fromList array
 
@@ -143,9 +143,9 @@ parseHexString = do
 parseRef :: Parser Ref
 parseRef = do
   obj <- P.decimal
-  P.skipSpace
+  skipSpacesAndComments
   gen <- P.decimal
-  P.skipSpace
+  skipSpacesAndComments
   void $ P.char 'R'
   return $ R obj gen
 
@@ -181,7 +181,7 @@ parseBool = P.choice [
 -- Done "1234\nendstream" Dict [(Name "Key",ONumber (NumInt 123))]
 parseTillStreamData :: Parser ()
 parseTillStreamData = do
-  P.skipSpace
+  skipSpacesAndComments
   void $ P.string "stream"
   endOfLine
 
@@ -192,7 +192,7 @@ parseTillStreamData = do
 -- Right (OName (Name "Name"))
 parseObject :: Parser Object
 parseObject = do
-  P.skipSpace
+  skipSpacesAndComments
   P.choice [
     const Null <$> P.string "null",
     Name <$> parseName,
@@ -212,13 +212,13 @@ parseObject = do
 -- Right (Ref 1 2,ONumber (NumInt 12))
 parseIndirectObject :: Parser (Ref, Object)
 parseIndirectObject = do
-  P.skipSpace
+  skipSpacesAndComments
   index <- P.decimal :: Parser Int
-  P.skipSpace
+  skipSpacesAndComments
   gen <- P.decimal :: Parser Int
-  P.skipSpace
+  skipSpacesAndComments
   void $ P.string "obj"
-  P.skipSpace
+  skipSpacesAndComments
   obj <- parseObject
   let ref = R index gen
   case obj of
