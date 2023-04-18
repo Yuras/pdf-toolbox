@@ -10,7 +10,7 @@ where
 
 import Data.Attoparsec.ByteString (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
-import Control.Applicative (many, (*>))
+import Control.Applicative (many)
 
 -- | In pdf file EOL could be \"\\n\", \"\\r\" or \"\\n\\r\"
 --
@@ -31,7 +31,7 @@ skipSpacesAndComments = do
  where
    skipComment :: Parser ()
    skipComment = do
-     P.char '%'
+     _ <- P.char '%'
      P.skipWhile notEndOfLine
      endOfLine
    notEndOfLine '\r' = False
