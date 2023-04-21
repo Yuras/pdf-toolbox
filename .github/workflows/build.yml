@@ -25,12 +25,13 @@ jobs:
       with:
         id: setup
         ghc-version: ${{ matrix.ghc }}
+        cabal-version: '3.8'
 
     - name: Restore cache
       uses: actions/cache/restore@v3
       id: cache
       with:
-        path: ${{ steps.setup.outputs.cabal-store }}
+        path: '~/.cabal/store'
         key: ${{ runner.os }}-build-${{ matrix.ghc }}-${{ hashFiles('**/*.cabal', '/.github/workflows/*.yml') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ matrix.ghc }}-
@@ -43,7 +44,7 @@ jobs:
       uses: actions/cache/save@v3
       if: ${{ steps.cache.outputs.cache-primary-key != steps.cache.outputs.cache-matched-key }}
       with:
-        path: ${{ steps.setup.outputs.cabal-store }}
+        path: '~/.cabal/store'
         key: ${{ steps.cache.outputs.cache-primary-key }}
 
     - name: Build
