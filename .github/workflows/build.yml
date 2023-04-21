@@ -16,9 +16,6 @@ jobs:
       fail-fast: false
       matrix:
         ghc:
-          - '9.6'
-          - '9.4'
-          - '9.2'
           - '9.0'
           - '8.10'
           - '8.8'
@@ -28,16 +25,15 @@ jobs:
     - uses: actions/checkout@v3
 
     - uses: haskell/actions/setup@v2
+      id: setup
       with:
-        id: setup
         ghc-version: ${{ matrix.ghc }}
-        cabal-version: '3.8'
 
     - name: Restore cache
       uses: actions/cache/restore@v3
       id: cache
       with:
-        path: '~/.cabal/store'
+        path: ${{ steps.setup.outputs.cabal-store }}
         key: ${{ runner.os }}-build-${{ matrix.ghc }}-${{ hashFiles('**/*.cabal', '/.github/workflows/*.yml') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ matrix.ghc }}-
@@ -50,7 +46,7 @@ jobs:
       uses: actions/cache/save@v3
       if: ${{ steps.cache.outputs.cache-primary-key != steps.cache.outputs.cache-matched-key }}
       with:
-        path: '~/.cabal/store'
+        path: ${{ steps.setup.outputs.cabal-store }}
         key: ${{ steps.cache.outputs.cache-primary-key }}
 
     - name: Build
