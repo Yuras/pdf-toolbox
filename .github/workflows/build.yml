@@ -25,7 +25,7 @@ jobs:
       with:
         id: setup
         ghc-version: ${{ matrix.ghc }}
-        cabal-version: 'latest'
+        cabal-version: '3.8'
 
     - name: Restore cache
       uses: actions/cache/restore@v3
