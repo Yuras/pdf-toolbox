@@ -31,7 +31,7 @@ jobs:
       uses: actions/cache/restore@v3
       id: cache
       with:
-        path: ${{ steps.setup.outputs.cabal-store }}
+        path: '~/.cabal/store'
         key: ${{ runner.os }}-build-${{ matrix.ghc }}-${{ hashFiles('**/*.cabal', '/.github/workflows/*.yml') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ matrix.ghc }}-
