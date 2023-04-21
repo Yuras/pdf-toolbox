@@ -10,45 +10,45 @@ on:
 
 jobs:
   build:
-    name: ghc-${{matrix.ghc}}
+    name: ghc-${{ matrix.ghc }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         ghc:
-          - "8.10"
-          - "8.8"
-          - "8.6"
-          - "8.4"
-          - "8.2"
-          - "8.0"
+          - '8.6'
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - name: Cache
-      uses: actions/cache@v1
-      env:
-        cache-name: cache-cabal
+    - uses: haskell/actions/setup@v2
       with:
-        path: ~/.cabal
-        key: ${{ runner.os }}-build-${{ matrix.ghc }}-${{ env.cache-name }}-${{ hashFiles('**/*.cabal', '/.github/workflows/*.yml') }}
+        id: setup
+        ghc-version: ${{ matrix.ghc }}
+        cabal-version: 'latest'
+
+    - name: Restore cache
+      uses: actions/cache/restore@v3
+      id: cache
+      with:
+        path: ${{ steps.setup.outputs.cabal-store }}
+        key: ${{ runner.os }}-build-${{ matrix.ghc }}-${{ hashFiles('**/*.cabal', '/.github/workflows/*.yml') }}
         restore-keys: |
-          ${{ runner.os }}-build-${{ matrix.ghc }}-${{ env.cache-name }}-
           ${{ runner.os }}-build-${{ matrix.ghc }}-
-
-    - uses: actions/setup-haskell@v1
-      with:
-        ghc-version: ${{matrix.ghc}}
-
-    #- name: Install gtk
-    #  run: |
-    #    sudo apt install libgtk2.0-dev
 
     - name: Install dependencies
       run: |
         cabal build --project-file=cabal_no_viewer.project --only-dependencies --enable-tests --enable-benchmarks all
+
+    - name: Save cache
+      uses: actions/cache/save@v3
+      with:
+        if: ${{ steps.cache.outputs.cache-primary-key != steps.cache.outputs.cache-matched-key }}
+        path: ${{ steps.setup.outputs.cabal-store }}
+        key: ${{ steps.cache.outputs.cache-primary-key }}
+
     - name: Build
       run: cabal build --project-file=cabal_no_viewer.project --enable-tests --enable-benchmarks all
+
     - name: Run tests
       run: cabal test --project-file=cabal_no_viewer.project all
-
