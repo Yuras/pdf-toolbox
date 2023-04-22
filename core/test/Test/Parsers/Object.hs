@@ -94,6 +94,15 @@ parseDictSpec = describe "parseDict" $ do
   it "should parse a dictionary" $ do
     parseOnly parseDict "<</hello true>>"
       `shouldBe` Right (HashMap.fromList [("hello", Bool True)])
+  it "should allow comments inside" $ do
+    parseOnly parseDict "<</hello%I'm a comment\ntrue>>"
+      `shouldBe` Right (HashMap.fromList [("hello", Bool True)])
+    parseOnly parseDict "<</hello%I'm a comment\n%another\ntrue>>"
+      `shouldBe` Right (HashMap.fromList [("hello", Bool True)])
+    parseOnly parseDict "<</hello%I'm a comment\n\rtrue>>"
+      `shouldBe` Right (HashMap.fromList [("hello", Bool True)])
+    parseOnly parseDict "<</hello %I'm a comment\n true>>"
+      `shouldBe` Right (HashMap.fromList [("hello", Bool True)])
 
 parseRefSpec :: Spec
 parseRefSpec = describe "parseRef" $ do

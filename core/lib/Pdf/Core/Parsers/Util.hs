@@ -2,8 +2,8 @@
 -- | Utils
 
 module Pdf.Core.Parsers.Util
-(
-  endOfLine
+( endOfLine
+, skipSpace
 )
 where
 
@@ -21,3 +21,14 @@ endOfLine = do
     P.endOfLine, -- it already handles both the \n and \n\r
     P.char '\r' >>= const (return ())
     ]
+
+skipSpace :: Parser ()
+skipSpace = do
+  P.skipSpace
+  _ <- many (skipComment *> P.skipSpace)
+  return ()
+
+skipComment :: Parser ()
+skipComment = do
+  _ <- P.char '%'
+  P.skipWhile (`notElem` "\r\n")
