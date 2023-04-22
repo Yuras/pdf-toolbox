@@ -41,7 +41,9 @@ main = do
       "\t./change-document-title input.pdf \"New Title\" output.pdf"
       ]
     error "Please supply 3 arguments"
-  let [input, title, output] = args
+  let (input, title, output) = case args of
+        [a, b, c] -> (a, b, c)
+        _ -> error "expected 3 arbuments"
 
   withBinaryFile input ReadMode $ \h -> do
     buf <- Buffer.fromHandle h
