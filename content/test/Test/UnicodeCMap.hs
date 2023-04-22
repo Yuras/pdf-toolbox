@@ -11,6 +11,7 @@ import Pdf.Content.UnicodeCMap
 import Data.Either
 import qualified Data.List as List
 import qualified Data.Map as Map
+import Data.Maybe
 import qualified Data.ByteString as ByteString
 import Test.Hspec
 
@@ -159,6 +160,6 @@ unicodeCMapNextGlyphSpec :: Spec
 unicodeCMapNextGlyphSpec = describe "unicodeCMapNextGlyph" $ do
   it "correctly handles multibyte ranges" $ do
     let cmap = UnicodeCMap [("\0\0", "\1\1")] mempty []
-    let Just (code, rest) = unicodeCMapNextGlyph cmap "\1\0rest"
+    let (code, rest) = fromJust $ unicodeCMapNextGlyph cmap "\1\0rest"
     rest `shouldBe` rest
     code `shouldBe` 256

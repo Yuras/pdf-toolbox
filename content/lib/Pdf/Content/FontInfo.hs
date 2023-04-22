@@ -100,15 +100,15 @@ instance Monoid CIDFontWidths where
     cidFontWidthsChars = mempty,
     cidFontWidthsRanges = mempty
     }
-  w1 `mappend` w2 = CIDFontWidths {
-    cidFontWidthsChars = cidFontWidthsChars w1
-        `mappend` cidFontWidthsChars w2,
-    cidFontWidthsRanges = cidFontWidthsRanges w1
-        `mappend` cidFontWidthsRanges w2
-    }
+  mappend = (<>)
 
 instance Semigroup CIDFontWidths where
-  (<>) = mappend
+  w1 <> w2 = CIDFontWidths {
+    cidFontWidthsChars = cidFontWidthsChars w1
+        <> cidFontWidthsChars w2,
+    cidFontWidthsRanges = cidFontWidthsRanges w1
+        <> cidFontWidthsRanges w2
+    }
 
 -- | Returns the Y coordinates for a bbox of a glyph of a font, in
 -- text space units. Defaults to (0,1) if no FontDescriptor is

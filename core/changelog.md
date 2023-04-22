@@ -1,5 +1,7 @@
 unreleased
 
+* support ghc from 8.6 to 9.6 and drop older versions
+
 0.1.1
 
 * rework API

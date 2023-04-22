@@ -228,7 +228,7 @@ lookupStreamEntry dict is (R objNumber _) =
   case values of
     Nothing -> return Nothing
     Just vs -> do
-      let [v1, v2, v3] = map conv $ collect [] width vs :: [Int64]
+      let vs' = map conv $ collect [] width vs :: [Int64]
             where
             conv l = conv' (length l - 1) 0 l
             conv' _ res [] = res
@@ -237,6 +237,9 @@ lookupStreamEntry dict is (R objNumber _) =
             collect res [] [] = reverse res
             collect res (x:xs) ys = collect (take x ys : res) xs (drop x ys)
             collect _ _ _ = error "readStreamEntry: collect: impossible"
+      (v1, v2, v3) <- case vs' of
+        [a, b, c] -> return (a, b, c)
+        _ -> throwIO $ Corrupted "lookupStreamEntry" ["expected 3 values"]
       case v1 of
         0 -> return $ Just $ EntryFree (fromIntegral v2)
                                              (fromIntegral v3)
