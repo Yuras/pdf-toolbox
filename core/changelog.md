@@ -1,6 +1,7 @@
 unreleased
 
 * support ghc from 8.6 to 9.6 and drop older versions
+* handle comments inside objects
 
 0.1.1
 
