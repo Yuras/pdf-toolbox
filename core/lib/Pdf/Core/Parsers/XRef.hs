@@ -37,7 +37,7 @@ startXRef :: Parser Int64
 startXRef = do
   res <- many $ do
     _ <- P.manyTill P.anyChar $ P.string "startxref"
-    P.skipSpace
+    skipSpace
     offset <- P.decimal
     P.skipSpace
     _ <- P.string "%%EOF"
@@ -66,7 +66,7 @@ tableXRef = do
 parseSubsectionHeader :: Parser (Int, Int)
 parseSubsectionHeader = do
   start <- P.decimal
-  P.skipSpace
+  skipSpace
   count <- P.decimal
   endOfLine
   return (start, count)
@@ -76,19 +76,19 @@ parseSubsectionHeader = do
 -- Input position should point to the \"trailer\" keyword
 parseTrailerAfterTable :: Parser Dict
 parseTrailerAfterTable = do
-  P.skipSpace
+  skipSpace
   _ <- P.string "trailer"
   endOfLine
-  P.skipSpace
+  skipSpace
   parseDict
 
 -- | Parse XRef table entry. Returns offset, generation and whether the object is free.
 parseTableEntry :: Parser (Int64, Int, Bool)
 parseTableEntry = do
   offset <- P.decimal
-  P.skipSpace
+  skipSpace
   generation <- P.decimal
-  P.skipSpace
+  skipSpace
   c <- P.anyChar
   case c of
     'n' -> return (offset, generation, False)
