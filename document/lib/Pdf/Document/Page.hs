@@ -11,7 +11,8 @@ module Pdf.Document.Page
   pageFontDicts,
   pageExtractText,
   pageExtractGlyphs,
-  glyphsToText
+  glyphsToText,
+  pageExtractOperators
 )
 where
 
@@ -248,6 +249,54 @@ pageExtractGlyphs page = do
     prGlyphDecoder = glyphDecoder
     }
   return (List.reverse (prSpans p))
+
+pageExtractOperators :: Page -> IO [Operator]
+pageExtractOperators page = do
+  fontDicts <- Map.fromList <$> pageFontDicts page
+  glyphDecoders <- Traversable.forM fontDicts $ \fontDict ->
+    fontInfoDecodeGlyphs <$> fontDictLoadInfo fontDict
+  let glyphDecoder fontName = \str ->
+        case Map.lookup fontName glyphDecoders of
+          Nothing -> []
+          Just decode -> decode str
+
+  xobjects <- pageXObjects page
+
+  is <- do
+    contents <- pageContents page
+    let Page pdf _ _ = page
+    is <- combinedContent pdf contents
+    Streams.parserToInputStream parseContent is
+
+  -- use content stream processor to extract text
+  let loop xobjs s p = do
+        next <- readNextOperator s
+        case next of
+          Just (Op_Do, [Name name]) -> processDo xobjs name p >>= loop xobjs s
+          Just op -> do
+            let p' = p { prOperators = op : prOperators p }
+            case processOp op p' of
+              Left err -> throwIO (Unexpected err [])
+              Right  p' -> loop xobjs s p'
+          Nothing -> return p
+
+      processDo xobjs name p = do
+        case Map.lookup name xobjs of
+          Nothing -> return p
+          Just xobj -> do
+            s <- do
+              s <- Streams.fromLazyByteString (xobjectContent xobj)
+              Streams.parserToInputStream parseContent s
+
+            let gdec' = prGlyphDecoder p
+            p' <- loop (xobjectChildren xobj) s
+              (p {prGlyphDecoder = xobjectGlyphDecoder xobj})
+            return (p' {prGlyphDecoder = gdec'})
+
+  p <- loop xobjects is $ mkProcessor {
+    prGlyphDecoder = glyphDecoder
+    }
+  return (List.reverse (prOperators p))
 
 combinedContent :: Pdf -> [Ref] -> IO (InputStream ByteString)
 combinedContent pdf refs = do
