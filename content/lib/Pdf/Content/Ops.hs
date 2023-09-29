@@ -7,6 +7,7 @@ module Pdf.Content.Ops
   Op(..),
   Expr(..),
   Operator,
+  Object(..),
   toOp
 )
 where
