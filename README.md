@@ -38,10 +38,11 @@ Examples
 Inspect high level structure:
 
 ```haskell
+import Control.Monad
 import Pdf.Document
 
 main =
-  withPdfFile "input.pdf" $ \pdf ->
+  withPdfFile "input.pdf" $ \pdf -> do
     encrypted <- isEncrypted pdf
     when encrypted $ do
       ok <- setUserPassword pdf defaultUserPassword
