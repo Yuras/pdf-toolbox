@@ -1,4 +1,4 @@
-unreleased
+0.1.3
 
 * support ghc from 8.6 to 9.6 and drop older versions
 * fix handling of indirect objects in Font Descriptor (#76)
