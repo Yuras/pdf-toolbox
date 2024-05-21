@@ -1,5 +1,5 @@
 name:                pdf-toolbox-document
-version:             0.1.3
+version:             0.1.3.1
 synopsis:            A collection of tools for processing PDF files.
 license:             BSD3
 license-file:        LICENSE
@@ -12,6 +12,7 @@ cabal-version:       >=1.10
 homepage:            https://github.com/Yuras/pdf-toolbox
 extra-source-files:  changelog.md
                      test/files/nested_xobject.pdf
+                     test/files/indirect_font_desc_fields.pdf
 description:
   Mid level tools for processing PDF files.
   .
