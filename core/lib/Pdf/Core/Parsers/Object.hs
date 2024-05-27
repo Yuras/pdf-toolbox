@@ -26,7 +26,6 @@ import qualified Pdf.Core.Name as Name
 import Pdf.Core.Parsers.Util
 
 import Data.Char
-import Data.List
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
