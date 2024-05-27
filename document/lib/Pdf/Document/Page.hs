@@ -282,8 +282,8 @@ glyphsToText
   . List.map spGlyphs
   where
   step acc [] = acc
-  step ((Vector lx2 ly2, wasSpace), res) sp =
-    let Vector x1 y1 = glyphTopLeft (head sp)
+  step ((Vector lx2 ly2, wasSpace), res) sp@(x : _) =
+    let Vector x1 y1 = glyphTopLeft x
         Vector x2 _ = glyphBottomRight (last sp)
         Vector _ y2 = glyphTopLeft (last sp)
         space =
