@@ -1,3 +1,7 @@
+0.1.4
+
+* support ghc-9.10
+
 0.1.3.1
 
 * add missing file in test suite
