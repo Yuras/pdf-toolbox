@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | Parse content stream
 
@@ -43,7 +44,14 @@ parseContent = do
   skipSpace
   (Parser.endOfInput >> return Nothing) <|>
     fmap Just (fmap Obj parseObject <|>
+              parseInlineImage <|>
                fmap (Op . toOp) (Parser.takeWhile1 isRegularChar))
+
+parseInlineImage :: Parser Expr
+parseInlineImage = do
+  Parser.string "ID"
+  Parser.manyTill Parser.anyChar (Parser.string "EI")
+  return $ Op Op_EI
 
 -- Treat comments as spaces
 skipSpace :: Parser ()
