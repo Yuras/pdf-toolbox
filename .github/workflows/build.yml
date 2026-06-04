@@ -16,6 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         ghc:
+          - '9.12'
           - '9.10'
           - '9.8'
           - '9.6'
@@ -27,15 +28,15 @@ jobs:
           - '8.6'
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: haskell/actions/setup@v2
+    - uses: haskell-actions/setup@v2
       id: setup
       with:
         ghc-version: ${{ matrix.ghc }}
 
     - name: Restore cache
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       id: cache
       with:
         path: ${{ steps.setup.outputs.cabal-store }}
@@ -44,11 +45,12 @@ jobs:
           ${{ runner.os }}-build-${{ matrix.ghc }}-
 
     - name: Install dependencies
+      if: ${{ steps.cache.outputs.cache-primary-key != steps.cache.outputs.cache-matched-key }}
       run: |
         cabal build --project-file=cabal_no_viewer.project --only-dependencies --enable-tests --enable-benchmarks all
 
     - name: Save cache
-      uses: actions/cache/save@v3
+      uses: actions/cache/save@v4
       if: ${{ steps.cache.outputs.cache-primary-key != steps.cache.outputs.cache-matched-key }}
       with:
         path: ${{ steps.setup.outputs.cabal-store }}
