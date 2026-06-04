@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-
 -- | Exceptions and utilities
 module Pdf.Core.Exception
 (
@@ -10,20 +8,19 @@ module Pdf.Core.Exception
 )
 where
 
-import Data.Typeable
 import Control.Exception hiding (throw)
 
 -- | File is corrupted
 --
 -- Contains general message and a list of details
 data Corrupted = Corrupted String [String]
-  deriving (Show, Typeable)
+  deriving (Show)
 
 instance Exception Corrupted where
 
 -- | Something unexpected occurs, probably API missuse
 data Unexpected = Unexpected String [String]
-  deriving (Show, Typeable)
+  deriving (Show)
 
 instance Exception Unexpected where
 

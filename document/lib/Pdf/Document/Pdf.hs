@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Pdf.Document.Pdf
@@ -30,7 +29,6 @@ import Pdf.Core.Encryption (defaultUserPassword)
 
 import Pdf.Document.Internal.Types
 
-import Data.Typeable
 import Data.IORef
 import Data.ByteString (ByteString)
 import Data.Text (Text)
@@ -141,6 +139,6 @@ deref _ o = return o
 
 -- | File is enctypted
 data EncryptedError = EncryptedError Text
-  deriving (Show, Typeable)
+  deriving (Show)
 
 instance Exception EncryptedError

@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 
 -- | Cross reference
 
@@ -27,7 +26,6 @@ import Pdf.Core.Util
 import Pdf.Core.IO.Buffer (Buffer)
 import qualified Pdf.Core.IO.Buffer as Buffer
 
-import Data.Typeable
 import Data.Int
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
@@ -250,6 +248,6 @@ lookupStreamEntry dict is (R objNumber _) =
 
 -- | Unknown entry type should be interpreted as reference to null object
 data UnknownXRefStreamEntryType = UnknownXRefStreamEntryType Int
-  deriving (Show, Typeable)
+  deriving (Show)
 
 instance Exception UnknownXRefStreamEntryType
