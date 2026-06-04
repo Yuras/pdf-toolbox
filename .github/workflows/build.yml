@@ -40,7 +40,7 @@ jobs:
       id: cache
       with:
         path: ${{ steps.setup.outputs.cabal-store }}
-        key: ${{ runner.os }}-build-${{ matrix.ghc }}-${{ hashFiles('**/*.cabal', '/.github/workflows/*.yml') }}
+        key: a-{{ runner.os }}-build-${{ matrix.ghc }}-${{ hashFiles('**/*.cabal', '/.github/workflows/*.yml') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ matrix.ghc }}-
 
