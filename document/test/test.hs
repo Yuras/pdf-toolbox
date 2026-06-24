@@ -62,6 +62,18 @@ main = hspec $ do
         txt `shouldBe` Just
           "\nHello World!!!\nXObject is here\nnested XObject is here"
 
+  describe "inline_image" $ do
+    it "should have correct text" $ do
+      withPdfFile "test/files/inline_image.pdf" $ \pdf -> do
+        doc <- document pdf
+        catalog <- documentCatalog doc
+        root <- catalogPageNode catalog
+        page <- pageNodePageByNum root 0
+        -- here timeout breaks infinite loop in case of a bug
+        txt <- timeout 5000000 $ pageExtractText page
+        txt `shouldBe` Just
+          "\nHello!!!\nWorld!!!"
+
 -- | Generate simple PDF file for tests
 withSimpleFile :: (Handle -> IO ()) -> IO ()
 withSimpleFile action = do
