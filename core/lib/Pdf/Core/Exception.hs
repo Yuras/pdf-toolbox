@@ -24,7 +24,7 @@ data Unexpected = Unexpected String [String]
 
 instance Exception Unexpected where
 
--- | We are sure it is 'Right'. Otherwise 'Corripted' is thrown
+-- | We are sure it is 'Right'. Otherwise 'Corrupted' is thrown
 sure :: Either String a -> IO a
 sure (Right a) = return a
 sure (Left err) = throwIO (Corrupted err [])

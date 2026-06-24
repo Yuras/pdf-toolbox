@@ -30,6 +30,7 @@ library
                        Pdf.Document.Pdf
                        Pdf.Document.Document
                        Pdf.Document.Info
+                       Pdf.Document.Form
                        Pdf.Document.Catalog
                        Pdf.Document.PageNode
                        Pdf.Document.Page

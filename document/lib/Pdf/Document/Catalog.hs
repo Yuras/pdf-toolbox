@@ -5,7 +5,8 @@
 module Pdf.Document.Catalog
 (
   Catalog,
-  catalogPageNode
+  catalogPageNode,
+  catalogForm,
 )
 where
 
@@ -19,6 +20,8 @@ import Pdf.Document.Internal.Util
 
 import qualified Data.HashMap.Strict as HashMap
 
+import Control.Monad
+
 -- | Get root node of page tree
 catalogPageNode :: Catalog -> IO PageNode
 catalogPageNode (Catalog pdf _ dict) = do
@@ -29,3 +32,11 @@ catalogPageNode (Catalog pdf _ dict) = do
   node <- sure $ dictValue obj `notice` "Pages should be a dictionary"
   ensureType "Pages" node
   return (PageNode pdf ref node)
+
+catalogForm :: Catalog -> IO (Maybe Form)
+catalogForm (Catalog pdf _ dict) =
+  forM (HashMap.lookup "AcroForm" dict) $ \o -> do
+    o' <- deref pdf o
+    node <- sure $ dictValue o'
+      `notice` "AcroForm should be an indirect reference if it exists"
+    return (Form pdf node)

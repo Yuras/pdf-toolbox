@@ -25,6 +25,7 @@ module Pdf.Document
 , module Pdf.Document.PageNode
 , module Pdf.Document.Page
 , module Pdf.Document.Info
+, module Pdf.Document.Form
 , module Pdf.Document.FontDict
 )
 where
@@ -33,6 +34,7 @@ import Pdf.Document.Types
 import Pdf.Document.Pdf
 import Pdf.Document.Document
 import Pdf.Document.Info
+import Pdf.Document.Form
 import Pdf.Document.Catalog
 import Pdf.Document.PageNode
 import Pdf.Document.Page
