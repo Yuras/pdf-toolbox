@@ -6,3 +6,5 @@ tmp/
 cabal.sandbox.config
 dist-newstyle/
 .ghc.environment.*
+/.envrc
+/cabal.project.local

@@ -89,15 +89,16 @@ initialGraphicsState = GraphicsState {
 data Span = Span
   { spGlyphs :: [Glyph]
   , spFontName :: Name
-  }
+  } deriving Show
 
 -- | Processor maintains graphics state
 data Processor = Processor {
   prState :: GraphicsState,
   prStateStack :: [GraphicsState],
   prGlyphDecoder :: GlyphDecoder,
-  prSpans :: [Span]
+  prSpans :: [Span],
   -- ^ Each element is a list of glyphs, drawn in one shot
+  prOperators :: [Operator]
   }
 
 -- | Create processor in initial state
@@ -106,7 +107,8 @@ mkProcessor = Processor {
   prState = initialGraphicsState,
   prStateStack = [],
   prGlyphDecoder = \_ _ -> [],
-  prSpans = mempty
+  prSpans = mempty,
+  prOperators = mempty
   }
 
 -- | Process one operation
